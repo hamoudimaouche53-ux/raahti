@@ -1474,6 +1474,47 @@ One real compile error surfaced and fixed during implementation, not silently wo
 
 ---
 
+## Feature 23 — EPIC-06 / US-06.4 (F10 — Map Pin Category Distinction)
+
+**Scope**: implements finding F10 from Feature 22's audit, deferred at the time pending UX review. Per explicit instruction, a UX design proposal (current behavior, WCAG 1.4.1 rationale, icon mapping, alternatives, M3/screen-reader/RTL impact, migration risk, visual mockup, recommendation) was written and reviewed before any code changed; the user approved it with one substitution (`Icons.verified_outlined` in place of the proposal's `Icons.sensors` for the RAHETI-unit glyph) and explicitly scoped this pass to F10 only — no other outstanding finding (F19, or any of the 17 lower-severity items from Feature 22 §4) was touched.
+
+### 1. Files Modified
+- `lib/features/map_discovery/presentation/widgets/place_marker.dart` — the pin's icon `switch` now keys off `place.pinColor` (4 values: green/blue/amber/magenta) instead of `place.placeKind` (2 values: station/thirdPartyPlace). Doc comment extended to explain the icon mapping and the WCAG 1.4.1 rationale, alongside the pre-existing color-mapping doc comment (left unchanged). No change to `background`/`foreground` color resolution, to `Semantics`, to the 48×48dp tap target (Feature 22/F6), or to the widget's public API (`Place place`, `VoidCallback? onTap`).
+
+### 2. Files Created
+| File | Purpose |
+|---|---|
+| `test/features/map_discovery/presentation/widgets/place_marker_test.dart` | First-ever dedicated test file for `PlaceMarker` (previously only indirectly covered via `map_screen_test.dart`'s `find.byType(PlaceMarker)` existence checks) — 6 tests, see §4. |
+
+### 3. Architecture Notes
+- **Icon mapping**: `PinColor.green → Icons.wc` (free WC, the prior default), `PinColor.blue → Icons.payments_outlined` (paid WC — reused verbatim from `place_detail_sheet.dart`'s existing `place.isFree` icon choice), `PinColor.amber → Icons.verified_outlined` (RAHETI unit — the one net-new icon, per the user's approved substitution for the proposal's `Icons.sensors`), `PinColor.magenta → Icons.mosque` (Slatoki — reused verbatim from `place_detail_sheet.dart`'s existing `CabinType.slatoki` icon choice). 2 of 4 icons are exact reuses of icons already meaning the same thing elsewhere in this codebase.
+- **Colors unchanged, by design**: this is strictly an additive redundant-encoding fix (glyph channel layered on the existing color channel), not a recolor — `RahatiFunctionalColors.success/info/rahatiUnit/slatoki` and their `on*` pairs are untouched, and the new `place_marker_test.dart` includes a dedicated test asserting each pin's background color still matches its pre-existing `RahatiFunctionalColors` role.
+- **`ClusterMarker` deliberately not touched**: confirmed (during the proposal step, re-confirmed here) that `cluster_marker.dart`'s existing doc comment already explains it renders in M3's generic `secondaryContainer` role rather than a functional color, specifically because a cluster mixes multiple places' pin colors and "has no single status to represent" — it was never exhibiting F10's color-only-distinction problem, so this fix has zero footprint outside `place_marker.dart`.
+- **No backend/API changes**: `pinColor` was already the field `PlaceDto`/`Place` expose; only which local Flutter icon constant is chosen from it changed.
+
+### 4. Test Coverage Summary
+6 new tests in `place_marker_test.dart`: one per `PinColor` value asserting the corresponding icon renders (4 tests — green→`Icons.wc`, blue→`Icons.payments_outlined`, amber→`Icons.verified_outlined`, magenta→`Icons.mosque`), one confirming the icon is keyed off `pinColor` and *not* `placeKind` (a `station` and a `thirdPartyPlace` sharing the same `pinColor` render the identical icon — the direct regression guard against the bug F10 described), and one confirming all 4 pins' fill colors still match their pre-existing `RahatiFunctionalColors` role (the "colors unchanged" claim, made programmatically checkable rather than just asserted in prose).
+
+### 5. `flutter analyze` Results
+```
+No issues found!
+```
+
+### 6. `flutter test` Results
+```
+01:27 +498: All tests passed!
+```
+498/498 (up from 492/492 at Feature 22's close — +6 new tests, 0 regressions).
+
+### 7. Blockers / Assumptions
+| Item | Type | Detail |
+|---|---|---|
+| F19 and the 17 lower-severity Feature 22 findings remain open | **Explicit scope boundary, not dropped** | Per explicit instruction, this pass implements F10 only; everything else Feature 22 §4 already tracked is unchanged by this entry. |
+| `Icons.verified_outlined` vs. the proposal's `Icons.sensors` | **User substitution, applied as specified** | The proposal flagged this as its one open pick; the user resolved it directly rather than leaving it for engineering to choose. |
+| No ambiguity requiring a stop-and-ask | — | The approved proposal fully specified every remaining detail (icon set, no color changes, no `ClusterMarker` changes) before implementation began. |
+
+---
+
 ## EPIC-01 — Real-Time Map & Discovery: COMPLETE (corrected)
 
 All **12 stories** in the Phase 0 backlog's EPIC-01 — FEAT-01.1 (US-01.1.1–01.1.7) and FEAT-01.2 (US-01.2.1–01.2.5) — are implemented, tested, and verified live on a physical Android device in Light, Dark, and Arabic (RTL).
@@ -1490,6 +1531,24 @@ All **6 stories** in the Phase 0 backlog's EPIC-04 — US-04.1 (Scan QR — SCR-
 
 **3 of 4 stories** — US-05.1 (Sign In/Sign Up + guest mode, SCR-030, FR-USR-01), US-05.2 (Profile Home, Visit History, Payment Methods, My Reviews + Submit Review — SCR-020/021/022/023/007, FR-USR-02), and US-05.4 (Favorites + Notification Settings — SCR-026/027, FR-USR-04) — are implemented, tested, and verified live on a physical Android device, per the Release Alignment table's V1 scope for this epic. US-05.3 (diabetic-verification submission, SCR-024/025) is **deliberately deferred to V1.1**, same discipline ADR-0024 already applied to the Emergency tab — flagged and visibly locked in the UI, not hidden or faked. `flutter analyze` clean, `flutter test` 460/460 passing. Five real API-contract gaps identified and documented (§7 of Feature 20's report) rather than invented against; every affected screen is nonetheless fully built and demoable via `MockAuthRepository`/`MockFavoriteRepository`/etc. **Phase 3 can proceed to the next Epic** (with US-05.3 tracked for V1.1 alongside EPIC-03).
 
-## EPIC-06 — Bilingual FR/AR & Material 3 Design System: PARTIAL (US-06.1/06.2/06.5/06.6 done; US-06.4 audit performed and partially remediated, 17 lower-severity findings still open)
+## EPIC-06 — Bilingual FR/AR & Material 3 Design System: NOT COMPLETE (US-06.1/06.2/06.5/06.6 done; US-06.4 blocked on 2 open HIGH findings + the story's own required WCAG checklist sign-off)
 
-Unlike every other epic in this log, EPIC-06 is cross-cutting rather than a discrete set of screens, so its stories have been satisfied on two different tracks. **US-06.2** (native RTL, not mirrored LTR) and **US-06.6** (custom components composed from M3 primitives) have been continuously verified incrementally — every feature since Feature 1 ships Light/Dark/RTL evidence as part of its own report, and `QiblaCompass`/`SlatokiTentStatusCard`/cabin-status indicators are all built from M3 primitives (`Card`, `Chip`, `ColorScheme` roles) by construction, not as a separate pass. **US-06.1** (language switch, persists across sessions) and **US-06.5** (light/dark theme, user-controllable) are **done** — see Feature 21 (SCR-029 Language & Theme Settings), which also added the `shared_preferences`-backed persistence neither setting previously had. **US-06.3** (native-per-language content, no machine translation) is a process requirement, not a dev task, per the backlog's own note. **US-06.4** (a *dedicated* WCAG 2.2 AA contrast audit and a screen-reader accessibility pass across the whole app) — see **Feature 22**: the full audit has now been performed (28 findings, computed contrast ratios + a full read-only pass across every feature module), and 11 user-approved findings implemented and verified (`flutter test` 492/492), including the previously-undocumented gap that the app had **no reduced-motion support at all** (now fixed at the route-transition level). **17 lower-severity findings remain open** (tracked in Feature 22 §4) and 2 findings are explicitly deferred pending UX review (F10 — pin color-only category distinction; F19 — misleading Qibla compass label). EPIC-06 is therefore **materially more complete than before this pass, but not fully closed** — the open findings, not just "no audit happened," are what remain before it can be marked COMPLETE.
+Unlike every other epic in this log, EPIC-06 is cross-cutting rather than a discrete set of screens, so its stories have been satisfied on two different tracks. **US-06.2** (native RTL, not mirrored LTR) and **US-06.6** (custom components composed from M3 primitives) have been continuously verified incrementally — every feature since Feature 1 ships Light/Dark/RTL evidence as part of its own report, and `QiblaCompass`/`SlatokiTentStatusCard`/cabin-status indicators are all built from M3 primitives (`Card`, `Chip`, `ColorScheme` roles) by construction, not as a separate pass. **US-06.1** (language switch, persists across sessions) and **US-06.5** (light/dark theme, user-controllable) are **done** — see Feature 21 (SCR-029 Language & Theme Settings), which also added the `shared_preferences`-backed persistence neither setting previously had. **US-06.3** (native-per-language content, no machine translation) is a process requirement, not a dev task, per the backlog's own note. **US-06.4** (a *dedicated* WCAG 2.2 AA contrast audit and a screen-reader accessibility pass across the whole app) — see **Feature 22** (the full audit: 28 findings, computed contrast ratios + a full read-only pass across every feature module, 11 findings implemented) and **Feature 23** (F10 — map pin category distinction, implemented via a reviewed-and-approved UX proposal rather than a unilateral code fix, since it required a design decision, not just a mechanical one). `flutter test` 498/498 passing as of Feature 23.
+
+**17 findings remain open, tracked in Feature 22 §4 — 2 of them HIGH severity, not "lower-severity" as an earlier version of this line stated:**
+
+| ID | Severity | Issue |
+|---|---|---|
+| F19 | **HIGH** | Qibla compass gives a persistently misleading "tap to expand" label on a screen where nothing happens on tap — deferred pending UX review, same discipline F10 went through before its own fix. |
+| **F23** | **HIGH** | `payment_method_selection_sheet.dart`'s loading spinner carries zero `Semantics` — a screen-reader user gets no indication anything is loading during a payment flow. |
+| F4, F8, F17, F18, F20, F21, F24, F25 | MEDIUM | See Feature 22 §4 for detail — hard-coded overlay colors, sub-48dp dialog options, hint-only search label, button losing its name mid-submit, static compass label, hard-coded non-localized marker text, unannounced status banners/state transitions. |
+| F3, F5, F9, F26, F27, F28, F29 | LOW | See Feature 22 §4 — latent (non-live) token contrast, token-discipline inconsistency, tightly-packed controls, live-region double-announcement, missing progress-bar semantics label, non-live error text, informational splash-timing note. |
+
+**EPIC-06 is explicitly NOT marked COMPLETE**, per verification against the roadmap, PRD, SRS, ADRs, and this log's own precedent, run before this line was written:
+
+1. `docs/design/design-system-specification.md:24` states accessibility is *"a hard requirement, not an aspiration"* — unqualified. An exhaustive grep of SRS, PRD, and every ADR for phased-compliance or known-issue-triage language ("definition of done," "known issue," "triage," "non-blocking," "sign-off") returned **zero matches** — nothing in this project's own documentation authorizes closing an epic with open accessibility defects.
+2. The backlog's own definition of **US-06.4** (`docs/backlog/product-backlog.md:118`) explicitly includes *"WCAG 2.2 AA checklist sign-off"* as part of the story — that sign-off has not happened, and `docs/design/component-library.md`'s own accessibility checklist (§10) still carries literal unchecked `- [ ]` boxes.
+3. **EPIC-06 has no V1 carve-out.** Unlike EPIC-05 (`docs/backlog/product-backlog.md`'s Release Alignment table names `US-05.1/05.2/05.4` explicitly and excludes `US-05.3` by name), EPIC-06 is listed for V1 **in full** — there is no textual basis to treat any part of US-06.4 as already-acceptable-to-defer.
+4. **No precedent exists in this log for closing an epic over an in-scope defect.** Every prior "COMPLETE"/"V1 COMPLETE" closure in this file (EPIC-04's Operator Dashboard gap — a different epic/app entirely; EPIC-05's US-05.3 — a named Release Alignment carve-out) was over something formally scoped elsewhere or later, never a documented bug inside an already-shipped, in-scope screen. F19 and F23 are bugs inside EPIC-02's and EPIC-04's own already-"COMPLETE"-marked screens.
+
+**What remains before EPIC-06 can close**: resolve F19 (needs the same UX-review step F10 went through — a design decision on what the compass label should say per state, not a mechanical fix) and F23 (a mechanical fix — add `Semantics`/text to the loading spinner, same pattern already used correctly elsewhere in this codebase), then a decision on the remaining 15 Medium/Low findings (fix, or a documented, explicit V1.1 carve-out added to the Release Alignment table itself — which does not currently exist for any part of EPIC-06). **Phase 3 should not proceed past EPIC-06 until this is resolved.**

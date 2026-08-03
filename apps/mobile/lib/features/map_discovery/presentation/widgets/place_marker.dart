@@ -8,6 +8,19 @@ import "../../domain/entities/place.dart";
 /// unit, magenta=Slatoki) — FR-MAP-02. Reads its color from
 /// [RahatiFunctionalColors], never a hard-coded [Color], per ADR-0011.
 ///
+/// **Icon is derived from [Place.pinColor] (4-way), not [Place.placeKind]
+/// (2-way)** — `Icons.wc` (free), `Icons.payments_outlined` (paid),
+/// `Icons.verified_outlined` (RAHETI unit), `Icons.mosque` (Slatoki). This
+/// gives every one of the 4 functional-color categories its own glyph,
+/// redundant with (not replacing) color — colors are unchanged. Before
+/// this fix, the icon was chosen from `placeKind` (station/thirdPartyPlace,
+/// only 2 values), so within a `placeKind` the two `pinColor` values it can
+/// take (e.g. a plain RAHETI unit vs. one with a Slatoki space, both
+/// `station`) rendered an *identical* icon, differing only by hue — a
+/// WCAG 2.2 SC 1.4.1 (Use of Color) violation confirmed against this app's
+/// own fixture data and fixed as part of the US-06.4 accessibility audit
+/// (finding F10).
+///
 /// Tapping a pin (FR-MAP-03, place detail sheet) is a separate story
 /// (US-01.2.x) — this widget is display-only for now; `onTap` is wired to a
 /// no-op-safe callback so the seam exists without inventing a destination
@@ -62,9 +75,11 @@ class PlaceMarker extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: Icon(
-                switch (place.placeKind) {
-                  PlaceKind.station => Icons.wc,
-                  PlaceKind.thirdPartyPlace => Icons.place,
+                switch (place.pinColor) {
+                  PinColor.green => Icons.wc,
+                  PinColor.blue => Icons.payments_outlined,
+                  PinColor.amber => Icons.verified_outlined,
+                  PinColor.magenta => Icons.mosque,
                 },
                 size: 18,
                 color: foreground,
