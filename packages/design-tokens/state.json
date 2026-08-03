@@ -1,0 +1,11 @@
+{
+  "$description": "Interaction state-layer opacity tokens. Source of truth for docs/design/foundations.md §8.",
+  "hover": { "value": 0.08, "type": "opacity" },
+  "focus": { "value": 0.10, "type": "opacity" },
+  "focus-text-icon-only": { "value": 0.12, "type": "opacity" },
+  "pressed": { "value": 0.10, "type": "opacity" },
+  "pressed-text-icon-only": { "value": 0.12, "type": "opacity" },
+  "dragged": { "value": 0.16, "type": "opacity" },
+  "disabled-content": { "value": 0.38, "type": "opacity" },
+  "disabled-container": { "value": 0.12, "type": "opacity" }
+}

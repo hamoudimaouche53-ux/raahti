@@ -1,0 +1,10 @@
+{
+  "$description": "Corner-radius tokens. Source of truth for docs/design/foundations.md §7.",
+  "shape-none": { "value": 0, "type": "borderRadius" },
+  "shape-extra-small": { "value": 4, "type": "borderRadius" },
+  "shape-small": { "value": 8, "type": "borderRadius" },
+  "shape-medium": { "value": 12, "type": "borderRadius" },
+  "shape-large": { "value": 16, "type": "borderRadius" },
+  "shape-extra-large": { "value": 28, "type": "borderRadius" },
+  "shape-full": { "value": 9999, "type": "borderRadius" }
+}

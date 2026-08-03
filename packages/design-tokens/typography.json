@@ -1,0 +1,25 @@
+{
+  "$description": "RAHATI typography tokens. Source of truth for docs/design/foundations.md §2. Font families are provisional — see docs/design/assumptions-and-open-questions.md §3.",
+  "fontFamily": {
+    "latin": { "value": "Roboto Flex", "type": "fontFamily" },
+    "arabicDisplay": { "value": "Noto Kufi Arabic", "type": "fontFamily" },
+    "arabicBody": { "value": "Noto Naskh Arabic", "type": "fontFamily" }
+  },
+  "scale": {
+    "displayLarge":  { "fontSize": 57, "lineHeight": 64, "weight": 400, "tracking": -0.25, "type": "typography" },
+    "displayMedium": { "fontSize": 45, "lineHeight": 52, "weight": 400, "tracking": 0,     "type": "typography" },
+    "displaySmall":  { "fontSize": 36, "lineHeight": 44, "weight": 400, "tracking": 0,     "type": "typography" },
+    "headlineLarge": { "fontSize": 32, "lineHeight": 40, "weight": 400, "tracking": 0,     "type": "typography" },
+    "headlineMedium":{ "fontSize": 28, "lineHeight": 36, "weight": 400, "tracking": 0,     "type": "typography" },
+    "headlineSmall": { "fontSize": 24, "lineHeight": 32, "weight": 400, "tracking": 0,     "type": "typography" },
+    "titleLarge":    { "fontSize": 22, "lineHeight": 28, "weight": 400, "tracking": 0,     "type": "typography" },
+    "titleMedium":   { "fontSize": 16, "lineHeight": 24, "weight": 500, "tracking": 0.15,  "type": "typography" },
+    "titleSmall":    { "fontSize": 14, "lineHeight": 20, "weight": 500, "tracking": 0.1,   "type": "typography" },
+    "bodyLarge":     { "fontSize": 16, "lineHeight": 24, "weight": 400, "tracking": 0.5,   "type": "typography" },
+    "bodyMedium":    { "fontSize": 14, "lineHeight": 20, "weight": 400, "tracking": 0.25,  "type": "typography" },
+    "bodySmall":     { "fontSize": 12, "lineHeight": 16, "weight": 400, "tracking": 0.4,   "type": "typography" },
+    "labelLarge":    { "fontSize": 14, "lineHeight": 20, "weight": 500, "tracking": 0.1,   "type": "typography" },
+    "labelMedium":   { "fontSize": 12, "lineHeight": 16, "weight": 500, "tracking": 0.5,   "type": "typography" },
+    "labelSmall":    { "fontSize": 11, "lineHeight": 16, "weight": 500, "tracking": 0.5,   "type": "typography" }
+  }
+}

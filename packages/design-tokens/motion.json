@@ -1,0 +1,29 @@
+{
+  "$description": "Motion tokens. Source of truth for docs/design/foundations.md §5. Every duration must be paired with the reduced-motion fallback (short-2, cross-fade only) when OS reduce-motion is enabled.",
+  "duration": {
+    "short-1": { "value": 50, "unit": "ms", "type": "duration" },
+    "short-2": { "value": 100, "unit": "ms", "type": "duration" },
+    "short-3": { "value": 150, "unit": "ms", "type": "duration" },
+    "short-4": { "value": 200, "unit": "ms", "type": "duration" },
+    "medium-1": { "value": 250, "unit": "ms", "type": "duration" },
+    "medium-2": { "value": 300, "unit": "ms", "type": "duration" },
+    "medium-3": { "value": 350, "unit": "ms", "type": "duration" },
+    "medium-4": { "value": 400, "unit": "ms", "type": "duration" },
+    "long-1": { "value": 450, "unit": "ms", "type": "duration" },
+    "long-2": { "value": 500, "unit": "ms", "type": "duration" },
+    "long-3": { "value": 550, "unit": "ms", "type": "duration" },
+    "long-4": { "value": 600, "unit": "ms", "type": "duration" },
+    "extra-long-1": { "value": 700, "unit": "ms", "type": "duration" },
+    "extra-long-2": { "value": 800, "unit": "ms", "type": "duration" },
+    "extra-long-3": { "value": 900, "unit": "ms", "type": "duration" },
+    "extra-long-4": { "value": 1000, "unit": "ms", "type": "duration" }
+  },
+  "easing": {
+    "emphasized": { "value": "cubic-bezier(0.2, 0.0, 0, 1.0)", "type": "cubicBezier" },
+    "emphasized-decelerate": { "value": "cubic-bezier(0.05, 0.7, 0.1, 1.0)", "type": "cubicBezier" },
+    "emphasized-accelerate": { "value": "cubic-bezier(0.3, 0.0, 0.8, 0.15)", "type": "cubicBezier" },
+    "standard": { "value": "cubic-bezier(0.2, 0.0, 0, 1.0)", "type": "cubicBezier" },
+    "standard-decelerate": { "value": "cubic-bezier(0, 0, 0, 1)", "type": "cubicBezier" },
+    "standard-accelerate": { "value": "cubic-bezier(0.3, 0, 1, 1)", "type": "cubicBezier" }
+  }
+}

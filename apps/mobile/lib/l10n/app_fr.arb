@@ -1,0 +1,730 @@
+{
+  "@@locale": "fr",
+  "appName": "RAHETI",
+  "@appName": {
+    "description": "Brand name — kept as-is across all locales, never translated (see docs/design/foundations.md and Phase 2 interactive prototype convention)."
+  },
+  "splashLoading": "Chargement…",
+  "@splashLoading": {
+    "description": "SCR-001 Splash screen — visible loading label under the app name."
+  },
+  "splashSemanticLabel": "RAHETI, chargement en cours",
+  "@splashSemanticLabel": {
+    "description": "SCR-001 Splash screen — screen-reader announcement, per docs/design/wireframes/mobile-map-discovery.md#scr-001 accessibility note (loading state must be announced, not only shown visually)."
+  },
+  "mapPositionLoading": "Localisation en cours…",
+  "@mapPositionLoading": {
+    "description": "SCR-003 Map — banner shown while the device position is resolving (US-01.1.1)."
+  },
+  "mapPositionErrorServiceDisabled": "Service de localisation désactivé — activez-le pour voir votre position.",
+  "@mapPositionErrorServiceDisabled": {
+    "description": "SCR-003 Map — banner shown when device location services are off."
+  },
+  "mapPositionErrorPermissionDenied": "Autorisation de localisation refusée — activez-la dans les paramètres.",
+  "@mapPositionErrorPermissionDenied": {
+    "description": "SCR-003 Map — banner shown when location permission was denied (once or permanently)."
+  },
+  "mapPositionErrorGeneric": "Impossible d'obtenir votre position.",
+  "@mapPositionErrorGeneric": {
+    "description": "SCR-003 Map — banner shown for any other position-resolution failure."
+  },
+  "mapPlacesErrorNotConfigured": "Aucun serveur configuré — les lieux à proximité ne peuvent pas être chargés.",
+  "@mapPlacesErrorNotConfigured": {
+    "description": "SCR-003 Map — banner shown when no backend API is configured for this build (ADR-0016 hosting still open)."
+  },
+  "mapPlacesErrorGeneric": "Impossible de charger les lieux à proximité.",
+  "@mapPlacesErrorGeneric": {
+    "description": "SCR-003 Map — banner shown for any other nearby-places fetch failure."
+  },
+  "placeDetailClose": "Fermer",
+  "@placeDetailClose": {
+    "description": "SCR-005 Place Detail Sheet — close button semantic label (US-01.1.3)."
+  },
+  "placeDetailNoReviews": "Aucun avis",
+  "@placeDetailNoReviews": {
+    "description": "SCR-005 Place Detail Sheet — shown instead of a star rating when a place has no reviews yet."
+  },
+  "placeDetailReviewCount": "{count, plural, =0{Aucun avis} one{1 avis} other{{count} avis}}",
+  "@placeDetailReviewCount": {
+    "description": "SCR-005 Place Detail Sheet — review count, pluralized.",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "placeDetailFree": "Gratuit",
+  "@placeDetailFree": {
+    "description": "SCR-005 Place Detail Sheet — shown instead of a price when the place is free."
+  },
+  "placeDetailPaid": "Payant",
+  "@placeDetailPaid": {
+    "description": "SCR-005 Place Detail Sheet — shown when the place is not free. The `PlaceSummary` API schema (docs/api/openapi.yaml) does not include a price amount at the list level (only StationDetail/ThirdPartyPlaceDetail do), so only the free/paid distinction is shown here, not an amount."
+  },
+  "placeDetailRoute": "Itinéraire",
+  "@placeDetailRoute": {
+    "description": "SCR-005 Place Detail Sheet — one-tap route action (FR-PLC-05)."
+  },
+  "placeDetailRouteUnavailable": "Aucune application de navigation disponible.",
+  "@placeDetailRouteUnavailable": {
+    "description": "SCR-005 Place Detail Sheet — shown when the device has no app that can handle a navigation/geo link."
+  },
+  "tagWomenConfirmed": "Femmes ✓",
+  "@tagWomenConfirmed": { "description": "Tag label per docs/erd/erd.md §3.5." },
+  "tagWudu": "Wudu ✓",
+  "@tagWudu": { "description": "Tag label per docs/erd/erd.md §3.5." },
+  "tagPmr": "PMR",
+  "@tagPmr": { "description": "Tag label per docs/erd/erd.md §3.5." },
+  "tagPrayer": "Prière",
+  "@tagPrayer": { "description": "Tag label per docs/erd/erd.md §3.5." },
+  "tagOpenNow": "Ouvert",
+  "@tagOpenNow": { "description": "Tag label per docs/erd/erd.md §3.5." },
+  "clusterMarkerLabel": "{count, plural, one{1 lieu à proximité} other{{count} lieux à proximité}}",
+  "@clusterMarkerLabel": {
+    "description": "US-01.1.2 — screen-reader label for a marker cluster badge.",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "mapSearchHint": "Rechercher un lieu…",
+  "@mapSearchHint": {
+    "description": "SCR-003 Map — search bar placeholder text (US-01.1.4, FR-MAP-04)."
+  },
+  "mapSearchClear": "Effacer la recherche",
+  "@mapSearchClear": {
+    "description": "SCR-003 Map — search bar clear-button semantic label."
+  },
+  "mapFilterAll": "Tout",
+  "@mapFilterAll": {
+    "description": "SCR-003 Map — FR-MAP-05 quick filter chip: clears category selection."
+  },
+  "mapFilterFree": "Gratuit",
+  "@mapFilterFree": {
+    "description": "SCR-003 Map — FR-MAP-05 quick filter chip: free places."
+  },
+  "mapFilterPaid": "Payant",
+  "@mapFilterPaid": {
+    "description": "SCR-003 Map — FR-MAP-05 quick filter chip: paid places."
+  },
+  "mapFilterRahatiUnit": "RAHETI",
+  "@mapFilterRahatiUnit": {
+    "description": "SCR-003 Map — FR-MAP-05 quick filter chip: RAHETI-operated stations."
+  },
+  "mapFilterSlatoki": "Slatoki",
+  "@mapFilterSlatoki": {
+    "description": "SCR-003 Map — FR-MAP-05 quick filter chip: Slatoki places."
+  },
+  "mapFilterUnder1km": "< 1 km",
+  "@mapFilterUnder1km": {
+    "description": "SCR-003 Map — distance filter chip (US-01.1.4 requirement, layered onto the existing radiusMeters API parameter — see ADR-0021)."
+  },
+  "mapFilterUnder5km": "< 5 km",
+  "@mapFilterUnder5km": {
+    "description": "SCR-003 Map — distance filter chip, see mapFilterUnder1km."
+  },
+  "mapFilterNoResults": "Aucun lieu ne correspond à ces filtres.",
+  "@mapFilterNoResults": {
+    "description": "SCR-003 Map — shown when the active search/filter combination matches zero places (SCR-003 'empty' state)."
+  },
+  "mapRecenterLockedTooltip": "Suivi de position actif — appuyer pour recentrer",
+  "@mapRecenterLockedTooltip": {
+    "description": "SCR-003 Map — recenter FAB tooltip/semantic label when position-tracking is locked (US-01.1.6, FR-MAP-06)."
+  },
+  "mapRecenterUnlockedTooltip": "Recentrer sur ma position",
+  "@mapRecenterUnlockedTooltip": {
+    "description": "SCR-003 Map — recenter FAB tooltip/semantic label when position-tracking is unlocked (US-01.1.6, FR-MAP-06)."
+  },
+  "mapOffline": "Hors connexion — dernières données affichées, mise à jour il y a {minutes, plural, =0{moins d'une minute} one{1 min} other{{minutes} min}}",
+  "@mapOffline": {
+    "description": "SCR-031 — offline banner shown when nearby places are served from the local cache after a failed refresh (FR-MAP-07).",
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "mapOfflineNeverSynced": "Hors connexion — aucune donnée en cache pour l'instant.",
+  "@mapOfflineNeverSynced": {
+    "description": "SCR-031 — offline banner shown when the very first fetch fails and there is no cache yet."
+  },
+  "mapReconnecting": "Reconnexion en cours…",
+  "@mapReconnecting": {
+    "description": "SCR-031 — inline label shown while a background retry fetch is in flight."
+  },
+  "cabinStatusFree": "Libre",
+  "@cabinStatusFree": {
+    "description": "Component Library §9.3 — Cabin-Status Indicator label (US-01.2.2, FR-PLC-02)."
+  },
+  "cabinStatusOccupied": "Occupé",
+  "@cabinStatusOccupied": {
+    "description": "Component Library §9.3 — Cabin-Status Indicator label."
+  },
+  "cabinStatusOutOfService": "Hors service",
+  "@cabinStatusOutOfService": {
+    "description": "Component Library §9.3 — Cabin-Status Indicator label."
+  },
+  "placeDetailCabinLabel": "Cabine {code}",
+  "@placeDetailCabinLabel": {
+    "description": "SCR-005 — cabin row label (US-01.2.2).",
+    "placeholders": { "code": { "type": "String" } }
+  },
+  "placeDetailDeclaredStatusOpen": "Ouvert",
+  "@placeDetailDeclaredStatusOpen": {
+    "description": "SCR-006 — third-party place declarative status chip (US-01.2.2, FR-PLC-02)."
+  },
+  "placeDetailDeclaredStatusClosed": "Fermé",
+  "@placeDetailDeclaredStatusClosed": {
+    "description": "SCR-006 — third-party place declarative status chip."
+  },
+  "placeDetailDeclaredStatusUnknown": "Statut inconnu",
+  "@placeDetailDeclaredStatusUnknown": {
+    "description": "SCR-006 — third-party place declarative status chip."
+  },
+  "placeDetailStatusSourceCommunity": "Signalé par la communauté",
+  "@placeDetailStatusSourceCommunity": {
+    "description": "SCR-006 — caption under the declarative status chip, distinguishing it from IoT-verified station status."
+  },
+  "placeDetailStatusSourceOwnerDeclared": "Déclaré par l'établissement",
+  "@placeDetailStatusSourceOwnerDeclared": {
+    "description": "SCR-006 — caption under the declarative status chip."
+  },
+  "placeDetailPaymentCard": "Carte",
+  "@placeDetailPaymentCard": {
+    "description": "SCR-005 — accepted payment method label (US-01.2.3, FR-PLC-03)."
+  },
+  "placeDetailPaymentWallet": "Portefeuille mobile",
+  "@placeDetailPaymentWallet": {
+    "description": "SCR-005 — accepted payment method label (US-01.2.3, FR-PLC-03)."
+  },
+  "placeDetailMockDataBanner": "Données de démonstration — en attente du backend",
+  "@placeDetailMockDataBanner": {
+    "description": "Shown only when AppEnv.useMockPlaceDetail is explicitly enabled — never in a normal build."
+  },
+  "placeDetailDetailLoading": "Chargement des détails…",
+  "@placeDetailDetailLoading": {
+    "description": "SCR-005 — inline loading label while cabin/status detail is being fetched."
+  },
+  "placeDetailDetailError": "Impossible de charger les détails de ce lieu.",
+  "@placeDetailDetailError": {
+    "description": "SCR-005 — inline error label when the detail fetch fails."
+  },
+  "navMap": "Carte",
+  "@navMap": {
+    "description": "Bottom navigation bar destination label (docs/design/component-library.md §5, US-02.1.1)."
+  },
+  "navSlatoki": "Slatoki",
+  "@navSlatoki": {
+    "description": "Bottom navigation bar destination label — kept as-is across all locales like appName, per RAH-DOC-005's 'Slatoki (صلاتكِ)' brand naming (US-02.1.1)."
+  },
+  "navEmergency": "Urgence",
+  "@navEmergency": {
+    "description": "Bottom navigation bar destination label (US-02.1.1); the destination itself is a placeholder pending EPIC-03 (V1.1) — see ADR-0024."
+  },
+  "navProfile": "Profil",
+  "@navProfile": {
+    "description": "Bottom navigation bar destination label (US-02.1.1); the destination itself is a placeholder pending EPIC-05 — see ADR-0024."
+  },
+  "slatokiTabTitle": "Slatoki صلاتكِ",
+  "@slatokiTabTitle": {
+    "description": "SCR-008 Top App Bar title — bilingual brand form shown identically in every locale, per docs/design/wireframes/mobile-slatoki.md#scr-008 ASCII wireframe and the same 'never translated' convention as appName (US-02.1.1)."
+  },
+  "slatokiEmptyState": "Aucun espace Slatoki à proximité",
+  "@slatokiEmptyState": {
+    "description": "SCR-008 — empty-state text, per docs/design/wireframes/mobile-slatoki.md#scr-008 States. Currently the only body state: the Qibla widget (US-02.1.2), filter tabs (US-02.1.3), and tent/mosque list (US-02.1.4/02.1.5) are separate, not-yet-implemented stories."
+  },
+  "emergencyPlaceholderTitle": "Mode Urgence",
+  "@emergencyPlaceholderTitle": {
+    "description": "SCR (placeholder) — Emergency tab title, per ADR-0024. Replaced wholesale when EPIC-03 (V1.1) is implemented."
+  },
+  "emergencyPlaceholderBody": "Disponible dans la version V1.1.",
+  "@emergencyPlaceholderBody": {
+    "description": "SCR (placeholder) — Emergency tab body text, per ADR-0024."
+  },
+  "qiblaCompactSemanticLabel": "Boussole vers La Mecque, appuyez pour agrandir",
+  "@qiblaCompactSemanticLabel": {
+    "description": "SCR-008 — screen-reader label for the compact Qibla widget card (US-02.1.2)."
+  },
+  "qiblaBearingAnnouncement": "La Mecque est à {degrees} degrés, {direction}",
+  "@qiblaBearingAnnouncement": {
+    "description": "SCR-009 — screen-reader announcement for the full-screen compass, per the wireframe's explicit accessibility example ('La Mecque est à 127 degrés, sud-est').",
+    "placeholders": {
+      "degrees": { "type": "int" },
+      "direction": { "type": "String" }
+    }
+  },
+  "qiblaMeccaLabel": "La Mecque",
+  "@qiblaMeccaLabel": {
+    "description": "SCR-009 — visible degree readout, e.g. '127° — La Mecque'."
+  },
+  "qiblaCalibratingHint": "Déplacez votre téléphone en 8 pour calibrer",
+  "@qiblaCalibratingHint": {
+    "description": "SCR-009 — hint text shown while the compass is calibrating (ADR-0025)."
+  },
+  "qiblaUnavailableBanner": "Boussole indisponible sur cet appareil",
+  "@qiblaUnavailableBanner": {
+    "description": "SCR-009/Component Library §9.1 — shown when the device has no magnetometer."
+  },
+  "qiblaDirectionN": "Nord",
+  "qiblaDirectionNe": "Nord-Est",
+  "qiblaDirectionE": "Est",
+  "qiblaDirectionSe": "Sud-Est",
+  "qiblaDirectionS": "Sud",
+  "qiblaDirectionSw": "Sud-Ouest",
+  "qiblaDirectionW": "Ouest",
+  "qiblaDirectionNw": "Nord-Ouest",
+  "@qiblaDirectionNw": {
+    "description": "8-point cardinal direction names, used in qiblaBearingAnnouncement."
+  },
+  "slatokiFilterPrayerOnly": "Prière seule",
+  "@slatokiFilterPrayerOnly": {
+    "description": "SCR-008 — filter tab label (US-02.1.3, FR-SLK-03)."
+  },
+  "slatokiFilterWuduOnly": "Wudu seul",
+  "@slatokiFilterWuduOnly": {
+    "description": "SCR-008 — filter tab label (US-02.1.3, FR-SLK-03)."
+  },
+  "slatokiFilterPrayerAndWudu": "Prière + Wudu",
+  "@slatokiFilterPrayerAndWudu": {
+    "description": "SCR-008 — filter tab label (US-02.1.3, FR-SLK-03)."
+  },
+  "slatokiPlacesLoading": "Recherche des espaces Slatoki…",
+  "@slatokiPlacesLoading": {
+    "description": "SCR-008 — banner shown while the Slatoki places list is loading."
+  },
+  "slatokiPlacesErrorNotConfigured": "Aucun serveur configuré — les espaces Slatoki ne peuvent pas être chargés.",
+  "@slatokiPlacesErrorNotConfigured": {
+    "description": "SCR-008 — banner shown when no backend API is configured for this build."
+  },
+  "slatokiPlacesErrorGeneric": "Impossible de charger les espaces Slatoki.",
+  "@slatokiPlacesErrorGeneric": {
+    "description": "SCR-008 — banner shown for any other Slatoki-places fetch failure."
+  },
+  "slatokiWomenVerifiedChipLabel": "Femmes — section confirmée",
+  "@slatokiWomenVerifiedChipLabel": {
+    "description": "SCR-010 — prominent chip shown directly under the header when womenVerificationLevel = verified_confirmed (US-02.1.4, FR-SLK-04)."
+  },
+  "slatokiWomenGenericNote": "Statut femmes non confirmé",
+  "@slatokiWomenGenericNote": {
+    "description": "SCR-010 — neutral (not alarming) note shown for a generic/unverified space, per the wireframe's explicit tone guidance."
+  },
+  "slatokiTentDeployed": "Déployée",
+  "@slatokiTentDeployed": {
+    "description": "Component Library §9.2 — Slatoki Tent-Status Card trailing chip label (US-02.1.5, FR-SLK-05)."
+  },
+  "slatokiTentFolded": "Repliée",
+  "@slatokiTentFolded": {
+    "description": "Component Library §9.2 — Slatoki Tent-Status Card trailing chip label."
+  },
+  "slatokiTentMatCapacity": "{count, plural, =0{0 tapis} one{1 tapis} other{{count} tapis}}",
+  "@slatokiTentMatCapacity": {
+    "description": "Component Library §9.2 — supporting-text mat count, e.g. '4 tapis'.",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "slatokiTentLightingLabel": "Éclairage disponible",
+  "@slatokiTentLightingLabel": {
+    "description": "Component Library §9.2 — screen-reader label for the lighting amenity icon, per the component library's own explicit example."
+  },
+  "slatokiTentPrivacyCurtainLabel": "Rideau de confidentialité disponible",
+  "@slatokiTentPrivacyCurtainLabel": {
+    "description": "Component Library §9.2 — screen-reader label for the privacy-curtain amenity icon."
+  },
+  "placeDetailScanQr": "Scanner le QR",
+  "@placeDetailScanQr": {
+    "description": "SCR-005/SCR-006 Place Detail Sheet — entry-point button to SCR-013 (US-04.1), shown only for a station with at least one cabin."
+  },
+  "placeDetailQrScanSuccessSnackbar": "Code QR scanné — session initiée.",
+  "@placeDetailQrScanSuccessSnackbar": {
+    "description": "Temporary confirmation shown after a successful scan (now routed through SCR-013 → SCR-014, US-04.1/04.2), pending US-04.3's real SCR-015 payment navigation."
+  },
+  "qrScannerInstruction": "Scannez le QR code sur la cabine.",
+  "@qrScannerInstruction": {
+    "description": "SCR-013 QR Scanner — bottom overlay instruction strip."
+  },
+  "qrScannerManualEntryButton": "Saisir le code manuellement",
+  "@qrScannerManualEntryButton": {
+    "description": "SCR-013 QR Scanner — mandatory non-visual accessibility fallback Text Button."
+  },
+  "qrScannerManualEntryDialogTitle": "Saisir le code",
+  "@qrScannerManualEntryDialogTitle": {
+    "description": "SCR-013 QR Scanner — manual-entry dialog title."
+  },
+  "qrScannerManualEntryFieldLabel": "Code de la cabine",
+  "@qrScannerManualEntryFieldLabel": {
+    "description": "SCR-013 QR Scanner — manual-entry dialog text field label."
+  },
+  "qrScannerManualEntrySubmit": "Valider",
+  "@qrScannerManualEntrySubmit": {
+    "description": "SCR-013 QR Scanner — manual-entry dialog submit button."
+  },
+  "qrScannerManualEntryCancel": "Annuler",
+  "@qrScannerManualEntryCancel": {
+    "description": "SCR-013 QR Scanner — manual-entry dialog cancel button."
+  },
+  "qrScannerPermissionDeniedTitle": "Accès à la caméra refusé",
+  "@qrScannerPermissionDeniedTitle": {
+    "description": "SCR-013 QR Scanner — permission-denied rationale card title."
+  },
+  "qrScannerPermissionDeniedBody": "Pour scanner un code QR, autorisez l'accès à la caméra dans les paramètres de l'application.",
+  "@qrScannerPermissionDeniedBody": {
+    "description": "SCR-013 QR Scanner — permission-denied rationale card body."
+  },
+  "qrScannerOpenSettingsButton": "Ouvrir les paramètres",
+  "@qrScannerOpenSettingsButton": {
+    "description": "SCR-013 QR Scanner — settings deep-link button, per the wireframe's permission-denied state."
+  },
+  "qrScannerCameraUnavailable": "La caméra n'est pas disponible sur cet appareil.",
+  "@qrScannerCameraUnavailable": {
+    "description": "SCR-013 QR Scanner — shown for a non-permission camera error (e.g. no camera hardware)."
+  },
+  "qrScannerInvalidCodeError": "Code QR invalide. Veuillez réessayer.",
+  "@qrScannerInvalidCodeError": {
+    "description": "SCR-013 QR Scanner — shown when InvalidQrCodeFailure is thrown (empty or implausibly long value)."
+  },
+  "qrScannerGenericError": "Impossible de démarrer la session. Veuillez réessayer.",
+  "@qrScannerGenericError": {
+    "description": "SCR-013 QR Scanner — shown for any other AccessSessionRepositoryFailure (network/backend error)."
+  },
+  "cabinAvailabilityCheckingMessage": "Vérification de la disponibilité...",
+  "@cabinAvailabilityCheckingMessage": {
+    "description": "SCR-014 Cabin Availability Confirmation — brief checking/loading state."
+  },
+  "cabinAvailabilityAvailableMessage": "Cabine disponible",
+  "@cabinAvailabilityAvailableMessage": {
+    "description": "SCR-014 Cabin Availability Confirmation — brief success flash before auto-advancing, per the wireframe's 'available' state."
+  },
+  "cabinAvailabilityUnavailableMessage": "Cette cabine n'est plus disponible.",
+  "@cabinAvailabilityUnavailableMessage": {
+    "description": "SCR-014 Cabin Availability Confirmation — errorContainer message for the 'unavailable' state (CabinUnavailableFailure, 409)."
+  },
+  "cabinAvailabilityBackToMapButton": "Retour à la carte",
+  "@cabinAvailabilityBackToMapButton": {
+    "description": "SCR-014 Cabin Availability Confirmation — Filled Button shown in both the 'unavailable' and generic-error states."
+  },
+  "paymentMethodSheetTitle": "Choisir un moyen de paiement",
+  "@paymentMethodSheetTitle": {
+    "description": "SCR-015 Payment Method Selection Sheet — header."
+  },
+  "paymentMethodAddItem": "Ajouter un moyen de paiement",
+  "@paymentMethodAddItem": {
+    "description": "SCR-015 — list item routing to the (stand-in) add-method flow."
+  },
+  "paymentMethodTotalLabel": "Total",
+  "@paymentMethodTotalLabel": {
+    "description": "SCR-015 — price summary row label."
+  },
+  "paymentMethodPayButton": "Payer {amount}",
+  "@paymentMethodPayButton": {
+    "description": "SCR-015 — bottom-anchored Filled Button, amount already formatted (e.g. '50 DZD').",
+    "placeholders": { "amount": { "type": "String" } }
+  },
+  "paymentMethodLoadError": "Impossible de charger vos moyens de paiement.",
+  "@paymentMethodLoadError": {
+    "description": "SCR-015 — shown if fetching the saved-methods list fails."
+  },
+  "paymentMethodAddDialogTitle": "Ajouter un moyen de paiement",
+  "@paymentMethodAddDialogTitle": {
+    "description": "Stand-in add-method dialog title — the real flow is an external provider-hosted UI (ADR-0014), out of RAHATI's design authority; this dialog only lets the mock tokenization path be exercised."
+  },
+  "paymentMethodAddDialogCardOption": "Carte bancaire",
+  "@paymentMethodAddDialogCardOption": {
+    "description": "Stand-in add-method dialog — card option."
+  },
+  "paymentMethodAddDialogWalletOption": "Wallet Mobile",
+  "@paymentMethodAddDialogWalletOption": {
+    "description": "Stand-in add-method dialog — mobile wallet option."
+  },
+  "paymentMethodAddDialogCancel": "Annuler",
+  "@paymentMethodAddDialogCancel": {
+    "description": "Stand-in add-method dialog — cancel action."
+  },
+  "paymentProcessingMessage": "Traitement du paiement...",
+  "@paymentProcessingMessage": {
+    "description": "SCR-016 Payment Processing — status text under the indeterminate progress indicator."
+  },
+  "paymentFailedDeclinedTitle": "Paiement refusé",
+  "@paymentFailedDeclinedTitle": {
+    "description": "SCR-018 Payment Failed — headline for the payment-declined variant (402)."
+  },
+  "paymentFailedUnlockTitle": "Déverrouillage échoué — remboursement en cours",
+  "@paymentFailedUnlockTitle": {
+    "description": "SCR-018 Payment Failed — headline for the unlock-failed-refunded variant (502)."
+  },
+  "paymentFailedGenericTitle": "Une erreur est survenue",
+  "@paymentFailedGenericTitle": {
+    "description": "SCR-018 Payment Failed — headline for any other PaymentRepositoryFailure (network/backend error)."
+  },
+  "paymentFailedRetryButton": "Réessayer",
+  "@paymentFailedRetryButton": {
+    "description": "SCR-018 — Filled Button; behavior depends on the variant (re-opens SCR-015 for a decline, re-opens SCR-013 for an unlock failure)."
+  },
+  "unlockConfirmationHeadline": "Cabine déverrouillée",
+  "@unlockConfirmationHeadline": {
+    "description": "SCR-017 Unlock Confirmation — main headline."
+  },
+  "unlockConfirmationSuccessAnnouncement": "Cabine déverrouillée avec succès",
+  "@unlockConfirmationSuccessAnnouncement": {
+    "description": "SCR-017 — explicit screen-reader announcement text (wireframe's own accessibility requirement), distinct from the shorter visible headline."
+  },
+  "unlockConfirmationSessionActive": "Session en cours",
+  "@unlockConfirmationSessionActive": {
+    "description": "SCR-017 — replaces the progress indicator once the unlock sequence settles."
+  },
+  "unlockConfirmationFinishButton": "J'ai terminé",
+  "@unlockConfirmationFinishButton": {
+    "description": "SCR-017 — Text Button, manually ends the session (US-04.6's SessionCompleteScreen)."
+  },
+  "sessionCompleteHeadline": "Session terminée",
+  "@sessionCompleteHeadline": {
+    "description": "SCR-019 Session Complete / Exit Confirmation — main headline."
+  },
+  "sessionCompleteAmountLabel": "Montant",
+  "@sessionCompleteAmountLabel": {
+    "description": "SCR-019 — transaction summary amount-row label."
+  },
+  "sessionCompleteAmountFree": "Gratuit",
+  "@sessionCompleteAmountFree": {
+    "description": "SCR-019 — amount value for a free-cabin session (no Transaction row exists per the ERD)."
+  },
+  "sessionCompleteDurationLabel": "Durée",
+  "@sessionCompleteDurationLabel": {
+    "description": "SCR-019 — transaction summary duration-row label."
+  },
+  "sessionCompleteDurationMinutes": "{count, plural, =0{Moins d'une minute} one{1 minute} other{{count} minutes}}",
+  "@sessionCompleteDurationMinutes": {
+    "description": "SCR-019 — session duration, read in full (not abbreviated) per the wireframe's accessibility requirement.",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "sessionCompleteReviewButton": "Laisser un avis",
+  "@sessionCompleteReviewButton": {
+    "description": "SCR-019 — Filled Button, routes to SCR-007 (Submit Review, US-05.2, Feature 20)."
+  },
+  "profileHomeTitle": "Profil",
+  "@profileHomeTitle": {
+    "description": "SCR-020 — Top App Bar title."
+  },
+  "profileGuestLabel": "Compte invité",
+  "@profileGuestLabel": {
+    "description": "SCR-020 — account summary card identity line for a guest (no AppUser), per the wireframe's own ASCII mockup wording."
+  },
+  "profileVerifiedDiabeticBadge": "Diabétique vérifié",
+  "@profileVerifiedDiabeticBadge": {
+    "description": "SCR-020 — account summary card badge, shown only when AppUser.diabeticVerificationStatus is verified."
+  },
+  "profileSignInButton": "Se connecter",
+  "@profileSignInButton": {
+    "description": "SCR-020 — persistent Filled Button shown only in the guest state, per the wireframe."
+  },
+  "profileSignOutButton": "Se déconnecter",
+  "@profileSignOutButton": {
+    "description": "SCR-020 — AppBar action, registered state only. Not in the wireframe's own list (which only enumerates account-bound sections), but a real account screen needs a way back to guest state within the app."
+  },
+  "profileVisitHistoryItem": "Historique des visites",
+  "@profileVisitHistoryItem": {
+    "description": "SCR-020 — list item, routes to SCR-021."
+  },
+  "profilePaymentMethodsItem": "Moyens de paiement",
+  "@profilePaymentMethodsItem": {
+    "description": "SCR-020 — list item, routes to SCR-022."
+  },
+  "profileMyReviewsItem": "Mes avis",
+  "@profileMyReviewsItem": {
+    "description": "SCR-020 — list item, routes to SCR-023."
+  },
+  "profileDiabeticStatusItem": "Statut diabétique vérifié",
+  "@profileDiabeticStatusItem": {
+    "description": "SCR-020 — list item; always shows the 'coming soon' state for now (US-05.3/SCR-024/025 deferred to V1.1)."
+  },
+  "profileFavoritesItem": "Favoris",
+  "@profileFavoritesItem": {
+    "description": "SCR-020 — list item, routes to SCR-026."
+  },
+  "profileNotificationsItem": "Notifications",
+  "@profileNotificationsItem": {
+    "description": "SCR-020 — list item; always shows the 'coming soon' state (SCR-028/EPIC-10 not built yet)."
+  },
+  "profileLanguageThemeItem": "Langue et thème",
+  "@profileLanguageThemeItem": {
+    "description": "SCR-020 — list item; always shows the 'coming soon' state (SCR-029/EPIC-06 not built yet)."
+  },
+  "profileLockedSnackbar": "Connexion requise",
+  "@profileLockedSnackbar": {
+    "description": "SCR-020 — announced (not just shown) when a guest taps an account-bound, locked list item, per the wireframe's accessibility requirement."
+  },
+  "profileComingSoonSnackbar": "Bientôt disponible",
+  "@profileComingSoonSnackbar": {
+    "description": "SCR-020 — shown when tapping a list item whose target screen isn't built yet (Statut diabétique, Notifications, Langue et thème)."
+  },
+  "signInAppBarTitle": "Connexion",
+  "@signInAppBarTitle": {
+    "description": "SCR-030 — Top App Bar title."
+  },
+  "signInTabLabel": "Se connecter",
+  "@signInTabLabel": {
+    "description": "SCR-030 — Tabs/Segmented Button first option."
+  },
+  "signUpTabLabel": "Créer un compte",
+  "@signUpTabLabel": {
+    "description": "SCR-030 — Tabs/Segmented Button second option."
+  },
+  "signInEmailLabel": "E-mail",
+  "@signInEmailLabel": {
+    "description": "SCR-030 — Text Field label."
+  },
+  "signInPasswordLabel": "Mot de passe",
+  "@signInPasswordLabel": {
+    "description": "SCR-030 — Text Field label."
+  },
+  "signInSubmitButton": "Se connecter",
+  "@signInSubmitButton": {
+    "description": "SCR-030 — Filled Button, Se connecter tab."
+  },
+  "signUpSubmitButton": "Créer un compte",
+  "@signUpSubmitButton": {
+    "description": "SCR-030 — Filled Button, Créer un compte tab."
+  },
+  "signInContinueAsGuestButton": "Continuer sans compte",
+  "@signInContinueAsGuestButton": {
+    "description": "SCR-030 — Text Button, explicit guest path (FR-USR-01). Equal bodyMedium weight to the primary action per the wireframe's accessibility requirement — never visually de-emphasized."
+  },
+  "signInGenericError": "E-mail ou mot de passe incorrect.",
+  "@signInGenericError": {
+    "description": "SCR-030 — inline errorContainer message for any AuthRequestFailure. Deliberately generic — the underlying AuthException.message is an internal, unlocalized string never shown directly to the user."
+  },
+  "signInNotConfiguredError": "La connexion n'est pas disponible pour cette version.",
+  "@signInNotConfiguredError": {
+    "description": "SCR-030 — inline errorContainer message for AuthNotConfiguredFailure (no Supabase project configured for this build)."
+  },
+  "genericDeleteButton": "Supprimer",
+  "@genericDeleteButton": {
+    "description": "Shared Basic Dialog confirm action — SCR-022's delete-payment-method and SCR-023's delete-review confirmations."
+  },
+  "genericCancelButton": "Annuler",
+  "@genericCancelButton": {
+    "description": "Shared Basic Dialog cancel action."
+  },
+  "submitReviewTitle": "Ajouter un avis",
+  "@submitReviewTitle": {
+    "description": "SCR-007 — Top App Bar title."
+  },
+  "submitReviewCommentLabel": "Votre commentaire",
+  "@submitReviewCommentLabel": {
+    "description": "SCR-007 — multi-line Text Area label."
+  },
+  "submitReviewPublishButton": "Publier",
+  "@submitReviewPublishButton": {
+    "description": "SCR-007 — Filled Button, disabled until a rating is selected."
+  },
+  "submitReviewStarSemanticLabel": "{count, plural, one{1 étoile sur 5} other{{count} étoiles sur 5}}",
+  "@submitReviewStarSemanticLabel": {
+    "description": "SCR-007 — each star's individually-focusable accessible name, per the wireframe's own example (\"3 étoiles sur 5\").",
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "submitReviewSuccessSnackbar": "Avis publié",
+  "@submitReviewSuccessSnackbar": {
+    "description": "SCR-007 — Snackbar shown on the screen it returns to after a successful submit, per the wireframe."
+  },
+  "submitReviewErrorSnackbar": "Impossible d'envoyer votre avis. Réessayez.",
+  "@submitReviewErrorSnackbar": {
+    "description": "SCR-007 — Snackbar shown on submit failure; the screen stays open so the user can retry."
+  },
+  "visitHistoryTitle": "Historique des visites",
+  "@visitHistoryTitle": {
+    "description": "SCR-021 — Top App Bar title."
+  },
+  "visitHistoryEmptyState": "Aucune visite pour le moment",
+  "@visitHistoryEmptyState": {
+    "description": "SCR-021 — empty state."
+  },
+  "paymentMethodsTitle": "Moyens de paiement",
+  "@paymentMethodsTitle": {
+    "description": "SCR-022 — Top App Bar title."
+  },
+  "paymentMethodsEmptyState": "Aucun moyen de paiement enregistré",
+  "@paymentMethodsEmptyState": {
+    "description": "SCR-022 — empty state."
+  },
+  "paymentMethodsDefaultChip": "Par défaut",
+  "@paymentMethodsDefaultChip": {
+    "description": "SCR-022 — trailing Chip on the default payment method's row."
+  },
+  "paymentMethodsSetDefaultAction": "Définir par défaut",
+  "@paymentMethodsSetDefaultAction": {
+    "description": "SCR-022 — trailing text action on a non-default row."
+  },
+  "paymentMethodsDeleteConfirmTitle": "Supprimer ce moyen de paiement ?",
+  "@paymentMethodsDeleteConfirmTitle": {
+    "description": "SCR-022 — Basic Dialog title, exact wireframe wording."
+  },
+  "paymentMethodsAddAction": "Ajouter un moyen de paiement",
+  "@paymentMethodsAddAction": {
+    "description": "SCR-022 — bottom list item action."
+  },
+  "paymentMethodsGapError": "Cette action n'est pas encore disponible.",
+  "@paymentMethodsGapError": {
+    "description": "SCR-022 — shown when RestPaymentMethodRepository throws PaymentMethodEndpointNotSpecifiedFailure (see that failure's own doc comment — an API Contract Gap, not a bug)."
+  },
+  "myReviewsTitle": "Mes avis",
+  "@myReviewsTitle": {
+    "description": "SCR-023 — Top App Bar title."
+  },
+  "myReviewsEmptyState": "Aucun avis pour le moment",
+  "@myReviewsEmptyState": {
+    "description": "SCR-023 — empty state."
+  },
+  "myReviewsDeleteConfirmTitle": "Supprimer cet avis ?",
+  "@myReviewsDeleteConfirmTitle": {
+    "description": "SCR-023 — Basic Dialog title."
+  },
+  "favoritesTitle": "Favoris",
+  "@favoritesTitle": {
+    "description": "SCR-026 — Top App Bar title."
+  },
+  "favoritesEmptyState": "Aucun favori — ajoutez-en depuis la fiche lieu",
+  "@favoritesEmptyState": {
+    "description": "SCR-026 — empty state, exact wireframe wording."
+  },
+  "favoritesNotifySwitchLabel": "Me notifier si disponible",
+  "@favoritesNotifySwitchLabel": {
+    "description": "SCR-026 — per-item trailing Switch label, exact wireframe wording."
+  },
+  "favoritesSettingsAction": "Paramètres de notification",
+  "@favoritesSettingsAction": {
+    "description": "SCR-026 — AppBar action routing to SCR-027, per user-flows.md §5 (\"Toggle availability-follow\" → SCR-027)."
+  },
+  "notificationSettingsTitle": "Paramètres de notification",
+  "@notificationSettingsTitle": {
+    "description": "SCR-027 — Top App Bar title."
+  },
+  "notificationSettingsFavoritesLabel": "Disponibilité des favoris",
+  "@notificationSettingsFavoritesLabel": {
+    "description": "SCR-027 — toggle row, exact wireframe wording."
+  },
+  "notificationSettingsPaymentAlertsLabel": "Alertes de paiement",
+  "@notificationSettingsPaymentAlertsLabel": {
+    "description": "SCR-027 — toggle row, exact wireframe wording."
+  },
+  "notificationSettingsNewsLabel": "Actualités RAHETI",
+  "@notificationSettingsNewsLabel": {
+    "description": "SCR-027 — toggle row, off by default per the wireframe (marketing-adjacent)."
+  },
+  "languageThemeSettingsTitle": "Langue et thème",
+  "@languageThemeSettingsTitle": {
+    "description": "SCR-029 — Top App Bar title."
+  },
+  "languageThemeSettingsLanguageSectionLabel": "Langue",
+  "@languageThemeSettingsLanguageSectionLabel": {
+    "description": "SCR-029 — section header above the language Radio list. Note: the language option labels themselves (Français/العربية/English) are deliberately NOT routed through AppLocalizations — per the wireframe's own accessibility note, each language name is written in its own script regardless of the active locale, not translated."
+  },
+  "languageThemeSettingsThemeSectionLabel": "Thème",
+  "@languageThemeSettingsThemeSectionLabel": {
+    "description": "SCR-029 — section header above the theme Segmented Button."
+  },
+  "languageThemeSettingsThemeLight": "Clair",
+  "@languageThemeSettingsThemeLight": {
+    "description": "SCR-029 — Segmented Button option, ThemeMode.light."
+  },
+  "languageThemeSettingsThemeDark": "Sombre",
+  "@languageThemeSettingsThemeDark": {
+    "description": "SCR-029 — Segmented Button option, ThemeMode.dark."
+  },
+  "languageThemeSettingsThemeSystem": "Système",
+  "@languageThemeSettingsThemeSystem": {
+    "description": "SCR-029 — Segmented Button option, ThemeMode.system."
+  }
+}

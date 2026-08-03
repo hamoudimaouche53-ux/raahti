@@ -1,0 +1,168 @@
+# RAHATI monorepo — root .gitignore
+#
+# This is a Flutter monorepo: apps/mobile is a Flutter/Dart application
+# (Android + iOS today; macOS/Linux/Windows patterns included below for any
+# future desktop target). apps/backend, apps/web, apps/operator-dashboard,
+# and apps/sponsor-dashboard are currently scaffolded as folder + README
+# stubs (see docs/README.md "Scaffolded for Later Phases") and will pick up
+# their own toolchains later — Node/JS ignores are included proactively so
+# they don't need revisiting the moment those apps gain real code.
+#
+# apps/mobile/, apps/mobile/android/, and apps/mobile/ios/ each already
+# carry their own Flutter-generated .gitignore — the patterns below
+# duplicate the important ones with **/ prefixes for monorepo-wide,
+# defense-in-depth coverage (e.g. a future second Flutter app, or a nested
+# folder that loses its own .gitignore) rather than replacing them.
+
+# ============================================================
+# Dart / Flutter
+# ============================================================
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/.pub-cache/
+**/.pub/
+**/build/
+**/doc/api/
+**/*.g.dart.bak
+**/migrate_working_dir/
+
+# Generated localization output (flutter gen-l10n) — only lib/l10n/*.arb is
+# hand-authored; regenerated automatically by `flutter pub get`.
+**/lib/l10n/app_localizations.dart
+**/lib/l10n/app_localizations_*.dart
+**/lib/l10n/untranslated.txt
+
+# Coverage
+**/coverage/
+**/lcov.info
+
+# Symbolication / obfuscation
+**/app.*.symbols
+**/app.*.map.json
+
+# ============================================================
+# Android
+# ============================================================
+**/android/.gradle/
+**/android/.kotlin/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/**/.cxx/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+
+# ============================================================
+# iOS / macOS (Xcode, CocoaPods)
+# ============================================================
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/macos/Flutter/ephemeral/
+**/macos/Flutter/GeneratedPluginRegistrant.*
+**/Pods/
+**/.symlinks/
+**/*.xcworkspace/xcuserdata/
+**/*.xcodeproj/xcuserdata/
+**/*.xcodeproj/project.xcworkspace/xcuserdata/
+**/DerivedData/
+**/*.moved-aside
+**/*.pbxuser
+**/*.mode1v3
+**/*.mode2v3
+**/*.perspectivev3
+xcuserdata/
+
+# ============================================================
+# Windows / Linux desktop (Flutter)
+# ============================================================
+**/windows/flutter/ephemeral/
+**/windows/flutter/generated_plugin_registrant.*
+**/linux/flutter/ephemeral/
+**/linux/flutter/generated_plugin_registrant.*
+
+# ============================================================
+# IDEs and editors
+# ============================================================
+# VS Code
+.vscode/
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Misc editor/OS swap & temp files
+*.swp
+*.swo
+*~
+.history/
+
+# ============================================================
+# OS-generated files
+# ============================================================
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============================================================
+# Secrets — never commit real credentials
+# ============================================================
+.env
+.env.*
+!.env.example
+!.env.*.example
+key.properties
+*.jks
+*.keystore
+*.p12
+*.p8
+*.pem
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+*.pfx
+
+# ============================================================
+# Node / JS (apps/backend, apps/web, apps/operator-dashboard,
+# apps/sponsor-dashboard — proactive, none are scaffolded with real
+# code yet, but this avoids revisiting the .gitignore the moment they are)
+# ============================================================
+**/node_modules/
+**/dist/
+**/.next/
+**/.nuxt/
+**/.output/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# ============================================================
+# Claude Code local session state (not project source)
+# ============================================================
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+
+# ============================================================
+# Logs / misc
+# ============================================================
+*.log

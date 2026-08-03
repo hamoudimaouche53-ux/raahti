@@ -1,0 +1,14 @@
+{
+  "$description": "8dp-grid spacing tokens. Source of truth for docs/design/foundations.md §6.",
+  "space-0": { "value": 0, "type": "spacing" },
+  "space-1": { "value": 4, "type": "spacing" },
+  "space-2": { "value": 8, "type": "spacing" },
+  "space-3": { "value": 12, "type": "spacing" },
+  "space-4": { "value": 16, "type": "spacing" },
+  "space-5": { "value": 20, "type": "spacing" },
+  "space-6": { "value": 24, "type": "spacing" },
+  "space-8": { "value": 32, "type": "spacing" },
+  "space-10": { "value": 40, "type": "spacing" },
+  "space-12": { "value": 48, "type": "spacing" },
+  "space-16": { "value": 64, "type": "spacing" }
+}

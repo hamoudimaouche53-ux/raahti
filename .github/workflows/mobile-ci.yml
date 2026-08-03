@@ -1,0 +1,81 @@
+name: Mobile CI
+
+# Traces to: docs/adr/0018-flutter-project-foundation.md, this phase's
+# explicit "ensure CI runs flutter analyze and flutter test" requirement.
+#
+# Note: this repository is not yet pushed to a Git remote (see
+# docs/phase-3-implementation-log.md, "Foundation Hardening" entry) — this
+# workflow is a ready-to-run definition, not yet verified by an actual
+# GitHub Actions run. It activates automatically the first time this repo
+# is pushed to GitHub with Actions enabled.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+
+defaults:
+  run:
+    working-directory: apps/mobile
+
+jobs:
+  analyze-and-test:
+    name: Format, analyze, and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.6
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test --coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: apps/mobile/coverage/lcov.info
+          if-no-files-found: ignore
+
+  android-debug-build:
+    name: Android debug build
+    runs-on: ubuntu-latest
+    needs: analyze-and-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.6
+          cache: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build debug APK
+        run: flutter build apk --debug

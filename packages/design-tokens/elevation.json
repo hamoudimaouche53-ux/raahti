@@ -1,0 +1,9 @@
+{
+  "$description": "Elevation tokens. Source of truth for docs/design/foundations.md §4. Dark theme uses surface-tone elevation (see color.json surfaceContainer* steps) rather than heavier shadow.",
+  "level-0": { "dp": 0, "lightSurfaceTintOpacity": 0, "type": "elevation" },
+  "level-1": { "dp": 1, "lightSurfaceTintOpacity": 0.05, "type": "elevation" },
+  "level-2": { "dp": 3, "lightSurfaceTintOpacity": 0.08, "type": "elevation" },
+  "level-3": { "dp": 6, "lightSurfaceTintOpacity": 0.11, "type": "elevation" },
+  "level-4": { "dp": 8, "lightSurfaceTintOpacity": 0.12, "type": "elevation" },
+  "level-5": { "dp": 12, "lightSurfaceTintOpacity": 0.14, "type": "elevation" }
+}

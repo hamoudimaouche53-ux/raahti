@@ -1,0 +1,933 @@
+openapi: 3.0.3
+info:
+  title: RAHATI Platform API
+  version: "1.0.0-phase1-draft"
+  description: >
+    RAHATI digital platform REST API (ADR-0007). Contract-first per API-First principle —
+    authored before controller implementation (Phase 4). Every operation cites the SRS
+    FR-*/NFR-* requirement(s) it implements. See docs/api/api-architecture.md for conventions.
+  contact:
+    name: RAHATI Engineering
+servers:
+  - url: https://api.raahti.dz/v1
+    description: Production (indicative — hosting provider pending ADR-0016)
+  - url: https://staging-api.raahti.dz/v1
+    description: Staging
+
+tags:
+  - name: Identity
+  - name: Places
+  - name: Slatoki
+  - name: Emergency
+  - name: AccessPayment
+  - name: Operations
+  - name: Sponsorship
+  - name: Notifications
+
+security:
+  - bearerAuth: []
+
+paths:
+  /users/me:
+    get:
+      tags: [Identity]
+      summary: Get current user profile
+      description: "Implements FR-USR-02. Optional-account model: returns 401 only if an Authorization header was sent and is invalid; anonymous usage of read endpoints elsewhere is unaffected (FR-USR-01)."
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    patch:
+      tags: [Identity]
+      summary: Update language preference / profile fields
+      description: "Implements FR-I18N-01 (persisted language toggle)."
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserUpdateRequest" }
+      responses:
+        "200":
+          description: Updated user profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+
+  /users/me/verification-documents:
+    post:
+      tags: [Identity]
+      summary: Submit a diabetic-verification supporting document
+      description: >
+        Implements FR-USR-03. Data shape only — the review/verification PROCESS is
+        intentionally not fixed here; see ADR-0010 (deferred to health-partner discussions,
+        RAH-DOC-005 §11). Provider-agnostic: `storageRef` is an object-storage pointer, not
+        a specific vendor's document ID format.
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VerificationDocumentCreateRequest" }
+      responses:
+        "201":
+          description: Submission accepted, status = pending
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VerificationDocument" }
+
+  /users/me/payment-methods:
+    get:
+      tags: [Identity]
+      summary: List saved payment methods
+      description: "Implements §2.6 saved payment methods. Returns only tokenized provider_ref values (NFR-SEC-03) — never raw card data, regardless of which provider is later selected (ADR-0014)."
+      responses:
+        "200":
+          description: Saved payment methods
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/PaymentMethod" }
+    post:
+      tags: [Identity]
+      summary: Save a tokenized payment method
+      description: "Implements §2.6. Body carries only a provider-issued token (obtained client-side via the eventual payment SDK) — the backend never receives raw card data (NFR-SEC-03)."
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentMethodCreateRequest" }
+      responses:
+        "201":
+          description: Saved payment method
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaymentMethod" }
+
+  /users/me/favorites:
+    get:
+      tags: [Identity]
+      summary: List favorites
+      description: "Implements FR-USR-04."
+      responses:
+        "200":
+          description: Favorites list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Favorite" }
+                  nextCursor: { type: string, nullable: true }
+    post:
+      tags: [Identity]
+      summary: Add a favorite (with optional availability-follow)
+      description: "Implements FR-USR-04."
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FavoriteCreateRequest" }
+      responses:
+        "201":
+          description: Favorite created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Favorite" }
+
+  /places/nearby:
+    get:
+      tags: [Places]
+      summary: Search nearby places (unified Station + Third-Party Place read model)
+      description: >
+        Implements FR-MAP-01, FR-MAP-02, FR-MAP-04, FR-MAP-05. No authentication required
+        (public discovery). Backed by PostGIS ST_DWithin over station.position and
+        third_party_place.position (see ERD §3.1, §3.4; System Architecture §7).
+      security: []
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: lng
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: radiusMeters
+          in: query
+          schema: { type: integer, default: 2000, maximum: 20000 }
+        - name: type
+          in: query
+          description: "Repeatable filter chip value(s) — FR-MAP-05"
+          schema:
+            type: array
+            items: { type: string, enum: [free_wc, paid_wc, rahati_unit, slatoki] }
+        - name: q
+          in: query
+          description: "Bilingual free-text search — FR-MAP-04"
+          schema: { type: string }
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 30, maximum: 100 }
+      responses:
+        "200":
+          description: Nearby places
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/PlaceSummary" }
+                  nextCursor: { type: string, nullable: true }
+
+  /stations/{stationId}:
+    get:
+      tags: [Places]
+      summary: Get station detail (place detail sheet, RAHETI unit)
+      description: "Implements FR-PLC-01..05 for a Station. IoT-sourced real-time status (FR-PLC-02)."
+      security: []
+      parameters:
+        - name: stationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Station detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StationDetail" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /stations/{stationId}/cabins:
+    get:
+      tags: [Places]
+      summary: List cabins for a station with real-time occupancy
+      description: "Implements FR-PLC-02, feeds FR-PAY-01/02 QR flow entry."
+      security: []
+      parameters:
+        - name: stationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Cabin list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Cabin" }
+
+  /third-party-places/{placeId}:
+    get:
+      tags: [Places]
+      summary: Get third-party place detail
+      description: "Implements FR-PLC-01..04 for a Third-Party Place. Declarative status, visually distinct from IoT-verified (§2.2)."
+      security: []
+      parameters:
+        - name: placeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Third-party place detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ThirdPartyPlaceDetail" }
+
+  /places/{placeType}/{placeId}/reviews:
+    post:
+      tags: [Places]
+      summary: Submit a review
+      description: "Implements FR-PLC-01 (rating/review count is derived — ERD §3.4 note)."
+      parameters:
+        - name: placeType
+          in: path
+          required: true
+          schema: { type: string, enum: [station, third-party-place] }
+        - name: placeId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReviewCreateRequest" }
+      responses:
+        "201":
+          description: Review created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Review" }
+
+  /slatoki/places:
+    get:
+      tags: [Slatoki]
+      summary: Search Slatoki-qualified places (RAHETI tents + verified mosques)
+      description: "Implements FR-SLK-03, FR-SLK-04, FR-SLK-05. Qibla bearing is computed client-side (device compass + great-circle formula) and is intentionally NOT a server endpoint — see System Architecture / Domain Model §4."
+      security: []
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: lng
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: filter
+          in: query
+          schema: { type: string, enum: [prayer_only, wudu_only, prayer_and_wudu] }
+      responses:
+        "200":
+          description: Slatoki-qualified places
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/SlatokiPlaceSummary" }
+
+  /emergency/nearest-facility:
+    get:
+      tags: [Emergency]
+      summary: Find the nearest accessible facility, ignoring active filters
+      description: >
+        Implements FR-EMG-01, FR-EMG-02. Requires an authenticated user with
+        diabeticVerificationStatus = verified for the discount-eligibility flag on the
+        response to be true (FR-EMG-03 eligibility check; actual discount is applied at
+        payment time, see /access-sessions/{id}/payments).
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: lng
+          in: query
+          required: true
+          schema: { type: number, format: double }
+      responses:
+        "200":
+          description: Nearest accessible facility
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EmergencyFacilityResult" }
+
+  /access-sessions:
+    post:
+      tags: [AccessPayment]
+      summary: Initiate an access session from a scanned QR code
+      description: "Implements FR-PAY-01, FR-PAY-02. Idempotent via Idempotency-Key header (see api-architecture.md §8)."
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccessSessionCreateRequest" }
+      responses:
+        "201":
+          description: Access session created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccessSession" }
+        "409":
+          description: Cabin no longer available
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+
+  /access-sessions/{sessionId}:
+    get:
+      tags: [AccessPayment]
+      summary: Get access session status
+      description: "Implements FR-PAY-05 status polling fallback (primary channel is Supabase Realtime — see api-architecture.md §10)."
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Access session
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccessSession" }
+
+  /access-sessions/{sessionId}/payments:
+    post:
+      tags: [AccessPayment]
+      summary: Authorize and capture payment for an access session, then trigger unlock
+      description: >
+        Implements FR-PAY-03, FR-PAY-04. Uses the provider-agnostic PaymentGateway port
+        (ADR-0014) — this contract never changes regardless of which payment provider is
+        eventually approved. Applies the Mode Urgence 50% discount (FR-EMG-03) automatically
+        when the caller's diabeticVerificationStatus = verified and the request originated
+        from the Emergency flow.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentRequest" }
+      responses:
+        "200":
+          description: Payment captured, unlock order issued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Transaction" }
+        "402":
+          description: Payment failed
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+
+  /ops/stations:
+    get:
+      tags: [Operations]
+      summary: Consolidated fleet view
+      description: "Implements FR-OPS-01. Requires role=operateur, scoped by site_scope (Security Architecture §3)."
+      responses:
+        "200":
+          description: Fleet status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/StationFleetStatus" }
+
+  /ops/alerts:
+    get:
+      tags: [Operations]
+      summary: Prioritized alert queue
+      description: "Implements FR-OPS-02. Sort order: severity DESC (fire/SOS first), then raised_at ASC."
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, acknowledged, in_progress, resolved] }
+      responses:
+        "200":
+          description: Alerts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Alert" }
+
+  /ops/alerts/{alertId}:
+    patch:
+      tags: [Operations]
+      summary: Acknowledge or resolve an alert
+      description: "Implements FR-OPS-02."
+      parameters:
+        - name: alertId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AlertUpdateRequest" }
+      responses:
+        "200":
+          description: Updated alert
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Alert" }
+
+  /ops/maintenance-interventions:
+    get:
+      tags: [Operations]
+      summary: List maintenance interventions
+      description: "Implements FR-OPS-03."
+      responses:
+        "200":
+          description: Interventions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/MaintenanceIntervention" }
+    post:
+      tags: [Operations]
+      summary: Schedule a maintenance intervention
+      description: "Implements FR-OPS-03."
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MaintenanceInterventionCreateRequest" }
+      responses:
+        "201":
+          description: Scheduled intervention
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MaintenanceIntervention" }
+
+  /ops/stations/{stationId}/occupancy-history:
+    get:
+      tags: [Operations]
+      summary: Per-station occupancy/frequentation history
+      description: "Implements FR-OPS-04. Backed by partitioned telemetry_reading table (ADR-0013)."
+      parameters:
+        - name: stationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: from
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Occupancy history series
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OccupancyHistorySeries" }
+
+  /sponsors/{sponsorId}/stats:
+    get:
+      tags: [Sponsorship]
+      summary: Aggregated visibility statistics for a sponsor
+      description: >
+        Implements FR-SPN-01. Requires role=sponsor. Response is strictly aggregated —
+        no user-identifying fields exist anywhere in this response schema (FR-SPN-04,
+        Domain Model §9 invariant).
+      parameters:
+        - name: sponsorId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Aggregated stats
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SponsorStats" }
+
+  /sponsors/{sponsorId}/campaigns/{campaignId}/report:
+    get:
+      tags: [Sponsorship]
+      summary: Export campaign performance report
+      description: "Implements FR-SPN-02."
+      parameters:
+        - name: sponsorId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: campaignId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: format
+          in: query
+          schema: { type: string, enum: [json, csv, pdf], default: json }
+      responses:
+        "200":
+          description: Campaign report
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CampaignReport" }
+
+  /sponsors/{sponsorId}/stations:
+    get:
+      tags: [Sponsorship]
+      summary: Map of a sponsor's sponsored stations
+      description: "Implements FR-SPN-03."
+      parameters:
+        - name: sponsorId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Sponsored stations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/PlaceSummary" }
+
+  /users/me/notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications for the current user
+      description: "Implements FR-CLD-03."
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Notification" }
+
+  /users/me/notifications/{notificationId}:
+    patch:
+      tags: [Notifications]
+      summary: Mark a notification as read
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Updated notification
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Notification" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase Auth-issued JWT with role/site_scope custom claims (ADR-0009).
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, format: uuid }
+      description: See api-architecture.md §8.
+
+  responses:
+    Unauthorized:
+      description: Missing/invalid credentials
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetail" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetail" }
+
+  schemas:
+    ProblemDetail:
+      type: object
+      description: RFC 7807 — see api-architecture.md §7.
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
+        code: { type: string }
+
+    BilingualText:
+      type: object
+      description: >
+        Trilingual (FR/AR/EN) as of ADR-0017 (Phase 2) / Phase 3 Feature 1 —
+        name retained for historical continuity with the Phase 1 draft; all
+        three fields are required on every response.
+      properties:
+        fr: { type: string }
+        ar: { type: string }
+        en: { type: string }
+      required: [fr, ar, en]
+
+    Money:
+      type: object
+      properties:
+        amount: { type: string, description: "Decimal as string — avoids float rounding." }
+        currency: { type: string, example: "DZD" }
+      required: [amount, currency]
+
+    GeoPoint:
+      type: object
+      properties:
+        type: { type: string, enum: [Point] }
+        coordinates:
+          type: array
+          items: { type: number }
+          minItems: 2
+          maxItems: 2
+          description: "[lng, lat] — GeoJSON/PostGIS order."
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        preferredLanguage: { type: string, enum: [fr, ar] }
+        diabeticVerificationStatus: { type: string, enum: [none, pending, verified, rejected] }
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        preferredLanguage: { type: string, enum: [fr, ar] }
+
+    VerificationDocumentCreateRequest:
+      type: object
+      properties:
+        documentType: { type: string, enum: [diabetic_certificate] }
+        storageRef: { type: string, description: "Object-storage pointer, provider-agnostic." }
+      required: [documentType, storageRef]
+
+    VerificationDocument:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        documentType: { type: string }
+        reviewStatus: { type: string, enum: [pending, approved, rejected] }
+        submittedAt: { type: string, format: date-time }
+
+    PaymentMethod:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        methodType: { type: string, enum: [card, mobile_wallet, subscription] }
+        providerRef: { type: string, description: "Opaque tokenized reference — never raw PAN." }
+        isDefault: { type: boolean }
+
+    PaymentMethodCreateRequest:
+      type: object
+      properties:
+        methodType: { type: string, enum: [card, mobile_wallet, subscription] }
+        providerToken: { type: string, description: "Client-side-obtained provider token." }
+      required: [methodType, providerToken]
+
+    Favorite:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        stationId: { type: string, format: uuid, nullable: true }
+        thirdPartyPlaceId: { type: string, format: uuid, nullable: true }
+        notifyOnAvailable: { type: boolean }
+
+    FavoriteCreateRequest:
+      type: object
+      properties:
+        stationId: { type: string, format: uuid, nullable: true }
+        thirdPartyPlaceId: { type: string, format: uuid, nullable: true }
+        notifyOnAvailable: { type: boolean, default: false }
+
+    PlaceSummary:
+      type: object
+      description: Unified Station + Third-Party Place map/list read model (System Architecture §7).
+      properties:
+        id: { type: string, format: uuid }
+        placeKind: { type: string, enum: [station, third_party_place] }
+        name: { $ref: "#/components/schemas/BilingualText" }
+        position: { $ref: "#/components/schemas/GeoPoint" }
+        pinColor: { type: string, enum: [green, blue, amber, magenta], description: "RAH-DOC-002 §4.2 functional color coding." }
+        distanceMeters: { type: number }
+        averageRating: { type: number, nullable: true }
+        reviewCount: { type: integer }
+        isFree: { type: boolean }
+        tags: { type: array, items: { type: string } }
+
+    StationDetail:
+      allOf:
+        - $ref: "#/components/schemas/PlaceSummary"
+        - type: object
+          properties:
+            configuration: { type: string, enum: [fixe, mobile, event] }
+            status: { type: string, enum: [active, inactive, maintenance] }
+            cabins: { type: array, items: { $ref: "#/components/schemas/Cabin" } }
+            slatokiTent: { $ref: "#/components/schemas/SlatokiTent" }
+
+    ThirdPartyPlaceDetail:
+      allOf:
+        - $ref: "#/components/schemas/PlaceSummary"
+        - type: object
+          properties:
+            placeType: { type: string, enum: [mosque, business, gas_station, other] }
+            declaredStatus: { type: string, enum: [open, closed, unknown] }
+            statusSource: { type: string, enum: [community, owner_declared] }
+
+    Cabin:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        type: { type: string, enum: [H, F, Slatoki, PMR] }
+        occupancyStatus: { type: string, enum: [free, occupied, out_of_service] }
+        isPaid: { type: boolean }
+        price: { $ref: "#/components/schemas/Money" }
+
+    SlatokiTent:
+      type: object
+      nullable: true
+      properties:
+        deploymentStatus: { type: string, enum: [deployed, folded] }
+        matCapacity: { type: integer }
+        hasLighting: { type: boolean }
+        hasPrivacyCurtain: { type: boolean }
+
+    SlatokiPlaceSummary:
+      allOf:
+        - $ref: "#/components/schemas/PlaceSummary"
+        - type: object
+          properties:
+            womenVerificationLevel: { type: string, enum: [verified_confirmed, generic] }
+
+    ReviewCreateRequest:
+      type: object
+      properties:
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string, nullable: true }
+      required: [rating]
+
+    Review:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        rating: { type: integer }
+        comment: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    EmergencyFacilityResult:
+      type: object
+      properties:
+        place: { $ref: "#/components/schemas/PlaceSummary" }
+        nearestCabinId: { type: string, format: uuid, nullable: true }
+        discountEligible:
+          type: boolean
+          description: "True only if caller.diabeticVerificationStatus = verified (FR-EMG-03)."
+
+    AccessSessionCreateRequest:
+      type: object
+      properties:
+        qrCodeScanned: { type: string }
+      required: [qrCodeScanned]
+
+    AccessSession:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        cabinId: { type: string, format: uuid }
+        status: { type: string, enum: [initiated, payment_pending, unlocked, in_use, completed, cancelled] }
+        startedAt: { type: string, format: date-time }
+        unlockedAt: { type: string, format: date-time, nullable: true }
+
+    PaymentRequest:
+      type: object
+      properties:
+        paymentMethodId: { type: string, format: uuid, nullable: true, description: "Omit for free cabins." }
+        applyEmergencyDiscount: { type: boolean, default: false }
+
+    Transaction:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        amount: { $ref: "#/components/schemas/Money" }
+        discountApplied: { type: string, nullable: true }
+        status: { type: string, enum: [pending, authorized, captured, failed, refunded] }
+        accessSession: { $ref: "#/components/schemas/AccessSession" }
+
+    StationFleetStatus:
+      type: object
+      properties:
+        stationId: { type: string, format: uuid }
+        batteryLevel: { type: number, nullable: true }
+        waterLevel: { type: number, nullable: true }
+        cabins: { type: array, items: { $ref: "#/components/schemas/Cabin" } }
+        activeAlertCount: { type: integer }
+
+    Alert:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        stationId: { type: string, format: uuid }
+        type: { type: string, enum: [fire, sos, technical_anomaly, preventive_maintenance] }
+        severity: { type: string, enum: [critical, high, medium, low] }
+        status: { type: string, enum: [open, acknowledged, in_progress, resolved] }
+        raisedAt: { type: string, format: date-time }
+
+    AlertUpdateRequest:
+      type: object
+      properties:
+        status: { type: string, enum: [acknowledged, in_progress, resolved] }
+
+    MaintenanceIntervention:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        stationId: { type: string, format: uuid }
+        interventionType: { type: string, enum: [refill, emptying, repair, preventive] }
+        status: { type: string, enum: [scheduled, in_progress, completed, cancelled] }
+        scheduledAt: { type: string, format: date-time }
+
+    MaintenanceInterventionCreateRequest:
+      type: object
+      properties:
+        stationId: { type: string, format: uuid }
+        interventionType: { type: string, enum: [refill, emptying, repair, preventive] }
+        scheduledAt: { type: string, format: date-time }
+        assignedTo: { type: string, format: uuid }
+      required: [stationId, interventionType, scheduledAt]
+
+    OccupancyHistorySeries:
+      type: object
+      properties:
+        stationId: { type: string, format: uuid }
+        points:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp: { type: string, format: date-time }
+              occupiedCabinCount: { type: integer }
+
+    SponsorStats:
+      type: object
+      description: Strictly aggregated — no user-identifying fields (FR-SPN-04).
+      properties:
+        estimatedFrequentation: { type: integer }
+        exposureDurationHours: { type: number }
+        zone: { type: string }
+
+    CampaignReport:
+      type: object
+      properties:
+        campaignId: { type: string, format: uuid }
+        tier: { type: string }
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        stats: { $ref: "#/components/schemas/SponsorStats" }
+
+    Notification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [availability, operator_alert, payment_confirmation] }
+        status: { type: string, enum: [queued, sent, delivered, failed] }
+        createdAt: { type: string, format: date-time }
