@@ -118,3 +118,19 @@ OpenAPI: implementation matches `docs/api/openapi.yaml`'s `Places` tag exactly (
 Tests: 168 unit tests + 35 e2e tests (up from 82+20). `tsc`/build/lint clean (0 errors).
 
 **Facilities module: code/design complete, verified, documented. Ready to commit.**
+
+## 13. Status Update — Slatoki (2026-08-05)
+
+Before Pass 1, flagged and resolved a direct conflict between the instruction ("keep Slatoki independent, no cross-context dependencies") and the documented architecture: `domain-model.md` §4 and `module-dependency-diagram.md` §3 both explicitly grant Slatoki — and only Slatoki — sanctioned read-only edges to **both** `StationNetwork` and `ThirdPartyPlaces` (`Slatoki -.->|read| StationNetwork/ThirdPartyPlaces`), because Slatoki owns no data of its own: it is "a presentation-and-filtering concern over two existing data sources... not a new physical entity with its own lifecycle." Without that read access, `FR-SLK-03/04/05` and `GET /slatoki/places` are impossible to implement (there is no independent Slatoki data store) and Qibla calculation is explicitly client-side-only. Confirmed with the user: implement exactly as documented — no owned aggregate/persisted state/Prisma model/repository, dependency limited strictly to `StationQueryService`'s and `ThirdPartyPlaceQueryService`'s exported surface (never their domain/infrastructure/interface layers), all writes stay in their owning module (Slatoki has none).
+
+Domain: `PrayerFacilityFilter`/`WomenVerificationLevel` VOs, `QiblaDirectionCalculator` (great-circle bearing to the Kaaba) — implemented for architectural completeness with `domain-model.md` §4's documented ownership, deliberately not wired to any controller (openapi.yaml is explicit that Qibla bearing is client-side-only). Extended `StationPlaceSearchItem` (Facilities, already-committed code) with a direct `hasSlatokiTent` field so Slatoki's qualification logic doesn't have to reverse-infer tent presence from `pinColor === 'magenta'` — a small, justified touch of already-shipped code rather than a fragile cross-module coupling to another module's presentation-color derivation.
+
+Business rules (FR-SLK-04, evidenced from RAH-DOC-005 §2.3's exact wording, not guessed): a Station qualifies for Slatoki only when it has a deployed-tent-capable `SlatokiTent` and is always `verified_confirmed` (RAHETI-operated, not a self-declared claim); a ThirdPartyPlace qualifies only when tagged `prayer` and/or `wudu`, and is `verified_confirmed` only when additionally tagged `women_confirmed` — otherwise shown as `generic`, not excluded, per FR-SLK-04's "distinguish... from" (both classes are shown). The `prayer_only`/`wudu_only`/`prayer_and_wudu` filter (FR-SLK-03) is a capability check ("supports at least what was asked for"), not an exact match — flagged judgment call, semantics aren't specified beyond the three enum values. FR-SLK-05 (tent deployment status/capacity/amenities) needed no new work — already fully satisfied by Facilities' `StationDetailDto.slatokiTent`.
+
+OpenAPI: `GET /slatoki/places` (openapi.yaml) has no `radiusMeters`/`cursor`/`limit` parameters at all, unlike `/places/nearby` — implemented with no client-configurable pagination/radius, matching the contract exactly rather than adding parameters it doesn't define. Internal fixed radius/result-cap values are a flagged judgment call (openapi.yaml specifies none). `SlatokiPlaceSummary` schema matched exactly.
+
+Performance: no new Prisma queries, indexes, or database access at all — Slatoki reuses Facilities' already-indexed `searchNearby` queries verbatim through their exported services.
+
+Tests: 186 unit tests (up from 168) + 41 e2e tests (up from 35). `tsc`/build/lint clean (0 errors).
+
+**Slatoki module: code/design complete, verified, documented. Ready to commit.**

@@ -101,6 +101,7 @@ describe('StationQueryService', () => {
           averageRating: 4.2,
           reviewCount: 5,
           tags: [],
+          hasSlatokiTent: true,
         },
       ]);
       expect(page.nextCursor).toBe('cursor-1');

@@ -19,6 +19,14 @@ export interface StationPlaceSearchItem {
   reviewCount: number;
   /** Stations carry no tag system (ERD §3.5/§3.6 tags are Third-Party-Place-only) — always empty, present for PlaceSummary shape parity. */
   tags: string[];
+  /**
+   * Exposed for SlatokiModule's sanctioned read dependency (module-dependency-diagram.md
+   * §3: `Slatoki -.->|read| StationNetwork`) — Slatoki needs to know Slatoki-tent
+   * presence directly to determine qualification/verification level (FR-SLK-04/05),
+   * not by reverse-inferring it from `pinColor === 'magenta'`, which would silently
+   * couple Slatoki's business rule to this module's presentation-color derivation.
+   */
+  hasSlatokiTent: boolean;
 }
 
 export interface StationPlaceSearchPage {
@@ -76,6 +84,7 @@ export class StationQueryService {
         averageRating: result.averageRating,
         reviewCount: result.reviewCount,
         tags: [],
+        hasSlatokiTent: result.hasSlatokiTent,
       })),
       nextCursor: page.nextCursor,
     };

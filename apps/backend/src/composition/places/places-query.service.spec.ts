@@ -18,6 +18,7 @@ function stationItem(id: string, distanceMeters: number): StationPlaceSearchItem
     averageRating: null,
     reviewCount: 0,
     tags: [],
+    hasSlatokiTent: false,
   };
 }
 

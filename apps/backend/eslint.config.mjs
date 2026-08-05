@@ -80,10 +80,35 @@ export default [
               // AuthN/AuthZ decorators/types (@Public, @Roles, @CurrentUser, AuthenticatedPrincipal)
               // live in platform/auth/ specifically so every module CAN use them without this
               // violation — caught the hard way once already (Facilities module, Phase 4).
-              target: ['./src/modules/station-network', './src/modules/third-party-places'],
+              target: ['./src/modules/station-network', './src/modules/third-party-places', './src/modules/slatoki'],
               from: ['./src/modules/identity'],
               message:
                 'No module may import identity/ directly — use platform/auth/ for AuthN/AuthZ decorators and types.',
+            },
+            {
+              // Slatoki (module-dependency-diagram.md §3: the only module with a
+              // sanctioned read dependency on BOTH Station Network and Third-Party
+              // Places) may depend only on their exported *QueryService (application/)
+              // — never their domain/infrastructure/interface layers.
+              target: './src/modules/slatoki',
+              from: [
+                './src/modules/station-network/domain',
+                './src/modules/station-network/infrastructure',
+                './src/modules/station-network/interface',
+                './src/modules/third-party-places/domain',
+                './src/modules/third-party-places/infrastructure',
+                './src/modules/third-party-places/interface',
+              ],
+              message:
+                "Slatoki may only depend on the other module's exported *QueryService (application/) — see module-dependency-diagram.md §3.",
+            },
+            {
+              // Nothing may depend on Slatoki — the matrix grants it read edges
+              // outward only (Slatoki -.->|read| StationNetwork/ThirdPartyPlaces),
+              // never the reverse.
+              target: ['./src/modules/station-network', './src/modules/third-party-places', './src/composition'],
+              from: ['./src/modules/slatoki'],
+              message: 'No module may depend on slatoki/ — its read edges are outward-only (module-dependency-diagram.md §3).',
             },
             {
               // Places composition layer (ADR-0029) may depend ONLY on each Facilities
