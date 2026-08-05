@@ -171,3 +171,22 @@ Both questions in §6 were confirmed with the user before further code changed:
 2. **Notifications confirmed excluded** from this Phase 5 integration pass — explicitly a backend-integration phase, not a feature-development one. No `NotificationRepository`, DTO, provider, or UI will be created here. Remains tracked as a future, separately-scoped integration item (§4 §8 of this document) once explicitly requested.
 
 Proceeding to §5's migration order: Authentication → User Profile → Favorites → Facilities → Nearby Search → Reviews → Slatoki, one feature at a time, each verified (`flutter analyze` + `flutter test` + integration tests) and committed before the next starts.
+
+## 8. Final Integration Status (2026-08-05)
+
+| # | Feature | Outcome | Commit |
+|---|---|---|---|
+| 0 | Prerequisite (`AuthenticatedHttpClient`) | Implemented — single shared swap point now attaches the Supabase JWT to every request | `c664d9f` |
+| 1 | Authentication | Verified, no change — `SupabaseAuthRepository` already correct per ADR-0009, no backend route involved | `86dff0f` |
+| 2 | User Profile | Verified contract-correct; closed a real test-coverage gap (`RestUserRepository`/`UserRemoteDataSource` had zero tests) | `86dff0f` |
+| 3 | Favorites | Fixed a real bug (`nextCursor` pagination was silently discarded); closed the same shape of test-coverage gap | `1a09058` |
+| 4 | Facilities | Verified — already fully tested (both success and failure paths, repository and datasource level), contract-exact. No changes. | — |
+| 5 | Nearby Search | Verified — already fully tested, contract-exact, including GeoJSON coordinate order. No changes. | — |
+| 6 | Reviews | Verified contract-correct; closed the same shape of test-coverage gap as Favorites/User Profile (only the always-throw paths were covered) | `dce1d93` |
+| 7 | Slatoki | Verified — already fully tested, contract-exact. No changes. | — |
+| 8 | Notifications | **Excluded** per §7 — no Flutter implementation exists; building one is new-feature work, out of this pass's scope | — |
+| 9 | Operations | **Not required** — no operator-facing surface exists in this app | — |
+
+Final verification: `flutter analyze` clean, `flutter test` 552/552 passing (started this pass at 527/527). Every commit in this pass ran both before committing, per the stated rules. Features 4/5/7 have no commit of their own because verification found nothing to change or add — consistent with this project's "do not create an empty commit" discipline; their "no changes needed" outcome is itself the recorded result of that verification step.
+
+This closes the migration order given for this pass. Access & Payment/Emergency/Sponsorship/Analytics remain out of scope (their backend modules don't exist — Phase 4 Completion Report §2), and Notifications/Operations remain excluded/not-required as recorded above.
