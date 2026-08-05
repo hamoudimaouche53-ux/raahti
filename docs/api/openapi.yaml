@@ -32,7 +32,12 @@ paths:
     get:
       tags: [Identity]
       summary: Get current user profile
-      description: "Implements FR-USR-02. Optional-account model: returns 401 only if an Authorization header was sent and is invalid; anonymous usage of read endpoints elsewhere is unaffected (FR-USR-01)."
+      description: >
+        Implements FR-USR-02. Optional-account model: returns 401 only if an Authorization
+        header was sent and is invalid; anonymous usage of read endpoints elsewhere is
+        unaffected (FR-USR-01). Just-in-time provisions the local user_account row on first
+        call for a newly-authenticated Supabase user (ADR-0028) — idempotent, safe under
+        concurrent requests, never overwrites an already-provisioned row's fields.
       responses:
         "200":
           description: Current user profile

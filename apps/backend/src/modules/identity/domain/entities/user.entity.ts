@@ -13,6 +13,16 @@ export class MissingContactMethodException extends DomainException {
   }
 }
 
+/** Raised on JIT provisioning (ADR-0028) when the JWT's email/phone already belongs to a different user_account row. */
+export class ConflictingContactMethodException extends DomainException {
+  readonly code = 'IDENTITY_USER_CONFLICTING_CONTACT_METHOD';
+  readonly status = 409;
+
+  constructor() {
+    super('This email or phone is already associated with a different account.');
+  }
+}
+
 export interface UserProps {
   id: string;
   email: string | null;
