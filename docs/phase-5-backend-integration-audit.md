@@ -162,3 +162,12 @@ Per this turn's instruction to deliver the audit before touching code: **pausing
 2. **Notifications** cannot be completed as "replace the mock" (there is no mock, or any prior implementation, to replace) without building a new feature, which conflicts with this turn's explicit instruction. Confirming you want it dropped from this pass (§4 §8) rather than built.
 
 No backend to test against exists yet either (Phase 4's own completion report: ADR-0016 hosting still Proposed, no live Supabase project or deployed API — same caveat applies here). "Verified" below and in every subsequent commit means: contract-checked against `openapi.yaml` and the actual controller source, and covered by `flutter analyze`/`flutter test`/widget-level integration tests using a fake `http.Client` — not a live end-to-end run against a running backend, which isn't possible in this environment yet.
+
+## 7. Decisions Confirmed (2026-08-05)
+
+Both questions in §6 were confirmed with the user before further code changed:
+
+1. **Prerequisite approved and implemented** — `AuthenticatedHttpClient` (`lib/core/network/authenticated_http_client.dart`), wired at the single `httpClientProvider` swap point (`place_providers.dart`), attaching `Authorization: Bearer <token>` to every request via a token-getter closure sourced from `GoTrueClient.currentSession`. No repository/data source changed; no auth logic duplicated. `flutter analyze` clean, `flutter test` 532/532 passing (up from 527). Committed `c664d9f`.
+2. **Notifications confirmed excluded** from this Phase 5 integration pass — explicitly a backend-integration phase, not a feature-development one. No `NotificationRepository`, DTO, provider, or UI will be created here. Remains tracked as a future, separately-scoped integration item (§4 §8 of this document) once explicitly requested.
+
+Proceeding to §5's migration order: Authentication → User Profile → Favorites → Facilities → Nearby Search → Reviews → Slatoki, one feature at a time, each verified (`flutter analyze` + `flutter test` + integration tests) and committed before the next starts.
