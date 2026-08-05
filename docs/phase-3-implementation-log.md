@@ -1515,6 +1515,375 @@ No issues found!
 
 ---
 
+## Feature 24 — EPIC-06 / US-06.4 (F19 — Qibla Compass Misleading Full-Screen Label)
+
+**Scope**: implements finding F19 from Feature 22's audit, deferred at the time pending UX review — the last of the two HIGH-severity open findings blocking EPIC-06 (F10, Feature 23, was the other). Per explicit instruction, a UX design proposal (current behavior, WCAG 4.1.2 rationale, state-by-state label mapping, alternatives, M3/screen-reader/RTL impact, migration risk, mockup, recommendation) was written and reviewed before any code changed; the user approved the primary proposal exactly as specified — reuse the Map screen's existing position-error strings, no new ARB keys, compact mode (F20) untouched, no visual/UI changes, no banner added to `QiblaFullScreen`, Alternative 3 (fixing it one layer up in the screen) explicitly rejected — and scoped this pass to F19 only.
+
+### 1. Files Modified
+- `lib/features/slatoki/presentation/widgets/qibla_compass.dart` — the full-mode semantic label is now a state-aware `switch`: a resolved bearing announces it (unchanged); an unresolved one announces *why*, reusing `map_screen.dart`'s exact `LocationFailure`-keyed strings (`mapPositionLoading`, `mapPositionErrorServiceDisabled`, `mapPositionErrorPermissionDenied`, `mapPositionErrorGeneric`) rather than duplicating translated copy. Compact mode's label is completely untouched (still unconditionally `qiblaCompactSemanticLabel` — F20's separate concern). No new ARB keys, no color/layout changes, no changes to `QiblaFullScreen`.
+
+### 2. Architecture Notes — a real bug found and fixed during implementation, not shipped
+
+The approved proposal's `switch` matched `AsyncLoading()` vs. `AsyncError(:final error)` on `qiblaBearingProvider`'s `AsyncValue<double>` as if mutually exclusive. Implementing and testing this surfaced two compounding, genuine bugs, both fixed before this entry was written — not glossed over:
+
+1. **A Riverpod `AsyncValue` semantics gap**: in this project's Riverpod version, a stream whose *first* event is an error (no prior successful data) reports as `AsyncLoading` **with `error` populated**, not a standalone `AsyncError` — so `AsyncError(:final error)` as a case pattern silently never matched, and every error case fell through to `AsyncLoading() => l10n.mapPositionLoading`. Fixed by checking `bearingState.hasError`/`.error` directly (version-agnostic accessors) instead of pattern-matching the two variants as exclusive.
+2. **A deeper propagation gap, found only once widget tests were written and one still failed after fix #1**: `qiblaBearingProvider` (a plain `Provider<AsyncValue<double>>` computed via `ref.watch(userPositionStreamProvider).whenData(...)`) does not reliably rebuild its own watchers when the upstream `StreamProvider`'s `AsyncValue` transitions from plain-loading to loading-with-error — confirmed via an isolated `ProviderContainer` diagnostic (no widget tree involved) showing the *raw* `userPositionStreamProvider` correctly notified a direct listener of the error, while `qiblaBearingProvider`'s own listener never fired and stayed stuck on the stale initial `AsyncLoading<double>()`. Root cause not fully chased into Riverpod's internals (out of scope to patch a third-party package), but robustly worked around: `qibla_compass.dart` now watches `userPositionStreamProvider` directly (`ref.watch`, confirmed to notify correctly) for the error-detection branch, alongside the pre-existing `ref.watch(qiblaBearingProvider).value` for the resolved-bearing case. Both are `ConsumerWidget`-level watches, not routed through the lossy derived provider for this purpose.
+
+Both bugs were caught by the very widget tests this feature's own instructions required writing — not found by inspection, not left in place. Diagnostic scripts used to isolate the root cause were temporary, standalone test files, run and deleted; none were committed.
+
+### 3. Test Coverage Summary
+7 new tests in `qibla_compass_test.dart`, covering every state named in the approved proposal plus 2 additional edge cases found worth asserting while writing them: bearing available (announces the resolved bearing, explicitly *not* the old fallback text), position loading, permission denied, permission permanently denied (a distinct `LocationFailure` subtype mapping to the same message — asserted separately since it's a separate `case` arm), service disabled, any other/generic error, and compact mode confirmed unaffected (still the static label regardless of position state, guarding the F20 scope boundary). The `_wrap` test helper gained an optional `positionStream` parameter (additive, backward-compatible) so these states could be injected without touching the file's 5 pre-existing tests.
+
+### 4. `flutter analyze` Results
+```
+No issues found!
+```
+
+### 5. `flutter test` Results
+```
+01:23 +505: All tests passed!
+```
+505/505 (up from 498/498 at Feature 23's close — +7 new tests, 0 regressions).
+
+### 6. Blockers / Assumptions
+| Item | Type | Detail |
+|---|---|---|
+| Two Riverpod `AsyncValue`/`Provider` propagation quirks | **Found and worked around during implementation, not a blocker** | See §2 — both root-caused via isolated diagnostics before touching the real fix, worked around at the call site rather than left as a flaky/mysteriously-failing test. |
+| Alternative 3 (fixing the sighted-user gap in `QiblaFullScreen` too) | **Explicitly rejected per instruction** | The approved proposal's primary solution and this instruction were both explicit: semantics-only, no visual changes, no banner added to `QiblaFullScreen`. Not implemented. |
+| F20 (compact mode's static label never varying with bearing) | **Untouched, confirmed by a dedicated regression test** | Explicitly out of scope for F19; the new "compact mode is unaffected" test exists specifically to guard this boundary going forward. |
+| No ambiguity requiring a stop-and-ask | — | The approved proposal fully specified the fix; the two Riverpod quirks were implementation-detail bugs discovered and resolved within the approved design, not scope or design questions. |
+
+---
+
+## Feature 25 — EPIC-06 / US-06.4 (F23 — Payment Method Loading Spinner)
+
+**Scope**: implements finding F23 from Feature 22's audit — the last of the three HIGH-severity findings blocking EPIC-06 (F10/Feature 23 and F19/Feature 24 were the other two, both UX-decision fixes; F23 was characterized as mechanical from the start, since it's a direct application of a pattern already used correctly twice elsewhere in this exact feature). Per this pass's own precedent, the plan was presented and one open question (add a new ARB key vs. reuse an existing generic one) was confirmed before touching code.
+
+### 1. Files Modified
+- `lib/features/access_payment/presentation/screens/payment_method_selection_sheet.dart` — the saved-payment-methods `loading` branch was a bare `CircularProgressIndicator()` with no text and no `Semantics` at all; now wrapped in `Semantics(liveRegion: true)` alongside a real message (`l10n.paymentMethodsLoading`), matching the exact pattern `cabin_availability_screen.dart` and `payment_processing_screen.dart` already use correctly for their own loading states.
+- `lib/l10n/app_{fr,en,ar}.arb` — added `paymentMethodsLoading` ("Chargement de vos moyens de paiement…" / "Loading your payment methods…" / "جارٍ تحميل وسائل الدفع الخاصة بك…"). Confirmed no existing string fit this context before adding it (`splashLoading` is splash-scoped, `placeDetailDetailLoading` is place-detail-scoped) — new key follows this section's existing naming convention (`paymentMethodLoadError`, `paymentMethodSheetTitle`, etc.), consistent with every sibling key already there.
+
+### 2. Test Coverage Summary
+1 new test in `payment_method_selection_sheet_test.dart`: a `_PendingPaymentMethodRepository` (its `getSavedPaymentMethods()` returns an unresolved `Completer` future, since the existing fake's immediately-resolving future skips past the loading state too fast to assert on) drives the sheet into its loading state and asserts both the spinner is present and `find.bySemanticsLabel("Chargement de vos moyens de paiement…")` finds it — pumped with bounded `pump()` calls, not `pumpAndSettle()` (the indeterminate `CircularProgressIndicator` animates indefinitely while the Completer never resolves, so `pumpAndSettle` would never terminate — same discipline this project has applied to comparable indefinite-animation states before).
+
+### 3. `flutter analyze` Results
+```
+No issues found!
+```
+
+### 4. `flutter test` Results
+```
+01:24 +506: All tests passed!
+```
+506/506 (up from 505/505 at Feature 24's close — +1 new test, 0 regressions).
+
+### 5. Blockers / Assumptions
+| Item | Type | Detail |
+|---|---|---|
+| New ARB key vs. reuse | **Confirmed with the user before implementation** | Two existing generic loading strings were checked and rejected as contextually off (splash-scoped, place-detail-scoped); `paymentMethodsLoading` added instead, matching this section's own naming convention. |
+| No ambiguity requiring a stop-and-ask beyond the ARB-key question | — | The fix was a direct, unambiguous application of an already-established, already-correct pattern from two sibling screens in the same feature. |
+
+---
+
+## Feature 26 — EPIC-06 / US-06.4 (F4 — QR Scanner Overlay Contrast)
+
+**Scope**: implements finding F4 from Feature 22's audit — 6 hard-coded color literals across `qr_scanner_screen.dart`, flagged for both a token-discipline concern and, per the follow-up Exit Review, a live WCAG 2.2 SC 1.4.3 risk. Unlike F10/F19, this did not require a design-decision proposal: the fix follows from contrast math and this app's own established camera-overlay convention, not a stakeholder-facing choice.
+
+### 1. Analysis Before Implementation
+
+The 6 flagged literals split into two genuinely different situations, not one uniform bug:
+- **Genuinely unguarded (live risk)**: the AppBar's default back icon (`backgroundColor: Colors.transparent`, no `foregroundColor`) and the manual-entry `TextButton` both rendered with **no backdrop at all**, directly against the live, unpredictable camera feed.
+- **Already safe, but undisciplined**: the instruction pill (already backed by a `Colors.black.withValues(alpha: 0.6)` scrim) and `_CameraErrorView`'s icon/title/body (rendered on a **solid** `Colors.black` `ColoredBox`, not a live feed) were both already contrast-safe — computed worst-case (a pure-white camera background behind the 60%-opacity scrim) still yields ≈5.74:1 for white text, comfortably above the 4.5:1 floor. Their issue was scattered raw `Colors.*` literals, not a live failure.
+
+**Decision, not escalated**: keep these colors theme-independent rather than converting to `colorScheme` tokens. A camera/scanner overlay must stay legible regardless of the app's own light/dark theme (the backdrop is a live feed, not `colorScheme.surface`) — every reference camera UI uses a fixed dark-scrim/white-content overlay for exactly this reason, and swapping to e.g. `colorScheme.onSurface` would resolve near-black in light theme, invisible against a dark scrim. This is a correctness call grounded in contrast math and an industry-standard convention, not a subjective design preference needing sign-off.
+
+### 2. Files Modified
+- `lib/features/access_payment/presentation/screens/qr_scanner_screen.dart` — added a private `_ScannerOverlayColors` (scrim, onScrim, onScrimSecondary, solidBackground) with a doc comment explaining the deliberate theme-independence and the contrast math behind the scrim's 60% opacity. Every prior raw literal now references it. The AppBar's `leading` is now an explicit `BackButton` (preserving its automatic localized tooltip, per the earlier F14 precedent — not a bare `IconButton`) wrapped in a scrim-backed circular backdrop. The manual-entry button is now wrapped in the same scrim `Container` pattern the instruction pill already used.
+
+### 3. Test Coverage Summary
+2 new tests in `qr_scanner_screen_test.dart`: the AppBar back button is confirmed to be a real `BackButton` (color `Colors.white`) inside a `DecoratedBox` with the exact scrim color (`Color(0x99000000)`) and circular shape; the manual-entry button is confirmed to sit inside a `Container` with the same scrim decoration color — both previously bare, both now guarded, asserted structurally rather than just visually.
+
+### 4. `flutter analyze` Results
+```
+No issues found!
+```
+
+### 5. `flutter test` Results
+```
+01:44 +508: All tests passed!
+```
+508/508 (up from 506/506 at Feature 25's close — +2 new tests, 0 regressions).
+
+### 6. Blockers / Assumptions
+| Item | Type | Detail |
+|---|---|---|
+| Theme-independence decision | **Made directly, not escalated** | Grounded in computed contrast math (≈5.74:1 worst-case) and an industry-standard camera-overlay convention, not a subjective/stakeholder-facing design choice — see §1. |
+| No ambiguity requiring a stop-and-ask | — | The fix was fully determined by the contrast analysis; the only genuinely open design question in this pass's remaining findings (F20) still needs its own UX review, same as F19 did, and was not touched here. |
+
+---
+
+## Feature 27 — EPIC-06 / US-06.4 (F8 — Payment Method Selection Dialog Touch Targets)
+
+**Scope**: implements finding F8 from Feature 22's audit — the identical defect class as F7 (already fixed on `SavedPaymentMethodsScreen`, US-05.2): the "add payment method" `SimpleDialogOption` rows in `PaymentMethodSelectionSheet` (SCR-015, US-04.3) have no built-in 48dp tap-target floor. A purely mechanical fix, no design decision involved.
+
+### 1. Files Created
+| File | Purpose |
+|---|---|
+| `lib/core/widgets/dialog_option_tap_target.dart` | `DialogOptionTapTarget` — promoted from `SavedPaymentMethodsScreen`'s private `_DialogOptionTapTarget` to a shared widget, since F8 is a second use site of the exact same pattern. Same precedent as `RahatiLogoMark`'s own promotion to `core/widgets/` when it gained a second use site (Feature 20). |
+
+### 2. Files Modified
+- `lib/features/profile/presentation/screens/saved_payment_methods_screen.dart` — its private `_DialogOptionTapTarget` removed; now imports and uses the shared `DialogOptionTapTarget`. No behavior change — same widget, same tests, now shared rather than duplicated.
+- `lib/features/access_payment/presentation/screens/payment_method_selection_sheet.dart` — the actual F8 fix: all 3 `SimpleDialogOption` children in `_showAddMethodDialog()` now wrap their label text in `DialogOptionTapTarget` instead of a bare `Text`, enforcing the 48dp minimum.
+
+### 3. Test Coverage Summary
+1 new test in `payment_method_selection_sheet_test.dart`, structurally identical to F7's own regression test: opens the add-method dialog and asserts every rendered `SimpleDialogOption`'s height is `>= 48`. The pre-existing F7 test in `saved_payment_methods_screen_test.dart` was re-run unchanged after the extraction and confirmed still passing — the shared-widget refactor didn't alter that screen's behavior.
+
+### 4. `flutter analyze` Results
+```
+No issues found!
+```
+
+### 5. `flutter test` Results
+```
+01:20 +509: All tests passed!
+```
+509/509 (up from 508/508 at Feature 26's close — +1 new test, 0 regressions).
+
+### 6. Blockers / Assumptions
+| Item | Type | Detail |
+|---|---|---|
+| No ambiguity requiring a stop-and-ask | — | Identical defect class to F7, already resolved once in this codebase; the only judgment call was whether to duplicate or extract, resolved by direct precedent (`RahatiLogoMark`), not escalated. |
+
+---
+
+## Feature 28 — EPIC-06 / US-06.4 (F17 — Map Search Bar Accessible Name) — verified false positive, not a code fix
+
+**Scope**: investigates finding F17 from Feature 22's audit (*"`map_search_bar.dart`'s `SearchBar` relies on `hintText` alone; M3's `SearchBar` has no persistent-label param, so needs an explicit `Semantics(label:)` wrapper"*). Per this project's own "verify, don't assume" discipline (already applied to F19's Riverpod investigation), the proposed fix was implemented, tested, found to be actively wrong, reverted, and replaced with a regression test proving the original code was already correct. **No functional code changed** — `map_search_bar.dart` is back to its pre-Feature-22 state, now with an explanatory comment and test coverage it previously lacked.
+
+### 1. What Was Tried and Why It Was Reverted
+
+Implemented the proposed fix first — `Semantics(label: l10n.mapSearchHint, textField: true, child: SearchBar(...))`. Writing the widget test immediately surfaced a problem: `find.bySemanticsLabel("Rechercher un lieu…")` found **2 matching nodes**, not 1. Tracing this properly (not just adding a workaround):
+
+- Read the Flutter SDK source (`packages/flutter/lib/src/material/search_anchor.dart`): `SearchBar` already composes its own `Semantics(inputType: SemanticsInputType.search, child: TextField(decoration: InputDecoration(hintText: widget.hintText)))` internally.
+- Flutter's own `TextField`/`InputDecorator` already surfaces a lone `hintText` (no separate `labelText`) as the field's persistent semantics `label` — this is standard, well-tested Flutter behavior, not something this app needed to add itself.
+- The added external `Semantics(label:)` wrapper didn't merge with that internal node; it created a **second, sibling node with the identical string** — a real duplicate-announcement regression, confirmed empirically both before and after text entry (ruling out "the internal one only exists transiently while the hint is visually shown").
+
+**Conclusion**: the original audit's premise — *"SearchBar has no persistent-label mechanism"* — was incorrect. SearchBar does have one, provided automatically by Flutter's own TextField composition. F17 is a **false positive**, found and disproven during implementation rather than assumed away. The wrapper was reverted in full.
+
+### 2. Files Modified
+- `lib/features/map_discovery/presentation/widgets/map_search_bar.dart` — no functional change (the `Semantics` wrapper added, then removed). Added a doc comment on the `build()` method recording this investigation, its evidence, and its conclusion, so a future reader doesn't need to re-derive it or reopen F17 without cause.
+
+### 3. Test Coverage Summary
+2 new tests in `map_search_bar_test.dart` (this widget had none testing its accessibility name before): confirms exactly one semantics node carries the hint text as its label both before and after text entry — the persistence claim the original finding doubted, now verified rather than assumed in either direction.
+
+### 4. `flutter analyze` Results
+```
+No issues found!
+```
+
+### 5. `flutter test` Results
+```
+02:25 +511: All tests passed!
+```
+511/511 (up from 509/509 at Feature 27's close — +2 new tests, 0 regressions).
+
+### 6. Blockers / Assumptions
+| Item | Type | Detail |
+|---|---|---|
+| F17 reclassified as a false positive | **Found during implementation, not the audit** | The Feature 22 audit's severity table and this project's Exit Review both listed F17 as a live Medium finding; that classification is now known to be wrong, corrected here with evidence rather than silently left inconsistent. |
+| No ambiguity requiring a stop-and-ask | — | The Flutter SDK source and a widget test together gave an unambiguous, verifiable answer — no design or product judgment call was involved. |
+
+---
+
+## Feature 29 — EPIC-06 / US-06.4 (F18 — Submit Review Button Loses Accessible Name While Submitting)
+
+**Scope**: implements finding F18 from Feature 22's audit — `SubmitReviewScreen`'s "Publier" `FilledButton` loses its accessible name entirely while submitting, since its child becomes a bare `CircularProgressIndicator` with no semantics of its own. Verified as a genuine, reproducible gap before fixing (per this project's own "verify, don't assume" discipline, just applied — Feature 28/F17 was a case where the same discipline caught a false positive; this time it confirmed a real bug).
+
+### 1. Files Modified
+- `lib/features/map_discovery/presentation/screens/submit_review_screen.dart` — the submitting-state child is now wrapped in `Semantics(label: l10n.submitReviewPublishButton, child: ...)`, keeping the button's accessible name ("Publier") stable across both states. Deliberately scoped to wrap only the spinner, not the whole `FilledButton`, so the button's own built-in role/enabled-disabled semantics are untouched.
+
+### 2. Related, Out-of-Scope Observation
+
+While confirming F18, found the **identical unlabeled-spinner pattern** in `lib/features/profile/presentation/screens/sign_in_sign_up_screen.dart:154-166` (the Sign In/Sign Up submit button). Not touched here — F18 named `submit_review_screen.dart` specifically, and this project's established discipline (F20 left untouched during F19; `QiblaFullScreen`'s visual gap flagged but not fixed during F19) is to flag adjacent findings rather than silently expand scope. Worth its own follow-up.
+
+### 3. Test Coverage Summary
+1 new test in `submit_review_screen_test.dart`: a new `_PendingReviewRepository` (never-resolving `Completer`, since the existing fake's immediate resolution skips past the submitting state too fast to assert on) drives the screen into its submitting state and confirms both the spinner is present and `find.bySemanticsLabel("Publier")` still finds the button.
+
+### 4. `flutter analyze` Results
+```
+No issues found!
+```
+
+### 5. `flutter test` Results
+```
+01:36 +512: All tests passed!
+```
+512/512 (up from 511/511 at Feature 28's close — +1 new test, 0 regressions).
+
+### 6. Blockers / Assumptions
+| Item | Type | Detail |
+|---|---|---|
+| Identical pattern in `sign_in_sign_up_screen.dart` | **Flagged, not fixed — out of F18's named scope** | See §2. |
+| No ambiguity requiring a stop-and-ask | — | Confirmed as a genuine gap (not a repeat of F17's false positive) before implementing; the fix itself was a direct, unambiguous application of the same `Semantics(label:)` pattern already used correctly elsewhere in this codebase. |
+
+---
+
+## Feature 30 — EPIC-06 / US-06.4 (F20 — Qibla Compact-Mode Accessible Name)
+
+**Scope**: implements finding F20 from Feature 22's audit — explicitly the compact-mode counterpart to F19 (Feature 24), deliberately left untouched at the time (a dedicated regression test locked in the old behavior as a scope boundary). Compact mode's label was always the static `qiblaCompactSemanticLabel` regardless of the actual resolved bearing; a non-sighted user had to tap through to the full screen to learn any direction information the needle's rotation already gave sighted users.
+
+### 1. Design Decision — Made Directly, Not Escalated
+
+F19 already established the correct state-aware label logic for full mode (bearing known → announce it; unknown → announce why, reusing `map_screen.dart`'s exact position-error vocabulary). The only real question for F20 was whether compact mode needs different content — it doesn't. `bearing` is computed purely from position (`QiblaDirectionCalculator.bearingToMecca`), independent of `mode`, so the existing logic already applies unchanged; unifying it removes the `switch (mode)` split entirely rather than adding a second, parallel branch.
+
+This left one genuine wording question: compact mode's old label included "tap to expand" (`qiblaCompactSemanticLabel`), which — unlike F19's bug — is *true* for compact mode (it does have `onTap`). Decided **not** to re-add that phrase to the new bearing/error/loading labels: `_CompassCard` already sets `button: true` on the Semantics node whenever `onTap` is non-null, and TalkBack/VoiceOver both announce an automatic activation hint for actionable elements — restating "tap to expand" in the label text would be redundant, not more informative, per standard platform accessibility guidance (don't duplicate what the semantics role already conveys). Grounded in that established convention, not a subjective preference, so resolved directly rather than proposed for approval, consistent with how F4's theme-independence call was made.
+
+### 2. Files Modified
+- `lib/features/slatoki/presentation/widgets/qibla_compass.dart` — removed the `switch (mode)` split in the semantic-label computation; both modes now share the identical bearing/error/loading logic F19 already established. Doc comment updated to describe this as the F19/F20 pairing it is.
+- `lib/l10n/app_{fr,en,ar}.arb` — removed `qiblaCompactSemanticLabel` (and its `@`-description in the FR file) — it had no remaining caller after unification. Removed outright, not left as dead content, matching this project's own precedent (Feature 20 removed the dead `profilePlaceholder*` keys the same way when their last caller was retired).
+
+### 3. Test Coverage Summary
+Updated 2 pre-existing tests whose assertions were now intentionally wrong by design: the "compact mode... no reading has arrived yet" test now correctly expects the bearing announcement (bearing resolves independently of compass heading/accuracy, so it's available well before any compass reading arrives — the test's original premise was already slightly imprecise, corrected along with the fix); the test that explicitly locked in "compact mode is unaffected by F19" was replaced (its premise is now deliberately false) with a new group covering compact mode's loading state, one representative error state, and an explicit "the old fallback string is never announced anywhere, in either mode" regression guard proving the retirement was complete, not partial.
+
+### 4. `flutter analyze` Results
+```
+No issues found!
+```
+
+### 5. `flutter test` Results
+```
+01:18 +514: All tests passed!
+```
+514/514 (up from 512/512 at Feature 29's close — +2 net new tests, 0 regressions).
+
+### 6. Blockers / Assumptions
+| Item | Type | Detail |
+|---|---|---|
+| "Tap to expand" wording not preserved | **Design decision, made directly** | Grounded in the `button: true` + platform-automatic-activation-hint convention already established in this codebase, not a subjective call — see §1. |
+| No ambiguity requiring a stop-and-ask | — | The underlying logic was already fully determined and approved by F19; the only new judgment (dropping the redundant "tap to expand" phrase) rests on a well-established accessibility convention, not a product/design preference. |
+
+---
+
+## Feature 31 — EPIC-06 / US-06.4 (F21 — User Position Marker Hard-Coded French Label)
+
+**Scope**: implements finding F21 from Feature 22's audit — `UserPositionMarker`'s Semantics label was a raw French literal (`"Votre position"`), with no `AppLocalizations` import at all, unlike every other accessible label in this feature. On an AR or EN app locale, a screen reader would announce/mispronounce French regardless of the actual selected language, silently bypassing ADR-0017's trilingual support (WCAG 3.1.2). A purely mechanical fix — no design decision involved.
+
+### 1. Files Modified
+- `lib/l10n/app_{fr,en,ar}.arb` — added `mapUserPositionMarkerLabel` ("Votre position" / "Your position" / "موقعك"). Checked first for a reusable existing key — none fit (the closest, `mapRecenterUnlockedTooltip`, is specifically the recenter-FAB's own tooltip text, not a generic position label) — so one new key was added, placed next to the recenter tooltips it's most closely related to, and following this project's own established "موقعك" convention already used consistently for second-person "your position" phrasing elsewhere in the Arabic ARB (`mapPositionLoading`, `mapPositionErrorServiceDisabled`, `mapPositionErrorGeneric`), not a fresh translation choice.
+- `lib/features/map_discovery/presentation/widgets/user_position_marker.dart` — added the missing `AppLocalizations` import; the Semantics label now reads `AppLocalizations.of(context).mapUserPositionMarkerLabel`.
+
+### 2. Files Created
+| File | Purpose |
+|---|---|
+| `test/features/map_discovery/presentation/widgets/user_position_marker_test.dart` | First dedicated test file for this widget — previously only indirectly covered via `map_screen_test.dart`'s `find.byType(UserPositionMarker)` existence checks, which never exercised its own accessible label. 3 tests, see §3. |
+
+### 3. Test Coverage Summary
+3 new tests, one per locale: confirms the French label under `fr`, the English label under `en` (explicitly also asserting the old hard-coded French string is *not* found), and the Arabic label under `ar` (same explicit French-string-absent assertion) — directly proving the bug (a locale-independent hard-coded string) can no longer occur, not just that *a* label exists.
+
+### 4. `flutter analyze` Results
+```
+No issues found!
+```
+
+### 5. `flutter test` Results
+```
+01:24 +517: All tests passed!
+```
+517/517 (up from 514/514 at Feature 30's close — +3 new tests, 0 regressions).
+
+### 6. Blockers / Assumptions
+| Item | Type | Detail |
+|---|---|---|
+| No ambiguity requiring a stop-and-ask | — | Direct, unambiguous application of this app's own established localization pattern; the only choice (add vs. reuse a key) was resolved by checking existing keys first, not assumed. |
+
+---
+
+## Feature 32 — EPIC-06 / US-06.4 (F24 — Map Status Banners Not Announced as Live Regions)
+
+**Scope**: implements finding F24 from Feature 22's audit — none of `map_screen.dart`'s `_StatusBanner` instances (`position-loading`, `position-error`, `places-error`, `offline-cache`, `filter-no-results`) were wrapped in `Semantics(liveRegion: true)`, so a screen reader user wasn't notified when one appeared or changed unless they happened to navigate to it — the same "transient state changes are announced" gap already solved elsewhere in this codebase for `CabinStatusIndicator`. A mechanical fix, directly applying that established pattern.
+
+### 1. Files Modified
+- `lib/features/map_discovery/presentation/screens/map_screen.dart` — `_StatusBanner.build()` now wraps its `Card` in `Semantics(label: label, liveRegion: true, child: ExcludeSemantics(child: ...))`, matching `CabinStatusIndicator`'s exact established pattern verbatim (explicit label + `ExcludeSemantics` on the visible content, avoiding the child `Text`'s own implicit label from merging into and duplicating the explicit one — the same duplicate-announcement class of bug Feature 28/F17 found the hard way). All 5 banner instantiation call sites are unaffected — the fix lives entirely inside the shared `_StatusBanner` widget, so every banner gets it at once.
+
+### 2. Test Coverage Summary
+1 new test in `map_screen_test.dart`: drives the screen into its position-loading state and asserts, via the raw `SemanticsNode` (`flagsCollection.isLiveRegion`, not the deprecated `hasFlag(SemanticsFlag.isLiveRegion)` API), that the banner is both correctly labeled and flagged as a live region — a structural check of the actual semantics tree, not just a label-presence check.
+
+### 3. `flutter analyze` Results
+```
+No issues found!
+```
+
+### 4. `flutter test` Results
+```
+01:19 +518: All tests passed!
+```
+518/518 (up from 517/517 at Feature 31's close — +1 new test, 0 regressions).
+
+### 5. Blockers / Assumptions
+| Item | Type | Detail |
+|---|---|---|
+| No ambiguity requiring a stop-and-ask | — | Direct, unambiguous application of `CabinStatusIndicator`'s already-established `liveRegion` pattern to a widget with no interactive children — none of F26's "buttons accidentally merged into the live region" risk applies here, since `_StatusBanner` has no buttons at all. |
+
+---
+
+## Feature 33 — EPIC-06 / US-06.4 (F25 — Unlock Confirmation's Progress→Session-Active Transition Not Announced)
+
+**Scope**: implements finding F25 from Feature 22's audit — `unlock_confirmation_screen.dart` already wraps its headline in `Semantics(liveRegion: true)` (announcing the initial "Cabine déverrouillée" success state), but the *second* state transition on the same screen — the `LinearProgressIndicator` swapping for the "Session en cours" text once the ~1.6s unlock sequence completes (or the 30s `kUnlockWaitTimeout` defensive fallback fires) — was a bare `Text` with no live-region wrapper, so a screen reader user wasn't notified their session had gone active unless they happened to re-explore that part of the screen. The same "transient state changes are announced" gap already solved for `CabinStatusIndicator` and, most recently, `map_screen.dart`'s `_StatusBanner` (F24/Feature 32). A mechanical fix, directly applying that established pattern; reuses the existing `unlockConfirmationSessionActive` l10n key verbatim — no new ARB key needed.
+
+### 1. Files Modified
+- `lib/features/access_payment/presentation/screens/unlock_confirmation_screen.dart` — the `else` branch of the `_unlocking` conditional (previously a bare `Text(l10n.unlockConfirmationSessionActive)`) now wraps that `Text` in `Semantics(liveRegion: true, label: l10n.unlockConfirmationSessionActive, child: ExcludeSemantics(...))`, matching this codebase's established pattern verbatim. The `if` branch (the animating `LinearProgressIndicator`) is untouched — `LinearProgressIndicator` already carries its own built-in semantics, and F25 is specifically about the *transition's* announcement, not per-frame progress chatter.
+
+### 2. Test Coverage Summary
+1 new test in `unlock_confirmation_screen_test.dart`: drives the screen past the unlock sequence into its session-active state and asserts, via the raw `SemanticsNode` (`flagsCollection.isLiveRegion`), that the "Session en cours" text is both correctly labeled and flagged as a live region — the same structural-check style used for F24's test, not just a label-presence check.
+
+### 3. `flutter analyze` Results
+```
+No issues found!
+```
+
+### 4. `flutter test` Results
+```
+01:37 +519: All tests passed!
+```
+519/519 (up from 518/518 at Feature 32's close — +1 new test, 0 regressions).
+
+### 5. Blockers / Assumptions
+| Item | Type | Detail |
+|---|---|---|
+| No ambiguity requiring a stop-and-ask | — | Direct, unambiguous application of the already-established `liveRegion` pattern (F19/F24) to a widget with no interactive children in the affected branch. |
+| No new ARB key | **Reused existing string** | `unlockConfirmationSessionActive` already existed and was already the visible text — F25 only needed a `Semantics` wrapper, not new copy. |
+
+---
+
+## Feature 34 — EPIC-06 / US-06.4 (F9 — Tightly Packed Adjacent Controls in Saved Payment Methods)
+
+**Scope**: implements finding F9 from Feature 22's audit — `saved_payment_methods_screen.dart`'s per-method `ListTile.trailing` packs a default-status control (a `Chip` when the method is already default, a "Définir par défaut" `TextButton` otherwise) directly against a delete `IconButton` with zero spacing between them. Each control nominally meets the 48dp minimum touch target alone, but with flush edges their hit regions abut, risking mis-taps on a real device — flagged in the original audit as "worth an on-device tap check," with the audit's own proposed fix being simply to add explicit spacing between the two controls. That is exactly what this pass does; it does not attempt the separate, still-outstanding on-device physical verification pass.
+
+### 1. Files Modified
+- `lib/features/profile/presentation/screens/saved_payment_methods_screen.dart` — inserted `const SizedBox(width: RahatiSpacing.space2)` (8dp) between the default-status control and the delete `IconButton` inside the `trailing` `Row`.
+
+### 2. Test Coverage Summary
+2 new tests in `saved_payment_methods_screen_test.dart`, one per default-status branch (the `Chip` on the already-default method, the `TextButton` on the other) — each measures the actual rendered gap between the two controls via `tester.getRect` and asserts it is `>= RahatiSpacing.space2`, proving the fix genuinely separates the hit regions rather than just asserting a widget was added.
+
+### 3. `flutter analyze` Results
+```
+No issues found!
+```
+
+### 4. `flutter test` Results
+```
+01:11 +521: All tests passed!
+```
+521/521 (up from 519/519 at Feature 33's close — +2 new tests, 0 regressions).
+
+### 5. Blockers / Assumptions
+| Item | Type | Detail |
+|---|---|---|
+| On-device tap-target verification still outstanding | **Explicit scope boundary, not resolved by this entry** | This pass implements the audit's proposed *code* fix (explicit spacing); it does not perform the on-device physical tap check the original finding also called for. That remains open, alongside F9's own note that this was "never performed." |
+| No ambiguity requiring a stop-and-ask | — | The audit's own "Proposed fix" was unambiguous and directly implemented; no design decision was involved. |
+
+---
+
 ## EPIC-01 — Real-Time Map & Discovery: COMPLETE (corrected)
 
 All **12 stories** in the Phase 0 backlog's EPIC-01 — FEAT-01.1 (US-01.1.1–01.1.7) and FEAT-01.2 (US-01.2.1–01.2.5) — are implemented, tested, and verified live on a physical Android device in Light, Dark, and Arabic (RTL).
@@ -1531,24 +1900,17 @@ All **6 stories** in the Phase 0 backlog's EPIC-04 — US-04.1 (Scan QR — SCR-
 
 **3 of 4 stories** — US-05.1 (Sign In/Sign Up + guest mode, SCR-030, FR-USR-01), US-05.2 (Profile Home, Visit History, Payment Methods, My Reviews + Submit Review — SCR-020/021/022/023/007, FR-USR-02), and US-05.4 (Favorites + Notification Settings — SCR-026/027, FR-USR-04) — are implemented, tested, and verified live on a physical Android device, per the Release Alignment table's V1 scope for this epic. US-05.3 (diabetic-verification submission, SCR-024/025) is **deliberately deferred to V1.1**, same discipline ADR-0024 already applied to the Emergency tab — flagged and visibly locked in the UI, not hidden or faked. `flutter analyze` clean, `flutter test` 460/460 passing. Five real API-contract gaps identified and documented (§7 of Feature 20's report) rather than invented against; every affected screen is nonetheless fully built and demoable via `MockAuthRepository`/`MockFavoriteRepository`/etc. **Phase 3 can proceed to the next Epic** (with US-05.3 tracked for V1.1 alongside EPIC-03).
 
-## EPIC-06 — Bilingual FR/AR & Material 3 Design System: NOT COMPLETE (US-06.1/06.2/06.5/06.6 done; US-06.4 blocked on 2 open HIGH findings + the story's own required WCAG checklist sign-off)
+## EPIC-06 — Bilingual FR/AR & Material 3 Design System: NOT COMPLETE (US-06.1/06.2/06.5/06.6 done; every confirmed-live-violation finding from the Exit Review is now resolved — F10/Feature 23, F19/Feature 24, F23/Feature 25, F4/Feature 26, F8/Feature 27, F18/Feature 29, F20/Feature 30, F21/Feature 31, F24/Feature 32, F25/Feature 33; F17/Feature 28 verified a false positive, no fix needed; F9/Feature 34's code fix is done but its own on-device tap-target check is still outstanding; 6 Low findings plus F9's on-device check plus the story's own required WCAG checklist sign-off remain)
 
-Unlike every other epic in this log, EPIC-06 is cross-cutting rather than a discrete set of screens, so its stories have been satisfied on two different tracks. **US-06.2** (native RTL, not mirrored LTR) and **US-06.6** (custom components composed from M3 primitives) have been continuously verified incrementally — every feature since Feature 1 ships Light/Dark/RTL evidence as part of its own report, and `QiblaCompass`/`SlatokiTentStatusCard`/cabin-status indicators are all built from M3 primitives (`Card`, `Chip`, `ColorScheme` roles) by construction, not as a separate pass. **US-06.1** (language switch, persists across sessions) and **US-06.5** (light/dark theme, user-controllable) are **done** — see Feature 21 (SCR-029 Language & Theme Settings), which also added the `shared_preferences`-backed persistence neither setting previously had. **US-06.3** (native-per-language content, no machine translation) is a process requirement, not a dev task, per the backlog's own note. **US-06.4** (a *dedicated* WCAG 2.2 AA contrast audit and a screen-reader accessibility pass across the whole app) — see **Feature 22** (the full audit: 28 findings, computed contrast ratios + a full read-only pass across every feature module, 11 findings implemented) and **Feature 23** (F10 — map pin category distinction, implemented via a reviewed-and-approved UX proposal rather than a unilateral code fix, since it required a design decision, not just a mechanical one). `flutter test` 498/498 passing as of Feature 23.
+Unlike every other epic in this log, EPIC-06 is cross-cutting rather than a discrete set of screens, so its stories have been satisfied on two different tracks. **US-06.2** (native RTL, not mirrored LTR) and **US-06.6** (custom components composed from M3 primitives) have been continuously verified incrementally — every feature since Feature 1 ships Light/Dark/RTL evidence as part of its own report, and `QiblaCompass`/`SlatokiTentStatusCard`/cabin-status indicators are all built from M3 primitives (`Card`, `Chip`, `ColorScheme` roles) by construction, not as a separate pass. **US-06.1** (language switch, persists across sessions) and **US-06.5** (light/dark theme, user-controllable) are **done** — see Feature 21 (SCR-029 Language & Theme Settings), which also added the `shared_preferences`-backed persistence neither setting previously had. **US-06.3** (native-per-language content, no machine translation) is a process requirement, not a dev task, per the backlog's own note. **US-06.4** (a *dedicated* WCAG 2.2 AA contrast audit and a screen-reader accessibility pass across the whole app) — see **Feature 22** (the full audit: 28 findings, computed contrast ratios + a full read-only pass across every feature module, 11 findings implemented), **Feature 23** (F10 — map pin category distinction, UX-decision fix), **Feature 24** (F19 — Qibla compass misleading full-screen label, UX-decision fix), **Feature 25** (F23 — payment method loading spinner, mechanical fix), **Feature 26** (F4 — QR scanner overlay contrast, mechanical fix grounded in contrast math), **Feature 27** (F8 — payment method selection dialog touch targets, same defect class as F7, fixed by extracting a shared `DialogOptionTapTarget` widget rather than duplicating it a second time), **Feature 28** (F17 — investigated, implemented, then reverted: the proposed fix caused a real duplicate-announcement regression, and tracing it into the Flutter SDK source proved SearchBar's `hintText` was already correctly exposed as a persistent accessible name — a false positive in the original audit, closed with evidence and regression tests, not a code change), **Feature 29** (F18 — Submit Review's "Publier" button loses its accessible name while submitting; verified as a genuine gap, unlike F17, then fixed by scoping a `Semantics(label:)` wrapper to just the spinner child; the identical pattern was also found in `sign_in_sign_up_screen.dart` but flagged rather than fixed, staying within F18's named scope), **Feature 30** (F20 — Qibla compact mode's static label unified with F19's already-approved full-mode state-aware logic, since bearing is mode-independent; the old `qiblaCompactSemanticLabel` "tap to expand" fallback was retired outright, not kept as dead content, on the grounds that Semantics' own `button: true` role already gives an automatic platform activation hint), **Feature 31** (F21 — `UserPositionMarker`'s hard-coded French Semantics label replaced with a new `mapUserPositionMarkerLabel` l10n key, first dedicated test file for this widget added, 3 tests proving the correct string renders per locale and the old French literal never leaks into AR/EN), **Feature 32** (F24 — `map_screen.dart`'s 5 `_StatusBanner` instances now wrapped in `Semantics(liveRegion: true)`, matching `CabinStatusIndicator`'s already-established pattern verbatim — a single shared-widget fix covering all 5 banner call sites at once), **Feature 33** (F25 — `unlock_confirmation_screen.dart`'s progress→"session active" transition now wrapped in the same `Semantics(liveRegion: true)` pattern, reusing the existing `unlockConfirmationSessionActive` l10n key with no new ARB key needed), and **Feature 34** (F9 — `saved_payment_methods_screen.dart`'s default-status control and delete `IconButton` previously sat flush against each other in `ListTile.trailing`; an explicit 8dp `SizedBox` now separates them, per the audit's own proposed fix, with 2 new tests measuring the actual rendered gap — the finding's other half, an on-device physical tap check, remains its own open item, not silently closed by this code change). `flutter test` 521/521 passing as of Feature 34.
 
-**17 findings remain open, tracked in Feature 22 §4 — 2 of them HIGH severity, not "lower-severity" as an earlier version of this line stated:**
+**6 findings remain fully open, tracked in Feature 22 §4 — all LOW severity, none of them confirmed-live violations — plus F9's own still-outstanding on-device check**:
 
 | ID | Severity | Issue |
 |---|---|---|
-| F19 | **HIGH** | Qibla compass gives a persistently misleading "tap to expand" label on a screen where nothing happens on tap — deferred pending UX review, same discipline F10 went through before its own fix. |
-| **F23** | **HIGH** | `payment_method_selection_sheet.dart`'s loading spinner carries zero `Semantics` — a screen-reader user gets no indication anything is loading during a payment flow. |
-| F4, F8, F17, F18, F20, F21, F24, F25 | MEDIUM | See Feature 22 §4 for detail — hard-coded overlay colors, sub-48dp dialog options, hint-only search label, button losing its name mid-submit, static compass label, hard-coded non-localized marker text, unannounced status banners/state transitions. |
-| F3, F5, F9, F26, F27, F28, F29 | LOW | See Feature 22 §4 — latent (non-live) token contrast, token-discipline inconsistency, tightly-packed controls, live-region double-announcement, missing progress-bar semantics label, non-live error text, informational splash-timing note. |
+| F9 | LOW | Code fix (explicit spacing) done as of Feature 34 — the finding's own required on-device tap-target check has never been performed | `saved_payment_methods_screen.dart:175-196` |
+| F3, F5, F26, F27, F28, F29 | LOW | See Feature 22 §4 — latent (non-live) token contrast, token-discipline inconsistency, live-region double-announcement, missing progress-bar semantics label, non-live error text, informational splash-timing note. Note: these IDs (F26–F29) are the *finding* numbers from the original audit, unrelated to this log's Feature 26–34 *implementation-entry* numbers, which happen to now overlap numerically — finding IDs are always written with an `F` prefix in this log to keep the two distinct. |
 
-**EPIC-06 is explicitly NOT marked COMPLETE**, per verification against the roadmap, PRD, SRS, ADRs, and this log's own precedent, run before this line was written:
+**EPIC-06 remains NOT marked COMPLETE.** The verification and reasoning recorded in the EPIC-06 Exit Review (roadmap/PRD/SRS/ADR check, no V1 carve-out for EPIC-06, no log precedent for closing over an in-scope defect, US-06.4's own required checklist sign-off never performed, and — per that same review — 9 findings were confirmed as currently-live WCAG 2.2 AA violations regardless of their Medium/Low severity label, though F17 has since been shown to have never been one of them) has not been re-run against this now-smaller finding set. Resolving F4, F8, F18, F20, F21, F24, and F25 (7 genuine live violations from the review's original count) doesn't by itself satisfy the review's other points — F9's unresolved on-device verification and the un-performed checklist sign-off remain regardless, even with F9's code half now fixed. There is also one newly-flagged, out-of-scope observation (Feature 29 §2 — `sign_in_sign_up_screen.dart`'s identical unlabeled-spinner pattern) not yet in Feature 22's original finding list. That determination should be made explicitly, not inferred from this entry.
 
-1. `docs/design/design-system-specification.md:24` states accessibility is *"a hard requirement, not an aspiration"* — unqualified. An exhaustive grep of SRS, PRD, and every ADR for phased-compliance or known-issue-triage language ("definition of done," "known issue," "triage," "non-blocking," "sign-off") returned **zero matches** — nothing in this project's own documentation authorizes closing an epic with open accessibility defects.
-2. The backlog's own definition of **US-06.4** (`docs/backlog/product-backlog.md:118`) explicitly includes *"WCAG 2.2 AA checklist sign-off"* as part of the story — that sign-off has not happened, and `docs/design/component-library.md`'s own accessibility checklist (§10) still carries literal unchecked `- [ ]` boxes.
-3. **EPIC-06 has no V1 carve-out.** Unlike EPIC-05 (`docs/backlog/product-backlog.md`'s Release Alignment table names `US-05.1/05.2/05.4` explicitly and excludes `US-05.3` by name), EPIC-06 is listed for V1 **in full** — there is no textual basis to treat any part of US-06.4 as already-acceptable-to-defer.
-4. **No precedent exists in this log for closing an epic over an in-scope defect.** Every prior "COMPLETE"/"V1 COMPLETE" closure in this file (EPIC-04's Operator Dashboard gap — a different epic/app entirely; EPIC-05's US-05.3 — a named Release Alignment carve-out) was over something formally scoped elsewhere or later, never a documented bug inside an already-shipped, in-scope screen. F19 and F23 are bugs inside EPIC-02's and EPIC-04's own already-"COMPLETE"-marked screens.
-
-**What remains before EPIC-06 can close**: resolve F19 (needs the same UX-review step F10 went through — a design decision on what the compass label should say per state, not a mechanical fix) and F23 (a mechanical fix — add `Semantics`/text to the loading spinner, same pattern already used correctly elsewhere in this codebase), then a decision on the remaining 15 Medium/Low findings (fix, or a documented, explicit V1.1 carve-out added to the Release Alignment table itself — which does not currently exist for any part of EPIC-06). **Phase 3 should not proceed past EPIC-06 until this is resolved.**
+**What remains before EPIC-06 can close** (per the Exit Review, adjusted for Features 26–34): verify F9 on a physical device (its code fix is done; the finding's own on-device tap check is not), disposition F3/F5/F26/F27/F29 (not live violations, but still open), decide whether to fix the `sign_in_sign_up_screen.dart` observation from Feature 29 (currently untracked as its own finding), then perform and record the WCAG 2.2 AA checklist sign-off (`docs/design/component-library.md` §10) US-06.4 itself requires, including the on-device TalkBack/VoiceOver pass never yet performed. **Phase 3 should not proceed past EPIC-06 until this is resolved.**

@@ -428,39 +428,53 @@ class _StatusBanner extends StatelessWidget {
         ? colorScheme.onErrorContainer
         : colorScheme.onSurface;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: RahatiSpacing.space2),
-      color: background,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: RahatiSpacing.space4,
-          vertical: RahatiSpacing.space3,
-        ),
-        child: Row(
-          children: <Widget>[
-            if (showSpinner)
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: foreground,
-                ),
-              )
-            else if (!isError)
-              Icon(Icons.search_off, size: 18, color: foreground)
-            else
-              Icon(Icons.error_outline, size: 18, color: foreground),
-            const SizedBox(width: RahatiSpacing.space2),
-            Expanded(
-              child: Text(
-                label,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: foreground),
-              ),
+    // `liveRegion: true` (US-06.4 finding F24) — these banners appear and
+    // change without user interaction (position resolving, a places fetch
+    // failing, offline-cache staleness, a filter narrowing to zero
+    // results), so a screen reader announces the change when it happens,
+    // not only if/when the user happens to navigate to this element —
+    // same discipline already established for `CabinStatusIndicator`.
+    // `ExcludeSemantics` on the visible content avoids the child `Text`'s
+    // own implicit label merging into (and duplicating) this explicit one.
+    return Semantics(
+      label: label,
+      liveRegion: true,
+      child: ExcludeSemantics(
+        child: Card(
+          margin: const EdgeInsets.only(bottom: RahatiSpacing.space2),
+          color: background,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: RahatiSpacing.space4,
+              vertical: RahatiSpacing.space3,
             ),
-          ],
+            child: Row(
+              children: <Widget>[
+                if (showSpinner)
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: foreground,
+                    ),
+                  )
+                else if (!isError)
+                  Icon(Icons.search_off, size: 18, color: foreground)
+                else
+                  Icon(Icons.error_outline, size: 18, color: foreground),
+                const SizedBox(width: RahatiSpacing.space2),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: foreground),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -61,6 +63,30 @@ class _FakePaymentMethodRepository implements PaymentMethodRepository {
   ) async {
     return _methods.first;
   }
+}
+
+/// A repository whose `getSavedPaymentMethods()` never resolves — lets a
+/// test observe the sheet's transient `loading` state (US-06.4 finding
+/// F23), which the default fake's immediately-resolving future skips past
+/// too fast to assert on.
+class _PendingPaymentMethodRepository implements PaymentMethodRepository {
+  @override
+  Future<List<PaymentMethod>> getSavedPaymentMethods() =>
+      Completer<List<PaymentMethod>>().future;
+
+  @override
+  Future<PaymentMethod> addPaymentMethod({
+    required PaymentMethodType methodType,
+    required String providerToken,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> deletePaymentMethod(String paymentMethodId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<PaymentMethod> setDefaultPaymentMethod(String paymentMethodId) =>
+      throw UnimplementedError();
 }
 
 class _PushResult {
@@ -192,6 +218,83 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(result.value, "pm-new");
+    },
+  );
+
+  testWidgets(
+    "each 'add payment method' dialog option meets the 48dp minimum touch "
+    "target, unlike SimpleDialogOption's unpadded default (US-06.4 "
+    "finding F8)",
+    (tester) async {
+      await _pumpSheet(tester);
+
+      await tester.tap(find.text("Ajouter un moyen de paiement"));
+      await tester.pumpAndSettle();
+
+      final Iterable<Element> options = find
+          .byType(SimpleDialogOption)
+          .evaluate();
+      expect(options, isNotEmpty);
+      for (final Element option in options) {
+        final Size size = (option.renderObject! as RenderBox).size;
+        expect(
+          size.height,
+          greaterThanOrEqualTo(48),
+          reason: "SimpleDialogOption '${option.widget}' is ${size.height}dp"
+              " tall, under the 48dp minimum touch target",
+        );
+      }
+    },
+  );
+
+  testWidgets(
+    "the loading spinner is announced to screen readers via a live-region "
+    "message, not a bare unlabeled CircularProgressIndicator (US-06.4 "
+    "finding F23)",
+    (tester) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            paymentMethodRepositoryProvider.overrideWithValue(
+              _PendingPaymentMethodRepository(),
+            ),
+          ],
+          child: MaterialApp(
+            theme: RahatiTheme.light,
+            locale: const Locale("fr"),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => showModalBottomSheet<String>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => const PaymentMethodSelectionSheet(
+                      amount: Money(amount: "50", currency: "DZD"),
+                    ),
+                  ),
+                  child: const Text("open"),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text("open"));
+      // Bounded pumps, not pumpAndSettle — the CircularProgressIndicator
+      // animates indefinitely while the repository's Completer never
+      // resolves, so pumpAndSettle would never terminate.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        find.bySemanticsLabel("Chargement de vos moyens de paiement…"),
+        findsOneWidget,
+      );
+      handle.dispose();
     },
   );
 }

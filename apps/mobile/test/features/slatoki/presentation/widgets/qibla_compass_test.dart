@@ -10,6 +10,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:rahati/core/theme/app_theme.dart";
 import "package:rahati/features/map_discovery/domain/entities/coordinates.dart";
+import "package:rahati/features/map_discovery/domain/entities/location_failure.dart";
 import "package:rahati/features/map_discovery/presentation/providers/place_providers.dart";
 import "package:rahati/features/slatoki/presentation/providers/qibla_providers.dart";
 import "package:rahati/features/slatoki/presentation/widgets/qibla_compass.dart";
@@ -22,6 +23,7 @@ Widget _wrap(
   bool compassAvailable = true,
   Stream<CompassEvent>? compassEvents,
   Coordinates position = _algiers,
+  Stream<Coordinates>? positionStream,
 }) {
   return ProviderScope(
     overrides: [
@@ -31,7 +33,7 @@ Widget _wrap(
             : null,
       ),
       userPositionStreamProvider.overrideWith(
-        (ref) => Stream<Coordinates>.value(position),
+        (ref) => positionStream ?? Stream<Coordinates>.value(position),
       ),
     ],
     child: MaterialApp(
@@ -65,12 +67,15 @@ void main() {
   });
 
   testWidgets(
-    "compact mode: renders at 80dp with the compact semantic label while "
-    "no reading has arrived yet",
+    "compact mode: renders at 80dp and announces the resolved bearing "
+    "once position resolves, even with no compass reading yet — bearing "
+    "depends only on position, not on heading/accuracy (US-06.4 finding "
+    "F20)",
     (WidgetTester tester) async {
       await tester.pumpWidget(
         _wrap(const QiblaCompass(mode: QiblaCompassMode.compact)),
       );
+      await tester.pump();
       await tester.pump();
 
       final SizedBox box = tester.widget<SizedBox>(
@@ -85,7 +90,7 @@ void main() {
 
       final SemanticsHandle handle = tester.ensureSemantics();
       expect(
-        find.bySemanticsLabel("Boussole vers La Mecque, appuyez pour agrandir"),
+        find.bySemanticsLabel("La Mecque est à 105 degrés, Est"),
         findsOneWidget,
       );
       handle.dispose();
@@ -174,4 +179,251 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byType(QiblaCompass), findsOneWidget);
   });
+
+  group(
+    "Full-mode semantic label is state-aware, not a false 'tap to expand' "
+    "fallback (US-06.4 finding F19)",
+    () {
+      testWidgets(
+        "bearing available: announces the resolved bearing (not a position "
+        "message)",
+        (WidgetTester tester) async {
+          await tester.pumpWidget(
+            _wrap(const QiblaCompass(mode: QiblaCompassMode.full)),
+          );
+          await tester.pump();
+          await tester.pump();
+
+          final SemanticsHandle handle = tester.ensureSemantics();
+          expect(
+            find.bySemanticsLabel("La Mecque est à 105 degrés, Est"),
+            findsOneWidget,
+          );
+          expect(
+            find.bySemanticsLabel(
+              "Boussole vers La Mecque, appuyez pour agrandir",
+            ),
+            findsNothing,
+          );
+          handle.dispose();
+        },
+      );
+
+      testWidgets(
+        "position loading: announces the loading message, not the compact "
+        "'tap to expand' fallback",
+        (WidgetTester tester) async {
+          await tester.pumpWidget(
+            _wrap(
+              const QiblaCompass(mode: QiblaCompassMode.full),
+              positionStream: const Stream<Coordinates>.empty(),
+            ),
+          );
+          await tester.pump();
+
+          final SemanticsHandle handle = tester.ensureSemantics();
+          expect(
+            find.bySemanticsLabel("Localisation en cours…"),
+            findsOneWidget,
+          );
+          expect(
+            find.bySemanticsLabel(
+              "Boussole vers La Mecque, appuyez pour agrandir",
+            ),
+            findsNothing,
+          );
+          handle.dispose();
+        },
+      );
+
+      testWidgets(
+        "location permission denied: announces the same message "
+        "map_screen.dart uses for this exact failure, not a false "
+        "affordance",
+        (WidgetTester tester) async {
+          await tester.pumpWidget(
+            _wrap(
+              const QiblaCompass(mode: QiblaCompassMode.full),
+              positionStream: Stream<Coordinates>.error(
+                const LocationPermissionDeniedFailure(),
+              ),
+            ),
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 10));
+
+          final SemanticsHandle handle = tester.ensureSemantics();
+          expect(
+            find.bySemanticsLabel(
+              "Autorisation de localisation refusée — activez-la dans les "
+              "paramètres.",
+            ),
+            findsOneWidget,
+          );
+          handle.dispose();
+        },
+      );
+
+      testWidgets(
+        "location permission permanently denied: maps to the same "
+        "permission-denied message as the one-time-denied case",
+        (WidgetTester tester) async {
+          await tester.pumpWidget(
+            _wrap(
+              const QiblaCompass(mode: QiblaCompassMode.full),
+              positionStream: Stream<Coordinates>.error(
+                const LocationPermissionDeniedForeverFailure(),
+              ),
+            ),
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 10));
+
+          final SemanticsHandle handle = tester.ensureSemantics();
+          expect(
+            find.bySemanticsLabel(
+              "Autorisation de localisation refusée — activez-la dans les "
+              "paramètres.",
+            ),
+            findsOneWidget,
+          );
+          handle.dispose();
+        },
+      );
+
+      testWidgets(
+        "location services disabled: announces the same message "
+        "map_screen.dart uses for this exact failure",
+        (WidgetTester tester) async {
+          await tester.pumpWidget(
+            _wrap(
+              const QiblaCompass(mode: QiblaCompassMode.full),
+              positionStream: Stream<Coordinates>.error(
+                const LocationServiceDisabledFailure(),
+              ),
+            ),
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 10));
+
+          final SemanticsHandle handle = tester.ensureSemantics();
+          expect(
+            find.bySemanticsLabel(
+              "Service de localisation désactivé — activez-le pour voir "
+              "votre position.",
+            ),
+            findsOneWidget,
+          );
+          handle.dispose();
+        },
+      );
+
+      testWidgets(
+        "any other position failure: falls back to the generic position "
+        "error message, never the misleading compact-mode label",
+        (WidgetTester tester) async {
+          await tester.pumpWidget(
+            _wrap(
+              const QiblaCompass(mode: QiblaCompassMode.full),
+              positionStream: Stream<Coordinates>.error(
+                Exception("unexpected"),
+              ),
+            ),
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 10));
+
+          final SemanticsHandle handle = tester.ensureSemantics();
+          expect(
+            find.bySemanticsLabel("Impossible d'obtenir votre position."),
+            findsOneWidget,
+          );
+          expect(
+            find.bySemanticsLabel(
+              "Boussole vers La Mecque, appuyez pour agrandir",
+            ),
+            findsNothing,
+          );
+          handle.dispose();
+        },
+      );
+
+    },
+  );
+
+  group(
+    "Compact-mode semantic label is now state-aware too — the F19 fix's "
+    "logic extended, not a separate implementation (US-06.4 finding F20)",
+    () {
+      testWidgets(
+        "position loading: compact mode announces the loading message, "
+        "same as full mode",
+        (WidgetTester tester) async {
+          await tester.pumpWidget(
+            _wrap(
+              const QiblaCompass(mode: QiblaCompassMode.compact),
+              positionStream: const Stream<Coordinates>.empty(),
+            ),
+          );
+          await tester.pump();
+
+          final SemanticsHandle handle = tester.ensureSemantics();
+          expect(
+            find.bySemanticsLabel("Localisation en cours…"),
+            findsOneWidget,
+          );
+          handle.dispose();
+        },
+      );
+
+      testWidgets(
+        "location permission denied: compact mode announces the same "
+        "message full mode uses for this exact failure",
+        (WidgetTester tester) async {
+          await tester.pumpWidget(
+            _wrap(
+              const QiblaCompass(mode: QiblaCompassMode.compact),
+              positionStream: Stream<Coordinates>.error(
+                const LocationPermissionDeniedFailure(),
+              ),
+            ),
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 10));
+
+          final SemanticsHandle handle = tester.ensureSemantics();
+          expect(
+            find.bySemanticsLabel(
+              "Autorisation de localisation refusée — activez-la dans les "
+              "paramètres.",
+            ),
+            findsOneWidget,
+          );
+          handle.dispose();
+        },
+      );
+
+      testWidgets(
+        "the old static 'tap to expand' fallback is never announced in "
+        "any state, in either mode — it had no remaining caller and was "
+        "removed, not left as dead ARB content",
+        (WidgetTester tester) async {
+          await tester.pumpWidget(
+            _wrap(const QiblaCompass(mode: QiblaCompassMode.compact)),
+          );
+          await tester.pump();
+          await tester.pump();
+
+          final SemanticsHandle handle = tester.ensureSemantics();
+          expect(
+            find.bySemanticsLabel(
+              "Boussole vers La Mecque, appuyez pour agrandir",
+            ),
+            findsNothing,
+          );
+          handle.dispose();
+        },
+      );
+    },
+  );
 }

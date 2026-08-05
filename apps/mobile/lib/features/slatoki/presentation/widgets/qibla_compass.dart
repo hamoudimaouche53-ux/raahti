@@ -7,6 +7,9 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../../../core/theme/color_tokens.dart";
 import "../../../../core/theme/motion_tokens.dart";
 import "../../../../l10n/app_localizations.dart";
+import "../../../map_discovery/domain/entities/coordinates.dart";
+import "../../../map_discovery/domain/entities/location_failure.dart";
+import "../../../map_discovery/presentation/providers/place_providers.dart";
 import "../providers/qibla_providers.dart";
 
 /// Component Library §9.1 — the bespoke Qibla Compass, composed entirely
@@ -61,6 +64,16 @@ class QiblaCompass extends ConsumerWidget {
       );
     }
 
+    // Watched directly (not only via [qiblaBearingProvider]'s derived
+    // `AsyncValue<double>`) because a plain `Provider` computed with
+    // `.whenData()` does not reliably rebuild its watchers on a
+    // loading→loading-with-error transition in this Riverpod version (an
+    // `AsyncValue` equality quirk found and verified while implementing
+    // this fix — the raw `StreamProvider` itself updates correctly, so
+    // reading the error from it directly is the robust source of truth).
+    final AsyncValue<Coordinates> positionState = ref.watch(
+      userPositionStreamProvider,
+    );
     final double? bearing = ref.watch(qiblaBearingProvider).value;
     final CompassEvent? event = ref.watch(compassEventProvider).value;
     final double? heading = event?.heading;
@@ -74,13 +87,44 @@ class QiblaCompass extends ConsumerWidget {
         ? ((bearing - heading) % 360 + 360) % 360
         : 0;
 
-    final String semanticLabel =
-        mode == QiblaCompassMode.full && bearing != null
-        ? l10n.qiblaBearingAnnouncement(
-            bearing.round(),
-            _cardinalDirectionLabel(l10n, bearing),
-          )
-        : l10n.qiblaCompactSemanticLabel;
+    // Label is state-aware in *both* modes (US-06.4 findings F19/F20 — F20
+    // was compact mode's counterpart to F19's full-mode fix, extending the
+    // same logic rather than inventing separate copy): a resolved bearing
+    // announces it; an unresolved one (position still loading, or failed —
+    // the same `LocationFailure` states `map_screen.dart` already handles)
+    // announces *why*, reusing that screen's exact strings rather than
+    // duplicating translated copy. Compact mode no longer has its own
+    // separate branch, and its old static "tap to expand" fallback
+    // (`qiblaCompactSemanticLabel`, since removed — it had no remaining
+    // caller) is not replaced by an explicit "tap to expand" phrase either:
+    // `_CompassCard` already sets `button: true` on this Semantics node
+    // when [onTap] is non-null, and TalkBack/VoiceOver both announce an
+    // automatic activation hint for actionable elements — restating it in
+    // the label text would just be redundant, not more informative.
+    //
+    // Checks `positionState.hasError` explicitly rather than
+    // pattern-matching `AsyncLoading()`/`AsyncError()` as mutually
+    // exclusive — in this Riverpod version, a stream whose *first* event is
+    // an error (no prior data) reports as `AsyncLoading` with `error`
+    // populated, not a standalone `AsyncError`; `hasError`/`error` are the
+    // version-agnostic accessors for this, and were verified against this
+    // exact case before relying on them (a naive `AsyncError()` match
+    // silently never fired).
+    final String semanticLabel = switch (bearing) {
+      final double b? => l10n.qiblaBearingAnnouncement(
+        b.round(),
+        _cardinalDirectionLabel(l10n, b),
+      ),
+      null when positionState.hasError => switch (positionState.error) {
+        LocationServiceDisabledFailure() =>
+          l10n.mapPositionErrorServiceDisabled,
+        LocationPermissionDeniedFailure() ||
+        LocationPermissionDeniedForeverFailure() =>
+          l10n.mapPositionErrorPermissionDenied,
+        _ => l10n.mapPositionErrorGeneric,
+      },
+      null => l10n.mapPositionLoading,
+    };
 
     return _CompassCard(
       size: size,

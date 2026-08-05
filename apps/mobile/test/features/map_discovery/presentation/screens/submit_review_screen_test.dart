@@ -13,6 +13,33 @@ import "package:rahati/features/map_discovery/presentation/providers/place_detai
 import "package:rahati/features/map_discovery/presentation/screens/submit_review_screen.dart";
 import "package:rahati/l10n/app_localizations.dart";
 
+/// Never resolves — lets a test observe the screen's transient
+/// `_submitting` state (US-06.4 finding F18), which
+/// [_FakeReviewRepository]'s immediately-resolving future skips past too
+/// fast to assert on.
+class _PendingReviewRepository implements ReviewRepository {
+  @override
+  Future<Review> submitReview({
+    required PlaceKind placeKind,
+    required String placeId,
+    required int rating,
+    required String? comment,
+  }) => Completer<Review>().future;
+
+  @override
+  Future<List<Review>> getMyReviews() async => const [];
+
+  @override
+  Future<Review> updateReview({
+    required String reviewId,
+    required int rating,
+    required String? comment,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<void> deleteReview(String reviewId) => throw UnimplementedError();
+}
+
 class _FakeReviewRepository implements ReviewRepository {
   _FakeReviewRepository({this.throwOnSubmit = false});
   final bool throwOnSubmit;
@@ -193,6 +220,55 @@ void main() {
             .first,
       );
       expect(tooltip.message, isNotEmpty);
+    },
+  );
+
+  testWidgets(
+    "the Publier button keeps its accessible name while submitting, not "
+    "a bare unlabeled spinner (US-06.4 finding F18)",
+    (tester) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      final GoRouter router = GoRouter(
+        initialLocation: AppRoutePaths.submitReview,
+        routes: <RouteBase>[
+          GoRoute(
+            path: AppRoutePaths.submitReview,
+            builder: (context, state) => const SubmitReviewScreen(
+              args: SubmitReviewArgs(
+                placeKind: PlaceKind.station,
+                placeId: "s1",
+                placeName: "Station Didouche",
+              ),
+            ),
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            reviewRepositoryProvider.overrideWithValue(
+              _PendingReviewRepository(),
+            ),
+          ],
+          child: MaterialApp.router(
+            routerConfig: router,
+            theme: RahatiTheme.light,
+            locale: const Locale("fr"),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.star_border).at(2));
+      await tester.pump();
+      await tester.tap(find.text("Publier"));
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.bySemanticsLabel("Publier"), findsOneWidget);
+      handle.dispose();
     },
   );
 }

@@ -40,6 +40,7 @@
   "mapFilterNoResults": "لا توجد أماكن مطابقة لهذه الفلاتر.",
   "mapRecenterLockedTooltip": "تتبع الموقع نشط — اضغط لإعادة التوسيط",
   "mapRecenterUnlockedTooltip": "إعادة التوسيط على موقعي",
+  "mapUserPositionMarkerLabel": "موقعك",
   "mapOffline": "غير متصل — تُعرض آخر البيانات المخزّنة، آخر تحديث منذ {minutes, plural, =0{أقل من دقيقة} one{دقيقة واحدة} two{دقيقتين} few{{minutes} دقائق} many{{minutes} دقيقة} other{{minutes} دقيقة}}",
   "@mapOffline": {
     "placeholders": { "minutes": { "type": "int" } }
@@ -71,7 +72,6 @@
   "slatokiEmptyState": "لا توجد مساحة صلاتكِ قريبة منك",
   "emergencyPlaceholderTitle": "وضع الطوارئ",
   "emergencyPlaceholderBody": "متوفر في الإصدار V1.1.",
-  "qiblaCompactSemanticLabel": "بوصلة باتجاه مكة، اضغط للتكبير",
   "qiblaBearingAnnouncement": "تبعد مكة المكرمة {degrees} درجة، {direction}",
   "@qiblaBearingAnnouncement": {
     "placeholders": {
@@ -131,6 +131,7 @@
   "@paymentMethodPayButton": {
     "placeholders": { "amount": { "type": "String" } }
   },
+  "paymentMethodsLoading": "جارٍ تحميل وسائل الدفع الخاصة بك…",
   "paymentMethodLoadError": "تعذّر تحميل وسائل الدفع الخاصة بك.",
   "paymentMethodAddDialogTitle": "إضافة وسيلة دفع",
   "paymentMethodAddDialogCardOption": "بطاقة بنكية",

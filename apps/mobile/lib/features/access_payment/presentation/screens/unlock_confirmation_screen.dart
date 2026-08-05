@@ -244,9 +244,15 @@ class _UnlockConfirmationScreenState extends State<UnlockConfirmationScreen>
                       ),
                     )
                   else
-                    Text(
-                      l10n.unlockConfirmationSessionActive,
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Semantics(
+                      liveRegion: true,
+                      label: l10n.unlockConfirmationSessionActive,
+                      child: ExcludeSemantics(
+                        child: Text(
+                          l10n.unlockConfirmationSessionActive,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
                     ),
                   const SizedBox(height: RahatiSpacing.space8),
                   TextButton(

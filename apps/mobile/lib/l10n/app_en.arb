@@ -40,6 +40,7 @@
   "mapFilterNoResults": "No places match these filters.",
   "mapRecenterLockedTooltip": "Position tracking active — tap to recenter",
   "mapRecenterUnlockedTooltip": "Recenter on my position",
+  "mapUserPositionMarkerLabel": "Your position",
   "mapOffline": "Offline — showing the last cached data, updated {minutes, plural, =0{less than a minute ago} one{1 min ago} other{{minutes} min ago}}",
   "@mapOffline": {
     "placeholders": { "minutes": { "type": "int" } }
@@ -71,7 +72,6 @@
   "slatokiEmptyState": "No Slatoki space nearby",
   "emergencyPlaceholderTitle": "Emergency Mode",
   "emergencyPlaceholderBody": "Coming in V1.1.",
-  "qiblaCompactSemanticLabel": "Compass toward Mecca, tap to expand",
   "qiblaBearingAnnouncement": "Mecca is {degrees} degrees away, {direction}",
   "@qiblaBearingAnnouncement": {
     "placeholders": {
@@ -131,6 +131,7 @@
   "@paymentMethodPayButton": {
     "placeholders": { "amount": { "type": "String" } }
   },
+  "paymentMethodsLoading": "Loading your payment methods…",
   "paymentMethodLoadError": "Could not load your payment methods.",
   "paymentMethodAddDialogTitle": "Add a payment method",
   "paymentMethodAddDialogCardOption": "Card",

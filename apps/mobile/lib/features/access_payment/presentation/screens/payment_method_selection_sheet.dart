@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../core/theme/shape_tokens.dart";
 import "../../../../core/theme/spacing_tokens.dart";
+import "../../../../core/widgets/dialog_option_tap_target.dart";
 import "../../../../l10n/app_localizations.dart";
 import "../../domain/entities/money.dart";
 import "../../domain/entities/payment_method.dart";
@@ -41,6 +42,12 @@ class _PaymentMethodSelectionSheetState
   /// end-to-end, not merely documented as deferred.
   Future<void> _showAddMethodDialog() async {
     final AppLocalizations l10n = AppLocalizations.of(context);
+    // Each option's child is wrapped in DialogOptionTapTarget, not a bare
+    // Text — SimpleDialogOption has no built-in 48dp tap-target floor,
+    // unlike ListTile/FilledButton elsewhere in this app (US-06.4 finding
+    // F8, the same defect class as F7's identical dialog pattern in
+    // SavedPaymentMethodsScreen — see that shared widget's own doc
+    // comment).
     final PaymentMethodType? chosen = await showDialog<PaymentMethodType>(
       context: context,
       builder: (context) => SimpleDialog(
@@ -49,16 +56,22 @@ class _PaymentMethodSelectionSheetState
           SimpleDialogOption(
             onPressed: () =>
                 Navigator.of(context).pop(PaymentMethodType.card),
-            child: Text(l10n.paymentMethodAddDialogCardOption),
+            child: DialogOptionTapTarget(
+              text: l10n.paymentMethodAddDialogCardOption,
+            ),
           ),
           SimpleDialogOption(
             onPressed: () =>
                 Navigator.of(context).pop(PaymentMethodType.mobileWallet),
-            child: Text(l10n.paymentMethodAddDialogWalletOption),
+            child: DialogOptionTapTarget(
+              text: l10n.paymentMethodAddDialogWalletOption,
+            ),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.paymentMethodAddDialogCancel),
+            child: DialogOptionTapTarget(
+              text: l10n.paymentMethodAddDialogCancel,
+            ),
           ),
         ],
       ),
@@ -152,9 +165,30 @@ class _PaymentMethodSelectionSheetState
                   ),
                 );
               },
-              loading: () => const Padding(
-                padding: EdgeInsets.symmetric(vertical: RahatiSpacing.space6),
-                child: Center(child: CircularProgressIndicator()),
+              // US-06.4 finding F23: previously a bare CircularProgressIndicator
+              // with no accessible label at all — a screen-reader user got
+              // zero indication anything was loading. Now matches the
+              // Semantics(liveRegion: true) + message pattern already used
+              // correctly by the sibling loading states in
+              // cabin_availability_screen.dart / payment_processing_screen.dart.
+              loading: () => Semantics(
+                liveRegion: true,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: RahatiSpacing.space6,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: RahatiSpacing.space4),
+                      Text(
+                        l10n.paymentMethodsLoading,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
               ),
               error: (error, stackTrace) => Padding(
                 padding: const EdgeInsets.symmetric(

@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../../../core/theme/spacing_tokens.dart";
+import "../../../../core/widgets/dialog_option_tap_target.dart";
 import "../../../../l10n/app_localizations.dart";
 import "../../../access_payment/domain/entities/payment_method.dart";
 import "../../../access_payment/domain/entities/payment_method_type.dart";
@@ -98,20 +99,20 @@ class _SavedPaymentMethodsScreenState
           SimpleDialogOption(
             onPressed: () =>
                 Navigator.of(context).pop(PaymentMethodType.card),
-            child: _DialogOptionTapTarget(
+            child: DialogOptionTapTarget(
               text: l10n.paymentMethodAddDialogCardOption,
             ),
           ),
           SimpleDialogOption(
             onPressed: () =>
                 Navigator.of(context).pop(PaymentMethodType.mobileWallet),
-            child: _DialogOptionTapTarget(
+            child: DialogOptionTapTarget(
               text: l10n.paymentMethodAddDialogWalletOption,
             ),
           ),
           SimpleDialogOption(
             onPressed: () => Navigator.of(context).pop(),
-            child: _DialogOptionTapTarget(
+            child: DialogOptionTapTarget(
               text: l10n.paymentMethodAddDialogCancel,
             ),
           ),
@@ -181,6 +182,13 @@ class _SavedPaymentMethodsScreenState
                             onPressed: () => _setDefault(method),
                             child: Text(l10n.paymentMethodsSetDefaultAction),
                           ),
+                        // US-06.4 finding F9 — the Chip/TextButton and the
+                        // delete IconButton previously sat flush against
+                        // each other with no gap; each nominally meets the
+                        // 48dp minimum alone, but with zero spacing their
+                        // hit regions abut, risking mis-taps on a real
+                        // device.
+                        const SizedBox(width: RahatiSpacing.space2),
                         IconButton(
                           icon: const Icon(Icons.delete_outline),
                           tooltip: l10n.genericDeleteButton,
@@ -199,24 +207,6 @@ class _SavedPaymentMethodsScreenState
           },
         ),
       ),
-    );
-  }
-}
-
-/// Enforces the project's 48dp minimum touch target inside a
-/// [SimpleDialogOption], which — unlike `ListTile`/`FilledButton` — has no
-/// built-in tap-target floor (docs/design/component-library.md; found
-/// during the US-06.4 accessibility audit).
-class _DialogOptionTapTarget extends StatelessWidget {
-  const _DialogOptionTapTarget({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 48),
-      child: Align(alignment: AlignmentDirectional.centerStart, child: Text(text)),
     );
   }
 }

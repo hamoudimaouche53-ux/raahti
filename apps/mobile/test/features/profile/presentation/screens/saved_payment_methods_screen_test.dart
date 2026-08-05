@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:rahati/core/theme/app_theme.dart";
+import "package:rahati/core/theme/spacing_tokens.dart";
 import "package:rahati/features/access_payment/domain/entities/payment_method.dart";
 import "package:rahati/features/access_payment/domain/entities/payment_method_type.dart";
 import "package:rahati/features/access_payment/domain/repositories/payment_method_repository.dart";
@@ -173,6 +174,67 @@ void main() {
             .first,
       );
       expect(tooltip.message, isNotEmpty);
+    },
+  );
+
+  testWidgets(
+    "the default-method Chip and the delete IconButton have an explicit "
+    "gap between them, not flush edges (US-06.4 finding F9)",
+    (tester) async {
+      await _pump(tester);
+
+      final Rect chipRect = tester.getRect(find.byType(Chip));
+      final Rect deleteRect = tester.getRect(
+        find
+            .ancestor(
+              of: find.byIcon(Icons.delete_outline).first,
+              matching: find.byType(IconButton),
+            )
+            .first,
+      );
+
+      expect(
+        deleteRect.left - chipRect.right,
+        greaterThanOrEqualTo(RahatiSpacing.space2),
+        reason: "the default-method Chip and the delete IconButton must "
+            "not sit flush against each other, or their hit regions risk "
+            "overlapping on a real device even though each nominally "
+            "meets the 48dp minimum alone",
+      );
+    },
+  );
+
+  testWidgets(
+    "the 'Définir par défaut' TextButton and the delete IconButton have "
+    "an explicit gap between them, not flush edges (US-06.4 finding F9)",
+    (tester) async {
+      await _pump(tester);
+
+      final Rect textButtonRect = tester.getRect(
+        find
+            .ancestor(
+              of: find.text("Définir par défaut"),
+              matching: find.byType(TextButton),
+            )
+            .first,
+      );
+      final Rect deleteRect = tester.getRect(
+        find
+            .ancestor(
+              of: find.byIcon(Icons.delete_outline).last,
+              matching: find.byType(IconButton),
+            )
+            .first,
+      );
+
+      expect(
+        deleteRect.left - textButtonRect.right,
+        greaterThanOrEqualTo(RahatiSpacing.space2),
+        reason: "the 'Définir par défaut' TextButton and the delete "
+            "IconButton must not sit flush against each other, or their "
+            "hit regions risk overlapping on a real device even though "
+            "each nominally meets the 48dp minimum alone",
+      );
     },
   );
 

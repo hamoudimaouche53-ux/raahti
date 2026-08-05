@@ -3,6 +3,7 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
+import "package:flutter/semantics.dart";
 import "package:flutter_map/flutter_map.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -121,6 +122,40 @@ void main() {
     expect(find.byKey(const ValueKey("position-loading")), findsOneWidget);
     expect(find.byType(UserPositionMarker), findsNothing);
   });
+
+  testWidgets(
+    "the loading banner is announced to screen readers via a live "
+    "region, not only if the user happens to navigate to it (US-06.4 "
+    "finding F24)",
+    (tester) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        _wrap(
+          ProviderScope(
+            overrides: [
+              ..._pendingPositionOverrides(),
+              _nearbyPlaces(() => Completer<PlacesSnapshot>().future),
+            ],
+            child: const MapScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final SemanticsNode node = tester.getSemantics(
+        find.byKey(const ValueKey("position-loading")),
+      );
+      expect(node.label, "Localisation en cours…");
+      expect(
+        node.flagsCollection.isLiveRegion,
+        isTrue,
+        reason: "the banner must be a live region so its appearance is "
+            "announced, matching CabinStatusIndicator's established "
+            "pattern",
+      );
+      handle.dispose();
+    },
+  );
 
   testWidgets(
     "shows the user marker and a single place marker once both resolve, "

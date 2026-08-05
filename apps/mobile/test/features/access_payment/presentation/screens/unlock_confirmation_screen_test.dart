@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
+import "package:flutter/semantics.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:go_router/go_router.dart";
 import "package:rahati/core/router/app_router.dart";
@@ -92,6 +93,31 @@ void main() {
 
       expect(find.text("Session en cours"), findsOneWidget);
       expect(find.byType(LinearProgressIndicator), findsNothing);
+    },
+  );
+
+  testWidgets(
+    "the 'Session en cours' text is announced to screen readers via a "
+    "live region when it replaces the progress indicator, not only if "
+    "the user happens to navigate to it (US-06.4 finding F25)",
+    (tester) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await _pushViaGoRouter(tester);
+
+      await tester.pump(const Duration(milliseconds: 1700));
+
+      final SemanticsNode node = tester.getSemantics(
+        find.text("Session en cours"),
+      );
+      expect(node.label, "Session en cours");
+      expect(
+        node.flagsCollection.isLiveRegion,
+        isTrue,
+        reason: "the progress→session-active transition must be "
+            "announced, matching this app's established live-region "
+            "pattern (e.g. CabinStatusIndicator, map status banners)",
+      );
+      handle.dispose();
     },
   );
 

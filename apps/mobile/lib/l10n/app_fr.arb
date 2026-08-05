@@ -132,6 +132,10 @@
   "@mapRecenterUnlockedTooltip": {
     "description": "SCR-003 Map — recenter FAB tooltip/semantic label when position-tracking is unlocked (US-01.1.6, FR-MAP-06)."
   },
+  "mapUserPositionMarkerLabel": "Votre position",
+  "@mapUserPositionMarkerLabel": {
+    "description": "SCR-003 Map — screen-reader label for the user's own live-position marker (US-01.1.1, FR-MAP-01). Previously a hard-coded French literal with no l10n import at all, bypassing FR/AR/EN localization entirely regardless of app locale (US-06.4 finding F21)."
+  },
   "mapOffline": "Hors connexion — dernières données affichées, mise à jour il y a {minutes, plural, =0{moins d'une minute} one{1 min} other{{minutes} min}}",
   "@mapOffline": {
     "description": "SCR-031 — offline banner shown when nearby places are served from the local cache after a failed refresh (FR-MAP-07).",
@@ -235,10 +239,6 @@
   "emergencyPlaceholderBody": "Disponible dans la version V1.1.",
   "@emergencyPlaceholderBody": {
     "description": "SCR (placeholder) — Emergency tab body text, per ADR-0024."
-  },
-  "qiblaCompactSemanticLabel": "Boussole vers La Mecque, appuyez pour agrandir",
-  "@qiblaCompactSemanticLabel": {
-    "description": "SCR-008 — screen-reader label for the compact Qibla widget card (US-02.1.2)."
   },
   "qiblaBearingAnnouncement": "La Mecque est à {degrees} degrés, {direction}",
   "@qiblaBearingAnnouncement": {
@@ -412,6 +412,10 @@
   "@paymentMethodPayButton": {
     "description": "SCR-015 — bottom-anchored Filled Button, amount already formatted (e.g. '50 DZD').",
     "placeholders": { "amount": { "type": "String" } }
+  },
+  "paymentMethodsLoading": "Chargement de vos moyens de paiement…",
+  "@paymentMethodsLoading": {
+    "description": "SCR-015 — announced (Semantics liveRegion) while the saved-methods list is loading (US-06.4 finding F23 — the spinner previously carried no accessible label at all)."
   },
   "paymentMethodLoadError": "Impossible de charger vos moyens de paiement.",
   "@paymentMethodLoadError": {

@@ -156,4 +156,59 @@ void main() {
       expect(find.byType(CabinAvailabilityScreen), findsOneWidget);
     },
   );
+
+  group(
+    "overlay elements have a guaranteed-contrast scrim backdrop, not a "
+    "bare color against the unpredictable live camera feed (US-06.4 "
+    "finding F4)",
+    () {
+      testWidgets(
+        "the AppBar back button is scrim-backed (previously unguarded)",
+        (tester) async {
+          await _pumpScreen(tester);
+
+          final BackButton backButton = tester.widget<BackButton>(
+            find.byType(BackButton),
+          );
+          expect(backButton.color, Colors.white);
+
+          final DecoratedBox scrim = tester.widget<DecoratedBox>(
+            find
+                .ancestor(
+                  of: find.byType(BackButton),
+                  matching: find.byType(DecoratedBox),
+                )
+                .first,
+          );
+          final BoxDecoration decoration =
+              scrim.decoration as BoxDecoration;
+          expect(decoration.color, const Color(0x99000000));
+          expect(decoration.shape, BoxShape.circle);
+        },
+      );
+
+      testWidgets(
+        "the manual-entry button is scrim-backed (previously bare against "
+        "the camera feed)",
+        (tester) async {
+          await _pumpScreen(tester);
+
+          final Container scrim = tester.widget<Container>(
+            find
+                .ancestor(
+                  of: find.widgetWithText(
+                    TextButton,
+                    "Saisir le code manuellement",
+                  ),
+                  matching: find.byType(Container),
+                )
+                .first,
+          );
+          final BoxDecoration decoration =
+              scrim.decoration! as BoxDecoration;
+          expect(decoration.color, const Color(0x99000000));
+        },
+      );
+    },
+  );
 }

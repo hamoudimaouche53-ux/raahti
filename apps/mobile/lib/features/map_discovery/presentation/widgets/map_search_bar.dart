@@ -58,6 +58,22 @@ class _MapSearchBarState extends State<MapSearchBar> {
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
 
+    // US-06.4 finding F17 flagged SearchBar's `hintText` as "not a
+    // reliable accessible name" and proposed wrapping it in an explicit
+    // `Semantics(label:)`. Verified during implementation (not assumed):
+    // SearchBar composes its own internal `Semantics(inputType:
+    // SemanticsInputType.search, child: TextField(decoration:
+    // InputDecoration(hintText: ...)))`, and Flutter's own TextField/
+    // InputDecorator already correctly exposes `hintText` as a persistent
+    // semantics `label` — confirmed by inspecting the Flutter SDK source
+    // (`search_anchor.dart`) and, decisively, by a widget test: adding an
+    // external `Semantics(label:)` wrapper here produced a genuine
+    // *duplicate* announcement (`find.bySemanticsLabel` found 2 matching
+    // nodes, one from the wrapper and one already provided internally),
+    // both before *and* after text entry — proving the accessible name
+    // was already persistent, not tied to the hint's visual disappearance
+    // as the original finding assumed. The wrapper was reverted; this is
+    // a false positive in the original audit, not a fix that was skipped.
     return SearchBar(
       controller: _controller,
       hintText: l10n.mapSearchHint,

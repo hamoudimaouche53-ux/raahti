@@ -14,6 +14,34 @@ import "../../../../l10n/app_localizations.dart";
 import "../../domain/entities/access_session.dart";
 import "../../domain/entities/qr_code.dart";
 
+/// This screen's overlay renders on top of a live camera feed, not the
+/// app's `colorScheme.surface` — so its colors are **deliberately
+/// theme-independent**, not a token-discipline oversight. Using
+/// theme-aware colors (e.g. `colorScheme.onSurface`) would be wrong: in
+/// light theme that resolves near-black, invisible against a dark scrim
+/// over a dark camera scene. Every reference camera/scanner UI (platform
+/// camera apps, other QR scanners) uses a fixed dark-scrim/white-content
+/// overlay regardless of the app's own theme, for exactly this reason.
+/// [scrim]'s 60% opacity is chosen deliberately, not arbitrarily: computed
+/// worst-case (a pure-white camera background behind it) still yields
+/// ≈5.74:1 contrast for [onScrim] text — comfortably above the 4.5:1 floor
+/// — found and consolidated as part of the US-06.4 audit (finding F4),
+/// which flagged the previously-scattered raw `Colors.*` literals (some
+/// correctly backed by this same scrim, two — the AppBar back button and
+/// the manual-entry button — with no backdrop at all, rendering directly
+/// against the unpredictable live feed) as the actual gap.
+abstract final class _ScannerOverlayColors {
+  static const Color scrim = Color(0x99000000);
+  static const Color onScrim = Colors.white;
+  static const Color onScrimSecondary = Colors.white70;
+
+  /// The full-screen fallback background ([Scaffold.backgroundColor],
+  /// [_CameraErrorView]'s replace-the-viewfinder state) — solid, not a
+  /// scrim over anything, so plain black/white is already
+  /// contrast-maximal (21:1) regardless of theme.
+  static const Color solidBackground = Colors.black;
+}
+
 /// SCR-013 — QR Scanner (US-04.1, FR-PAY-01), pushed as a root-level,
 /// full-screen route (`AppRoutePaths.accessPaymentScan`) so it escapes
 /// the bottom-nav shell, same precedent as `QiblaFullScreen`.
@@ -136,9 +164,28 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     final AppLocalizations l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _ScannerOverlayColors.solidBackground,
       extendBodyBehindAppBar: true,
-      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        // Previously the default (theme-dependent) back icon rendered
+        // directly against the live camera feed with no backdrop — a
+        // real, unguarded contrast risk (US-06.4 finding F4), unlike the
+        // instruction pill below, which was already scrim-backed. Wrapped
+        // in the same proven-safe scrim; still a real `BackButton` (not a
+        // bare `IconButton`) so it keeps its automatic localized tooltip.
+        leading: Padding(
+          padding: const EdgeInsets.all(RahatiSpacing.space2),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              color: _ScannerOverlayColors.scrim,
+              shape: BoxShape.circle,
+            ),
+            child: const BackButton(color: _ScannerOverlayColors.onScrim),
+          ),
+        ),
+      ),
       body: Stack(
         fit: StackFit.expand,
         children: <Widget>[
@@ -161,23 +208,39 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     horizontal: RahatiSpacing.space4,
                     vertical: RahatiSpacing.space2,
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
+                  decoration: const BoxDecoration(
+                    color: _ScannerOverlayColors.scrim,
                     borderRadius: RahatiShape.mediumRadius,
                   ),
                   child: Text(
                     l10n.qrScannerInstruction,
                     textAlign: TextAlign.center,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Colors.white),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: _ScannerOverlayColors.onScrim,
+                    ),
                   ),
                 ),
                 const SizedBox(height: RahatiSpacing.space2),
-                TextButton(
-                  onPressed: _openManualEntryDialog,
-                  style: TextButton.styleFrom(foregroundColor: Colors.white),
-                  child: Text(l10n.qrScannerManualEntryButton),
+                // Previously unguarded — no backdrop at all, rendering
+                // directly against the live camera feed (US-06.4 finding
+                // F4). Now scrim-backed like the instruction pill above,
+                // instead of sitting bare on an unpredictable background.
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: RahatiSpacing.space4,
+                    vertical: RahatiSpacing.space1,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: _ScannerOverlayColors.scrim,
+                    borderRadius: RahatiShape.mediumRadius,
+                  ),
+                  child: TextButton(
+                    onPressed: _openManualEntryDialog,
+                    style: TextButton.styleFrom(
+                      foregroundColor: _ScannerOverlayColors.onScrim,
+                    ),
+                    child: Text(l10n.qrScannerManualEntryButton),
+                  ),
                 ),
               ],
             ),
@@ -280,35 +343,35 @@ class _CameraErrorView extends StatelessWidget {
         error.errorCode == MobileScannerErrorCode.permissionDenied;
 
     return ColoredBox(
-      color: Colors.black,
+      color: _ScannerOverlayColors.solidBackground,
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(RahatiSpacing.space6),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(
+              const Icon(
                 Icons.no_photography_outlined,
                 size: 48,
-                color: Colors.white,
+                color: _ScannerOverlayColors.onScrim,
               ),
               const SizedBox(height: RahatiSpacing.space4),
               Text(
                 permissionDenied
                     ? l10n.qrScannerPermissionDeniedTitle
                     : l10n.qrScannerCameraUnavailable,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(color: Colors.white),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: _ScannerOverlayColors.onScrim,
+                ),
                 textAlign: TextAlign.center,
               ),
               if (permissionDenied) ...<Widget>[
                 const SizedBox(height: RahatiSpacing.space2),
                 Text(
                   l10n.qrScannerPermissionDeniedBody,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: _ScannerOverlayColors.onScrimSecondary,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: RahatiSpacing.space4),

@@ -136,11 +136,21 @@ class _SubmitReviewScreenState extends ConsumerState<SubmitReviewScreen> {
               const Spacer(),
               FilledButton(
                 onPressed: (_rating == 0 || _submitting) ? null : _submit,
+                // While submitting, the child has no Text — a bare
+                // CircularProgressIndicator carries no semantics label of
+                // its own, so the button lost its accessible name
+                // entirely (WCAG 4.1.2, US-06.4 finding F18). Wrapping
+                // just the spinner keeps the button's name stable across
+                // both states without touching FilledButton's own
+                // button-role/enabled semantics.
                 child: _submitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    ? Semantics(
+                        label: l10n.submitReviewPublishButton,
+                        child: const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
                       )
                     : Text(l10n.submitReviewPublishButton),
               ),
