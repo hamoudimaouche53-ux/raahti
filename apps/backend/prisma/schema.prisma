@@ -11,13 +11,21 @@ generator client {
 
 // postgis: backs the Unsupported("geography(Point, 4326)") columns below
 // (Station.position, ThirdPartyPlace.position) — System Architecture §7,
-// ADR-0012. `previewFeatures = ["postgresqlExtensions"]` is required for
-// Prisma to manage the extension in a real migration; not exercised here,
-// no live database is provisioned yet (see prisma/README.md).
+// ADR-0012. The other five (pgcrypto, uuid-ossp, pg_stat_statements, pg_net,
+// supabase_vault) are not used by application code directly — they are
+// installed into `public` by every Supabase project (local or hosted) as
+// platform defaults, found during Release Validation's first-ever migration
+// against a real (local) Supabase instance (docs/phase-5-release-validation-report.md):
+// without declaring them, Prisma's drift detector treats them as unexpected
+// changes and refuses to migrate. Declaring them here is a correctness fix
+// for the canonical schema, not local-only — a real hosted Supabase project
+// would hit the identical drift the first time `prisma migrate dev` ran
+// against it. `previewFeatures = ["postgresqlExtensions"]` is required for
+// Prisma to manage these in a migration.
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
-  extensions = [postgis]
+  extensions = [postgis, pgcrypto, uuid_ossp(map: "uuid-ossp"), pg_stat_statements, pg_net, supabase_vault]
 }
 
 // --- Identity & Access bounded context (docs/architecture/domain-model.md §2) ---
