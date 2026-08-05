@@ -33,6 +33,7 @@ class PlaceMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final RahatiFunctionalColors colors = Theme.of(
       context,
     ).extension<RahatiFunctionalColors>()!;
@@ -64,12 +65,24 @@ class PlaceMarker extends StatelessWidget {
               decoration: BoxDecoration(
                 color: background,
                 shape: BoxShape.circle,
+                // `Colors.white` is intentional here, not a token-discipline
+                // gap (US-06.4 finding, resolved as reviewed-not-a-defect):
+                // this halo must stay legible against the raster map tile
+                // imagery underneath, which never follows the app's own
+                // light/dark theme — the same "generic UI chrome, not a
+                // status color" carve-out ClusterMarker's own doc comment
+                // already states for itself.
                 border: Border.all(color: Colors.white, width: 2),
-                boxShadow: const <BoxShadow>[
+                boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: Colors.black26,
+                    // Token-sourced, not a hard-coded literal (US-06.4
+                    // finding) — byte-identical to the old `Colors.black26`
+                    // since `colorScheme.shadow` is pure black in both
+                    // themes, so this is a pure discipline fix with no
+                    // visual change.
+                    color: colorScheme.shadow.withAlpha(0x42),
                     blurRadius: 3,
-                    offset: Offset(0, 1),
+                    offset: const Offset(0, 1),
                   ),
                 ],
               ),

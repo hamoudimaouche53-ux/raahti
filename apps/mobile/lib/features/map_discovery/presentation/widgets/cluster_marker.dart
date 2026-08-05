@@ -48,11 +48,16 @@ class ClusterMarker extends StatelessWidget {
                   color: colorScheme.secondaryContainer,
                   shape: BoxShape.circle,
                   border: Border.all(color: colorScheme.surface, width: 2),
-                  boxShadow: const <BoxShadow>[
+                  boxShadow: <BoxShadow>[
                     BoxShadow(
-                      color: Colors.black26,
+                      // Token-sourced, not a hard-coded literal (US-06.4
+                      // finding) — byte-identical to the old `Colors.black26`
+                      // since `colorScheme.shadow` is pure black in both
+                      // themes, so this is a pure discipline fix with no
+                      // visual change.
+                      color: colorScheme.shadow.withAlpha(0x42),
                       blurRadius: 4,
-                      offset: Offset(0, 1),
+                      offset: const Offset(0, 1),
                     ),
                   ],
                 ),

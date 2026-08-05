@@ -615,29 +615,43 @@ class _DetailStatusLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: RahatiSpacing.space3),
-      child: Row(
-        children: <Widget>[
-          if (icon == null)
-            SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: colorScheme.onSurfaceVariant,
+    // Semantics(liveRegion: true, label:) + ExcludeSemantics (US-06.4
+    // finding) — this line's content changes from a loading state to
+    // either real data or this error/loading text with no user
+    // interaction, so a screen reader must announce it when it changes,
+    // not only if the user happens to be focused on it — same discipline
+    // as `map_screen.dart`'s `_StatusBanner` (finding F24). Covers both
+    // this widget's loading and error variants identically, since both are
+    // the same kind of unprompted, asynchronous content change.
+    return Semantics(
+      liveRegion: true,
+      label: label,
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: RahatiSpacing.space3),
+          child: Row(
+            children: <Widget>[
+              if (icon == null)
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                )
+              else
+                Icon(icon, size: 16, color: colorScheme.error),
+              const SizedBox(width: RahatiSpacing.space2),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
-            )
-          else
-            Icon(icon, size: 16, color: colorScheme.error),
-          const SizedBox(width: RahatiSpacing.space2),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

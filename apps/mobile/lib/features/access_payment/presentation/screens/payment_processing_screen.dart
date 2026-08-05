@@ -128,19 +128,29 @@ class _ProcessingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // `label:` + `ExcludeSemantics` (not a bare `liveRegion: true`), matching
+    // the pattern `map_screen.dart`'s `_StatusBanner` and
+    // `unlock_confirmation_screen.dart` use — without `ExcludeSemantics` the
+    // child `Text`'s own implicit semantics node would remain a second,
+    // separate node alongside this explicit label, risking a
+    // double-announcement (US-06.4 finding). Safe to exclude the whole
+    // subtree here since it contains no independently-interactive control.
     return Semantics(
+      label: message,
       liveRegion: true,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const CircularProgressIndicator(),
-          const SizedBox(height: RahatiSpacing.space4),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
+      child: ExcludeSemantics(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const CircularProgressIndicator(),
+            const SizedBox(height: RahatiSpacing.space4),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -178,41 +188,56 @@ class _PaymentFailedView extends StatelessWidget {
       }
     }
 
-    return Semantics(
-      liveRegion: true,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Container(
-            padding: const EdgeInsets.all(RahatiSpacing.space4),
-            decoration: BoxDecoration(
-              color: colorScheme.errorContainer,
-              shape: BoxShape.circle,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        // `label:` + `ExcludeSemantics` scoped to just the icon+title, not
+        // the whole Column (US-06.4 finding — a bare `liveRegion: true`
+        // here risked a double-announcement, same class of issue as
+        // `_ProcessingView` above). Unlike that view, this one has two
+        // actionable buttons below — wrapping the *entire* subtree in
+        // `ExcludeSemantics` would have silently stripped their semantics
+        // too, so only the decorative icon+title pair is scoped in.
+        Semantics(
+          label: title,
+          liveRegion: true,
+          child: ExcludeSemantics(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Container(
+                  padding: const EdgeInsets.all(RahatiSpacing.space4),
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    size: 40,
+                    color: colorScheme.onErrorContainer,
+                  ),
+                ),
+                const SizedBox(height: RahatiSpacing.space4),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ],
             ),
-            child: Icon(
-              Icons.error_outline,
-              size: 40,
-              color: colorScheme.onErrorContainer,
-            ),
           ),
-          const SizedBox(height: RahatiSpacing.space4),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: RahatiSpacing.space6),
-          FilledButton(
-            onPressed: onRetry,
-            child: Text(l10n.paymentFailedRetryButton),
-          ),
-          const SizedBox(height: RahatiSpacing.space2),
-          TextButton(
-            onPressed: () => context.go(AppRoutePaths.map),
-            child: Text(l10n.cabinAvailabilityBackToMapButton),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: RahatiSpacing.space6),
+        FilledButton(
+          onPressed: onRetry,
+          child: Text(l10n.paymentFailedRetryButton),
+        ),
+        const SizedBox(height: RahatiSpacing.space2),
+        TextButton(
+          onPressed: () => context.go(AppRoutePaths.map),
+          child: Text(l10n.cabinAvailabilityBackToMapButton),
+        ),
+      ],
     );
   }
 }

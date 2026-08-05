@@ -2,6 +2,7 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
+import "package:flutter/semantics.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:rahati/core/theme/app_theme.dart";
@@ -255,6 +256,39 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+      "the inline error line is announced to screen readers via a live "
+      "region when the fetch fails, not only if the user happens to "
+      "navigate to it (US-06.4 finding)",
+      (tester) async {
+        final place = _place();
+        final SemanticsHandle handle = tester.ensureSemantics();
+        await _pumpSheet(
+          tester,
+          place,
+          overrides: [
+            stationDetailProvider(
+              place.id,
+            ).overrideWith((ref) async => throw Exception("boom")),
+          ],
+        );
+
+        final SemanticsNode node = tester.getSemantics(
+          find.text("Impossible de charger les détails de ce lieu."),
+        );
+        expect(node.label, "Impossible de charger les détails de ce lieu.");
+        expect(
+          node.flagsCollection.isLiveRegion,
+          isTrue,
+          reason: "an unprompted fetch-failure message must be announced, "
+              "matching this app's established live-region pattern (e.g. "
+              "map status banners)",
+        );
+        handle.dispose();
+      },
+    );
+
   });
 
   group("QR scan entry point (US-04.1)", () {

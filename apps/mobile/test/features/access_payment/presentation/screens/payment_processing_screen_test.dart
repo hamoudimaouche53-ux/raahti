@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
+import "package:flutter/semantics.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:go_router/go_router.dart";
@@ -235,4 +236,63 @@ void main() {
     expect(find.text("MAP STUB"), findsOneWidget);
     expect(router.routerDelegate.currentConfiguration.uri.toString(), "/map");
   });
+
+  testWidgets(
+    "the processing message is announced to screen readers via a live "
+    "region (US-06.4 finding)",
+    (tester) async {
+      final delay = Completer<void>();
+      addTearDown(() {
+        if (!delay.isCompleted) delay.complete();
+      });
+      final SemanticsHandle handle = tester.ensureSemantics();
+
+      await _pumpNavigatorHarness(tester, null, delay: delay);
+      await tester.tap(find.text("push"));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final SemanticsNode node = tester.getSemantics(
+        find.text("Traitement du paiement..."),
+      );
+      expect(node.label, "Traitement du paiement...");
+      expect(node.flagsCollection.isLiveRegion, isTrue);
+      handle.dispose();
+    },
+  );
+
+  testWidgets(
+    "the failure title is announced via a live region, and the Retry/"
+    "back buttons keep their own accessible names (US-06.4 finding — the "
+    "live region must be scoped to just the icon+title, not the whole "
+    "view, or the buttons would lose their semantics)",
+    (tester) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+
+      await _pushViaGoRouter(
+        tester,
+        const PaymentDeclinedFailure("declined"),
+      );
+
+      final SemanticsNode titleNode = tester.getSemantics(
+        find.text("Paiement refusé"),
+      );
+      expect(titleNode.label, "Paiement refusé");
+      expect(titleNode.flagsCollection.isLiveRegion, isTrue);
+
+      final SemanticsNode retryNode = tester.getSemantics(
+        find.widgetWithText(FilledButton, "Réessayer"),
+      );
+      expect(retryNode.label, "Réessayer");
+      expect(retryNode.flagsCollection.isButton, isTrue);
+
+      final SemanticsNode backNode = tester.getSemantics(
+        find.widgetWithText(TextButton, "Retour à la carte"),
+      );
+      expect(backNode.label, "Retour à la carte");
+      expect(backNode.flagsCollection.isButton, isTrue);
+
+      handle.dispose();
+    },
+  );
 }

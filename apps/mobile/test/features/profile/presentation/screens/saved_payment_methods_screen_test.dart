@@ -1,4 +1,7 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
+import "package:flutter/semantics.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:rahati/core/theme/app_theme.dart";
@@ -11,8 +14,10 @@ import "package:rahati/features/profile/presentation/screens/saved_payment_metho
 import "package:rahati/l10n/app_localizations.dart";
 
 class _FakePaymentMethodRepository implements PaymentMethodRepository {
-  _FakePaymentMethodRepository({List<PaymentMethod>? seed})
+  _FakePaymentMethodRepository({List<PaymentMethod>? seed, this.delay})
     : _methods = List<PaymentMethod>.of(seed ?? _defaultSeed());
+
+  final Future<void>? delay;
 
   static List<PaymentMethod> _defaultSeed() => const [
     PaymentMethod(
@@ -32,8 +37,11 @@ class _FakePaymentMethodRepository implements PaymentMethodRepository {
   final List<PaymentMethod> _methods;
 
   @override
-  Future<List<PaymentMethod>> getSavedPaymentMethods() async =>
-      List<PaymentMethod>.unmodifiable(_methods);
+  Future<List<PaymentMethod>> getSavedPaymentMethods() async {
+    final Future<void>? d = delay;
+    if (d != null) await d;
+    return List<PaymentMethod>.unmodifiable(_methods);
+  }
 
   @override
   Future<PaymentMethod> addPaymentMethod({
@@ -261,6 +269,43 @@ void main() {
               " tall, under the 48dp minimum touch target",
         );
       }
+    },
+  );
+
+  testWidgets(
+    "the initial loading spinner is announced to screen readers via a "
+    "live region, not left with zero semantics (US-06.4 finding)",
+    (tester) async {
+      final delay = Completer<void>();
+      addTearDown(() {
+        if (!delay.isCompleted) delay.complete();
+      });
+      final SemanticsHandle handle = tester.ensureSemantics();
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            paymentMethodRepositoryProvider.overrideWithValue(
+              _FakePaymentMethodRepository(delay: delay.future),
+            ),
+          ],
+          child: MaterialApp(
+            theme: RahatiTheme.light,
+            locale: const Locale("fr"),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: const SavedPaymentMethodsScreen(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final SemanticsNode node = tester.getSemantics(
+        find.byType(CircularProgressIndicator),
+      );
+      expect(node.label, "Chargement de vos moyens de paiement…");
+      expect(node.flagsCollection.isLiveRegion, isTrue);
+      handle.dispose();
     },
   );
 }

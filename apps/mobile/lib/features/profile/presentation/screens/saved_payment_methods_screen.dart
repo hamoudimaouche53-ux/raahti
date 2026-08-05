@@ -158,7 +158,18 @@ class _SavedPaymentMethodsScreenState
           future: _future,
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
+              // Semantics(liveRegion: true, label:) + ExcludeSemantics
+              // (US-06.4 finding) — a bare CircularProgressIndicator carries
+              // no accessible label/announcement of its own, matching the
+              // gap F23 fixed for the payment-method-selection sheet's own
+              // loading spinner (same l10n key, same pattern).
+              return Semantics(
+                liveRegion: true,
+                label: l10n.paymentMethodsLoading,
+                child: const ExcludeSemantics(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              );
             }
             final List<PaymentMethod> methods = snapshot.data!;
             return ListView(

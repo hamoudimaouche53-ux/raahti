@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
+import "package:flutter/semantics.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:go_router/go_router.dart";
@@ -13,8 +14,9 @@ import "package:rahati/features/profile/presentation/screens/sign_in_sign_up_scr
 import "package:rahati/l10n/app_localizations.dart";
 
 class _FakeAuthRepository implements AuthRepository {
-  _FakeAuthRepository({this.declineWith});
+  _FakeAuthRepository({this.declineWith, this.delay});
   final AuthRepositoryFailure? declineWith;
+  final Future<void>? delay;
 
   @override
   Stream<String?> watchCurrentUserId() => Stream.value(null);
@@ -24,6 +26,8 @@ class _FakeAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
+    final Future<void>? d = delay;
+    if (d != null) await d;
     if (declineWith != null) throw declineWith!;
   }
 
@@ -42,6 +46,7 @@ class _FakeAuthRepository implements AuthRepository {
 Future<GoRouter> _pushViaGoRouter(
   WidgetTester tester, {
   AuthRepositoryFailure? declineWith,
+  Future<void>? delay,
   Locale locale = const Locale("fr"),
 }) async {
   final GoRouter router = GoRouter(
@@ -62,7 +67,7 @@ Future<GoRouter> _pushViaGoRouter(
     ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(
-          _FakeAuthRepository(declineWith: declineWith),
+          _FakeAuthRepository(declineWith: declineWith, delay: delay),
         ),
       ],
       child: MaterialApp.router(
@@ -208,6 +213,61 @@ void main() {
         find.byType(RahatiLogoMark),
       );
       expect(mark.onColor, RahatiTheme.light.colorScheme.onPrimary);
+    },
+  );
+
+  testWidgets(
+    "the submit button keeps its accessible name while its spinner "
+    "replaces its Text child, matching submit_review_screen.dart's own "
+    "fix for the identical gap (US-06.4 finding, previously flagged but "
+    "not fixed here)",
+    (tester) async {
+      final delay = Completer<void>();
+      addTearDown(() {
+        if (!delay.isCompleted) delay.complete();
+      });
+      final SemanticsHandle handle = tester.ensureSemantics();
+
+      await _pushViaGoRouter(tester, delay: delay.future);
+
+      await tester.enterText(find.byType(TextField).first, "a@b.com");
+      await tester.enterText(find.byType(TextField).last, "password123");
+      await tester.tap(find.text("Se connecter").last);
+      await tester.pump();
+
+      final SemanticsNode node = tester.getSemantics(
+        find.byType(CircularProgressIndicator),
+      );
+      expect(node.label, "Se connecter");
+      handle.dispose();
+    },
+  );
+
+  testWidgets(
+    "the inline error message is announced to screen readers via a live "
+    "region (US-06.4 finding, same class as place_detail_sheet.dart's "
+    "_DetailStatusLine)",
+    (tester) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+
+      await _pushViaGoRouter(
+        tester,
+        declineWith: const AuthRequestFailure(
+          "invalid_grant: internal Supabase detail",
+        ),
+      );
+
+      await tester.enterText(find.byType(TextField).first, "a@b.com");
+      await tester.enterText(find.byType(TextField).last, "wrong");
+      await tester.tap(find.text("Se connecter").last);
+      await tester.pumpAndSettle();
+
+      final SemanticsNode node = tester.getSemantics(
+        find.text("E-mail ou mot de passe incorrect."),
+      );
+      expect(node.label, "E-mail ou mot de passe incorrect.");
+      expect(node.flagsCollection.isLiveRegion, isTrue);
+      handle.dispose();
     },
   );
 }

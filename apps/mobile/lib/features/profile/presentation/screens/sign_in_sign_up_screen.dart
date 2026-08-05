@@ -141,11 +141,19 @@ class _SignInSignUpScreenState extends ConsumerState<SignInSignUpScreen> {
                     color: colorScheme.errorContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
+                  // label: + ExcludeSemantics (US-06.4 finding, same class
+                  // as place_detail_sheet.dart's _DetailStatusLine) — a
+                  // bare `liveRegion: true` here risked the child Text's
+                  // own implicit semantics node doubling up alongside this
+                  // explicit label.
                   child: Semantics(
                     liveRegion: true,
-                    child: Text(
-                      _errorMessage!,
-                      style: TextStyle(color: colorScheme.onErrorContainer),
+                    label: _errorMessage!,
+                    child: ExcludeSemantics(
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(color: colorScheme.onErrorContainer),
+                      ),
                     ),
                   ),
                 ),
@@ -153,11 +161,26 @@ class _SignInSignUpScreenState extends ConsumerState<SignInSignUpScreen> {
               const SizedBox(height: RahatiSpacing.space6),
               FilledButton(
                 onPressed: _submitting ? null : _submit,
+                // While submitting, the child has no Text — a bare
+                // CircularProgressIndicator carries no semantics label of
+                // its own, so the button lost its accessible name entirely
+                // (WCAG 4.1.2), the identical pattern
+                // submit_review_screen.dart's own "Publier" button had
+                // (US-06.4 finding F18) before that pass explicitly flagged
+                // this file as having the same unfixed gap. Wrapping just
+                // the spinner keeps the button's name stable across both
+                // states without touching FilledButton's own
+                // button-role/enabled semantics.
                 child: _submitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    ? Semantics(
+                        label: _isSignUp
+                            ? l10n.signUpSubmitButton
+                            : l10n.signInSubmitButton,
+                        child: const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
                       )
                     : Text(
                         _isSignUp
