@@ -8,10 +8,14 @@ import "package:rahati/features/slatoki/domain/usecases/filter_slatoki_places.da
 
 const _center = Coordinates(latitude: 36.7538, longitude: 3.0588);
 
-SlatokiPlace _place(String id, List<String> tags) => SlatokiPlace(
+SlatokiPlace _place(
+  String id,
+  List<String> tags, {
+  PlaceKind placeKind = PlaceKind.thirdPartyPlace,
+}) => SlatokiPlace(
   place: Place(
     id: id,
-    placeKind: PlaceKind.thirdPartyPlace,
+    placeKind: placeKind,
     name: LocalizedText(fr: "Lieu $id", ar: "مكان $id", en: "Place $id"),
     position: _center,
     pinColor: PinColor.magenta,
@@ -65,4 +69,24 @@ void main() {
       expect(filterSlatokiPlaces([neitherPlace], filter), isEmpty);
     }
   });
+
+  test(
+    "a station always matches every filter, regardless of (always-empty) "
+    "tags — mirrors the backend's own rule (SlatokiQueryService.matchesFilter: "
+    "'A RAHETI Slatoki tent always offers both prayer and wudu'). Regression: "
+    "found on a real device against the real backend — a qualifying Station "
+    "the backend correctly returned never appeared under any filter tab, "
+    "because Stations carry no tags at all (ERD §3.5/§3.6) and the old "
+    "implementation didn't special-case placeKind.",
+    () {
+      final SlatokiPlace station = _place(
+        "5",
+        const [],
+        placeKind: PlaceKind.station,
+      );
+      for (final filter in PrayerFacilityFilter.values) {
+        expect(filterSlatokiPlaces([station], filter), [station]);
+      }
+    },
+  );
 }

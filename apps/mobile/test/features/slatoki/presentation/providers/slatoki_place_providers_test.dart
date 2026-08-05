@@ -10,10 +10,15 @@ import "package:rahati/features/slatoki/presentation/providers/slatoki_place_pro
 
 const _center = Coordinates(latitude: 36.75, longitude: 3.06);
 
+// PlaceKind.thirdPartyPlace — this test exercises tag-based narrowing
+// (prayer_only/wudu_only), which only applies to third-party places; a
+// station always matches every filter unconditionally regardless of tags
+// (filter_slatoki_places.dart's own doc comment), so a station fixture
+// would defeat the "narrows by filter" assertion below.
 SlatokiPlace _place(String id, List<String> tags) => SlatokiPlace(
   place: Place(
     id: id,
-    placeKind: PlaceKind.station,
+    placeKind: PlaceKind.thirdPartyPlace,
     name: LocalizedText(fr: "F$id", ar: "A$id", en: "E$id"),
     position: _center,
     pinColor: PinColor.magenta,
