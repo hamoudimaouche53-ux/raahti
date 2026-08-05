@@ -2,8 +2,11 @@ import "dart:async";
 
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:http/http.dart" as http;
+import "package:supabase_flutter/supabase_flutter.dart" show GoTrueClient;
 
 import "../../../../core/constants/env.dart";
+import "../../../../core/network/authenticated_http_client.dart";
+import "../../../../core/providers/supabase_provider.dart";
 import "../../data/datasources/device_location_data_source.dart";
 import "../../data/datasources/place_local_data_source.dart";
 import "../../data/datasources/place_remote_data_source.dart";
@@ -17,10 +20,30 @@ import "../../domain/usecases/get_nearby_places.dart";
 /// Dependency-injection wiring for the map_discovery feature — one line per
 /// layer boundary, mirroring docs/architecture/system-architecture.md §3's
 /// DI-token/provider composition-root pattern on the backend.
+///
+/// The single swap point for backend HTTP auth (Phase 5 Backend Integration
+/// Audit prerequisite): every `*RemoteDataSource` in the app already
+/// depends on this provider for its [http.Client], so wrapping it in
+/// [AuthenticatedHttpClient] here — rather than in each data source — is
+/// the only change needed to attach a Supabase JWT to every backend
+/// request. Guarded on [AppEnv.isSupabaseConfigured]: `supabaseClientProvider`
+/// throws if read before Supabase is initialized (its own doc comment),
+/// which is the normal state for local UI development/CI/widget tests
+/// (no Supabase project configured) — those builds get a plain,
+/// unauthenticated [http.Client], identical to this provider's behavior
+/// before this change.
 final Provider<http.Client> httpClientProvider = Provider<http.Client>((ref) {
-  final http.Client client = http.Client();
-  ref.onDispose(client.close);
-  return client;
+  final http.Client inner = http.Client();
+  ref.onDispose(inner.close);
+  if (!AppEnv.isSupabaseConfigured) {
+    return inner;
+  }
+  // Captured once (a stable, long-lived object) — `auth.currentSession` is
+  // a live getter, so reading it lazily inside the closure below always
+  // reflects the current/refreshed session, with no `ref.watch` call
+  // needed outside this provider's synchronous build phase.
+  final GoTrueClient auth = ref.watch(supabaseClientProvider).auth;
+  return AuthenticatedHttpClient(inner, () => auth.currentSession?.accessToken);
 });
 
 final Provider<PlaceRemoteDataSource> placeRemoteDataSourceProvider =
