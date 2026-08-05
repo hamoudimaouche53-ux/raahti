@@ -614,6 +614,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Notification" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
 components:
   securitySchemes:
@@ -936,3 +937,15 @@ components:
         type: { type: string, enum: [availability, operator_alert, payment_confirmation] }
         status: { type: string, enum: [queued, sent, delivered, failed] }
         createdAt: { type: string, format: date-time }
+        isRead:
+          type: boolean
+          description: >-
+            Additive gap-fill (Phase 4 Notifications module): the domain model
+            has no field for read/unread state even though PATCH
+            /users/me/notifications/{notificationId} is documented as "Mark a
+            notification as read". Always false when readAt is null.
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Set exactly once, the first time the notification is marked read. Null while unread.

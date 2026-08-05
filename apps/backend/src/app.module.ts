@@ -5,6 +5,7 @@ import { StationNetworkModule } from './modules/station-network/station-network.
 import { ThirdPartyPlacesModule } from './modules/third-party-places/third-party-places.module';
 import { PlacesModule } from './composition/places/places.module';
 import { SlatokiModule } from './modules/slatoki/slatoki.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { SlatokiModule } from './modules/slatoki/slatoki.module';
     ThirdPartyPlacesModule,
     PlacesModule,
     SlatokiModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

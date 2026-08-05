@@ -36,6 +36,17 @@ ALTER TABLE review
 ALTER TABLE review
   ADD CONSTRAINT review_rating_range
   CHECK (rating BETWEEN 1 AND 5);
+
+-- Notification (Phase 4 additive gap-fill, confirmed with user 2026-08-05):
+-- is_read/read_at must stay consistent — an unread notification always has
+-- read_at = null, and a read one always has it set (matches the
+-- Notification entity's own invariant, domain/entities/notification.entity.ts).
+ALTER TABLE notification
+  ADD CONSTRAINT notification_read_state_consistency
+  CHECK (
+    (is_read = false AND read_at IS NULL)
+    OR (is_read = true AND read_at IS NOT NULL)
+  );
 ```
 
 Until this migration exists, these invariants are enforced at the Domain layer

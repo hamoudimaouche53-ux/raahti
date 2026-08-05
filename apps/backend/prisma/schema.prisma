@@ -55,6 +55,7 @@ model User {
   paymentMethods           PaymentMethod[]
   favorites                Favorite[]
   reviews                  Review[]
+  notifications            Notification[]
 
   @@map("user_account")
 }
@@ -343,4 +344,57 @@ enum DiabeticVerificationStatus {
   pending
   verified
   rejected
+}
+
+// --- Notifications bounded context (docs/architecture/domain-model.md §8) ---
+
+/// ERD §3.14 — aggregate root. `relatedAlertId`/`relatedTransactionId` carry
+/// no `@relation` — Alert (Operations) and Transaction (Access & Payment)
+/// don't exist yet (both bounded contexts are out of scope for this pass,
+/// same precedent as Favorite/Review's dangling FKs when Station/ThirdPartyPlace
+/// didn't exist yet).
+///
+/// `isRead`/`readAt` are NOT in the ERD — an additive gap-fill confirmed with
+/// the user (Notifications module kickoff, 2026-08-05): openapi.yaml defines
+/// `PATCH /users/me/notifications/{id}` as "Mark a notification as read" but
+/// neither the ERD, domain-model.md, nor the OpenAPI Notification response
+/// schema had ever modeled a read/unread concept at all. See
+/// docs/phase-4-implementation-plan.md for the full writeup.
+model Notification {
+  id                   String              @id @default(uuid()) @db.Uuid
+  userId               String?             @map("user_id") @db.Uuid
+  channel              NotificationChannel
+  type                 NotificationType
+  relatedAlertId       String?             @map("related_alert_id") @db.Uuid
+  relatedTransactionId String?             @map("related_transaction_id") @db.Uuid
+  status               NotificationStatus  @default(queued)
+  isRead               Boolean             @default(false) @map("is_read")
+  readAt               DateTime?           @map("read_at")
+  createdAt            DateTime            @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // GET /users/me/notifications lists by user_id; no pagination in the
+  // contract (flagged — see Phase 4 Implementation Plan), but every list
+  // query still needs this index to avoid a full table scan.
+  @@index([userId])
+  @@map("notification")
+}
+
+enum NotificationChannel {
+  push
+  in_app
+}
+
+enum NotificationType {
+  availability
+  operator_alert
+  payment_confirmation
+}
+
+enum NotificationStatus {
+  queued
+  sent
+  delivered
+  failed
 }

@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { FavoriteService } from './application/favorite.service';
 import { PaymentMethodService } from './application/payment-method.service';
 import { UserProfileService } from './application/user-profile.service';
+import { UserQueryService } from './application/user-query.service';
 import { VerificationDocumentService } from './application/verification-document.service';
 import { FAVORITE_REPOSITORY } from './domain/ports/favorite.repository';
 import { PAYMENT_METHOD_REPOSITORY } from './domain/ports/payment-method.repository';
@@ -51,10 +52,17 @@ import { SiteScopeGuard } from './interface/guards/site-scope.guard';
     { provide: APP_GUARD, useClass: SiteScopeGuard },
     { provide: APP_GUARD, useClass: RequireMfaGuard },
     UserProfileService,
+    UserQueryService,
     VerificationDocumentService,
     PaymentMethodService,
     FavoriteService,
   ],
-  exports: [JWT_VERIFIER, USER_REPOSITORY, ROLE_REPOSITORY],
+  // Only the exported *QueryService — never raw repository tokens (module-dependency-diagram.md
+  // §5 rule 1). JWT_VERIFIER/USER_REPOSITORY/ROLE_REPOSITORY were previously exported directly;
+  // nothing had consumed them yet, but that would have violated this same rule the moment a
+  // consumer showed up (NotificationsModule, needing UserQueryService for localization) — fixed
+  // rather than compounded. JwtAuthGuard/RolesGuard/etc. are wired globally via APP_GUARD and
+  // need no export; no other module performs authentication itself.
+  exports: [UserQueryService],
 })
 export class IdentityModule {}

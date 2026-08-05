@@ -111,6 +111,29 @@ export default [
               message: 'No module may depend on slatoki/ — its read edges are outward-only (module-dependency-diagram.md §3).',
             },
             {
+              // Notifications (module-dependency-diagram.md §3: `Notif -.->|read| Identity`)
+              // may depend only on Identity's exported *QueryService (application/) —
+              // never its domain/infrastructure/interface layers.
+              target: './src/modules/notifications',
+              from: ['./src/modules/identity/domain', './src/modules/identity/infrastructure', './src/modules/identity/interface'],
+              message:
+                "Notifications may only depend on Identity's exported *QueryService (application/) — see module-dependency-diagram.md §3.",
+            },
+            {
+              // Nothing may depend on Notifications — the matrix grants it no incoming
+              // edges at all; it is only ever a subscriber (event bus) or itself a
+              // read-dependency source, never a dependency of another module.
+              target: [
+                './src/modules/identity',
+                './src/modules/station-network',
+                './src/modules/third-party-places',
+                './src/modules/slatoki',
+                './src/composition',
+              ],
+              from: ['./src/modules/notifications'],
+              message: 'No module may depend on notifications/ — it has no sanctioned incoming edges (module-dependency-diagram.md §3).',
+            },
+            {
               // Places composition layer (ADR-0029) may depend ONLY on each Facilities
               // module's exported *QueryService (application/) — never their domain/,
               // infrastructure/, or interface/ layers directly.
