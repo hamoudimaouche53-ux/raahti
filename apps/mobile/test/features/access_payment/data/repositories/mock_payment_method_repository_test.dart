@@ -41,22 +41,19 @@ void main() {
       expect(after.any((m) => m.id == first.id), isFalse);
     });
 
-    test(
-      "setDefaultPaymentMethod flips isDefault and unsets every other "
-      "method's",
-      () async {
-        final repository = MockPaymentMethodRepository();
-        final List<PaymentMethod> methods = await repository
-            .getSavedPaymentMethods();
-        final second = methods[1];
+    test("setDefaultPaymentMethod flips isDefault and unsets every other "
+        "method's", () async {
+      final repository = MockPaymentMethodRepository();
+      final List<PaymentMethod> methods = await repository
+          .getSavedPaymentMethods();
+      final second = methods[1];
 
-        final updated = await repository.setDefaultPaymentMethod(second.id);
+      final updated = await repository.setDefaultPaymentMethod(second.id);
 
-        expect(updated.isDefault, isTrue);
-        final after = await repository.getSavedPaymentMethods();
-        expect(after.where((m) => m.isDefault), hasLength(1));
-        expect(after.firstWhere((m) => m.id == second.id).isDefault, isTrue);
-      },
-    );
+      expect(updated.isDefault, isTrue);
+      final after = await repository.getSavedPaymentMethods();
+      expect(after.where((m) => m.isDefault), hasLength(1));
+      expect(after.firstWhere((m) => m.id == second.id).isDefault, isTrue);
+    });
   });
 }

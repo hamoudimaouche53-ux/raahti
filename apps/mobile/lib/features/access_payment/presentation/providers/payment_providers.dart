@@ -38,9 +38,8 @@ paymentMethodRemoteDataSourceProvider = Provider<PaymentMethodRemoteDataSource>(
 /// ADR-0014's mandated mock adapter — a single shared instance for the
 /// app's lifetime (not `const`-per-call), same discipline as every other
 /// singleton-scoped provider here.
-final Provider<PaymentGateway> paymentGatewayProvider = Provider<PaymentGateway>(
-  (ref) => MockPaymentGatewayAdapter(),
-);
+final Provider<PaymentGateway> paymentGatewayProvider =
+    Provider<PaymentGateway>((ref) => MockPaymentGatewayAdapter());
 
 /// The swap point between real and mock payment data (US-04.3 — see
 /// `MockPaymentRepository`'s doc comment and `AppEnv.useMockPayment`,
@@ -67,9 +66,10 @@ final Provider<PaymentMethodRepository> paymentMethodRepositoryProvider =
       );
     });
 
-final Provider<RequestPayment> requestPaymentProvider = Provider<RequestPayment>(
-  (ref) => RequestPayment(ref.watch(paymentRepositoryProvider)),
-);
+final Provider<RequestPayment> requestPaymentProvider =
+    Provider<RequestPayment>(
+      (ref) => RequestPayment(ref.watch(paymentRepositoryProvider)),
+    );
 
 /// One-shot submission state for SCR-016 — same shape as
 /// `QrScanNotifier` (`access_session_providers.dart`): `null` before any
@@ -102,9 +102,7 @@ class PaymentNotifier extends AsyncNotifier<AccessSession?> {
 
 final AsyncNotifierProvider<PaymentNotifier, AccessSession?>
 paymentNotifierProvider =
-    AsyncNotifierProvider<PaymentNotifier, AccessSession?>(
-      PaymentNotifier.new,
-    );
+    AsyncNotifierProvider<PaymentNotifier, AccessSession?>(PaymentNotifier.new);
 
 /// SCR-015's saved-methods list. `AsyncNotifier` (not a plain
 /// `FutureProvider`) because [addPaymentMethod] needs to mutate this

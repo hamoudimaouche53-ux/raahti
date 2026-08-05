@@ -42,19 +42,20 @@ Widget _wrap(Widget child) {
 void main() {
   group("PlaceMarker icon mapping (F10 — icon derived from pinColor)", () {
     testWidgets("PinColor.green (Free WC) renders Icons.wc", (tester) async {
-      await tester.pumpWidget(_wrap(PlaceMarker(place: _place(PinColor.green))));
+      await tester.pumpWidget(
+        _wrap(PlaceMarker(place: _place(PinColor.green))),
+      );
 
       expect(find.byIcon(Icons.wc), findsOneWidget);
     });
 
-    testWidgets(
-      "PinColor.blue (Paid WC) renders Icons.payments_outlined",
-      (tester) async {
-        await tester.pumpWidget(_wrap(PlaceMarker(place: _place(PinColor.blue))));
+    testWidgets("PinColor.blue (Paid WC) renders Icons.payments_outlined", (
+      tester,
+    ) async {
+      await tester.pumpWidget(_wrap(PlaceMarker(place: _place(PinColor.blue))));
 
-        expect(find.byIcon(Icons.payments_outlined), findsOneWidget);
-      },
-    );
+      expect(find.byIcon(Icons.payments_outlined), findsOneWidget);
+    });
 
     testWidgets(
       "PinColor.amber (RAHETI Unit) renders Icons.verified_outlined",
@@ -67,16 +68,15 @@ void main() {
       },
     );
 
-    testWidgets(
-      "PinColor.magenta (Slatoki) renders Icons.mosque",
-      (tester) async {
-        await tester.pumpWidget(
-          _wrap(PlaceMarker(place: _place(PinColor.magenta))),
-        );
+    testWidgets("PinColor.magenta (Slatoki) renders Icons.mosque", (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(PlaceMarker(place: _place(PinColor.magenta))),
+      );
 
-        expect(find.byIcon(Icons.mosque), findsOneWidget);
-      },
-    );
+      expect(find.byIcon(Icons.mosque), findsOneWidget);
+    });
 
     testWidgets(
       "the icon is chosen from pinColor, not placeKind — a station and a "
@@ -112,9 +112,7 @@ void main() {
       "background/foreground pair, exactly as before this fix",
       (tester) async {
         Future<Color> backgroundFor(PinColor pinColor) async {
-          await tester.pumpWidget(
-            _wrap(PlaceMarker(place: _place(pinColor))),
-          );
+          await tester.pumpWidget(_wrap(PlaceMarker(place: _place(pinColor))));
           final Container container = tester.widget<Container>(
             find.descendant(
               of: find.byType(PlaceMarker),

@@ -4,7 +4,10 @@ import "package:rahati/core/theme/app_theme.dart";
 import "package:rahati/features/profile/presentation/screens/notification_settings_screen.dart";
 import "package:rahati/l10n/app_localizations.dart";
 
-Future<void> _pump(WidgetTester tester, {Locale locale = const Locale("fr")}) async {
+Future<void> _pump(
+  WidgetTester tester, {
+  Locale locale = const Locale("fr"),
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: RahatiTheme.light,
@@ -57,23 +60,20 @@ void main() {
     expect(find.text("إعدادات الإشعارات"), findsOneWidget);
   });
 
-  testWidgets(
-    "the AppBar back button is a real BackButton, carrying Flutter's "
-    "automatic localized tooltip instead of an unlabeled custom "
-    "IconButton (US-06.4)",
-    (tester) async {
-      await _pump(tester);
+  testWidgets("the AppBar back button is a real BackButton, carrying Flutter's "
+      "automatic localized tooltip instead of an unlabeled custom "
+      "IconButton (US-06.4)", (tester) async {
+    await _pump(tester);
 
-      expect(find.byType(BackButton), findsOneWidget);
-      final Tooltip tooltip = tester.widget<Tooltip>(
-        find
-            .descendant(
-              of: find.byType(BackButton),
-              matching: find.byType(Tooltip),
-            )
-            .first,
-      );
-      expect(tooltip.message, isNotEmpty);
-    },
-  );
+    expect(find.byType(BackButton), findsOneWidget);
+    final Tooltip tooltip = tester.widget<Tooltip>(
+      find
+          .descendant(
+            of: find.byType(BackButton),
+            matching: find.byType(Tooltip),
+          )
+          .first,
+    );
+    expect(tooltip.message, isNotEmpty);
+  });
 }

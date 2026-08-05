@@ -138,77 +138,66 @@ void main() {
     },
   );
 
-  testWidgets(
-    "submitting a valid manual code pushes SCR-014 "
-    "(CabinAvailabilityScreen)",
-    (tester) async {
-      await _pumpScreenWithRouter(tester);
+  testWidgets("submitting a valid manual code pushes SCR-014 "
+      "(CabinAvailabilityScreen)", (tester) async {
+    await _pumpScreenWithRouter(tester);
 
-      await tester.tap(find.text("Saisir le code manuellement"));
-      await _settle(tester);
-      await tester.enterText(
-        find.byType(TextField),
-        "RAHETI-STATION-1-CABIN-2",
-      );
-      await tester.tap(find.text("Valider"));
-      await _settle(tester);
+    await tester.tap(find.text("Saisir le code manuellement"));
+    await _settle(tester);
+    await tester.enterText(find.byType(TextField), "RAHETI-STATION-1-CABIN-2");
+    await tester.tap(find.text("Valider"));
+    await _settle(tester);
 
-      expect(find.byType(CabinAvailabilityScreen), findsOneWidget);
-    },
-  );
+    expect(find.byType(CabinAvailabilityScreen), findsOneWidget);
+  });
 
-  group(
-    "overlay elements have a guaranteed-contrast scrim backdrop, not a "
-    "bare color against the unpredictable live camera feed (US-06.4 "
-    "finding F4)",
-    () {
-      testWidgets(
-        "the AppBar back button is scrim-backed (previously unguarded)",
-        (tester) async {
-          await _pumpScreen(tester);
+  group("overlay elements have a guaranteed-contrast scrim backdrop, not a "
+      "bare color against the unpredictable live camera feed (US-06.4 "
+      "finding F4)", () {
+    testWidgets(
+      "the AppBar back button is scrim-backed (previously unguarded)",
+      (tester) async {
+        await _pumpScreen(tester);
 
-          final BackButton backButton = tester.widget<BackButton>(
-            find.byType(BackButton),
-          );
-          expect(backButton.color, Colors.white);
+        final BackButton backButton = tester.widget<BackButton>(
+          find.byType(BackButton),
+        );
+        expect(backButton.color, Colors.white);
 
-          final DecoratedBox scrim = tester.widget<DecoratedBox>(
-            find
-                .ancestor(
-                  of: find.byType(BackButton),
-                  matching: find.byType(DecoratedBox),
-                )
-                .first,
-          );
-          final BoxDecoration decoration =
-              scrim.decoration as BoxDecoration;
-          expect(decoration.color, const Color(0x99000000));
-          expect(decoration.shape, BoxShape.circle);
-        },
-      );
+        final DecoratedBox scrim = tester.widget<DecoratedBox>(
+          find
+              .ancestor(
+                of: find.byType(BackButton),
+                matching: find.byType(DecoratedBox),
+              )
+              .first,
+        );
+        final BoxDecoration decoration = scrim.decoration as BoxDecoration;
+        expect(decoration.color, const Color(0x99000000));
+        expect(decoration.shape, BoxShape.circle);
+      },
+    );
 
-      testWidgets(
-        "the manual-entry button is scrim-backed (previously bare against "
-        "the camera feed)",
-        (tester) async {
-          await _pumpScreen(tester);
+    testWidgets(
+      "the manual-entry button is scrim-backed (previously bare against "
+      "the camera feed)",
+      (tester) async {
+        await _pumpScreen(tester);
 
-          final Container scrim = tester.widget<Container>(
-            find
-                .ancestor(
-                  of: find.widgetWithText(
-                    TextButton,
-                    "Saisir le code manuellement",
-                  ),
-                  matching: find.byType(Container),
-                )
-                .first,
-          );
-          final BoxDecoration decoration =
-              scrim.decoration! as BoxDecoration;
-          expect(decoration.color, const Color(0x99000000));
-        },
-      );
-    },
-  );
+        final Container scrim = tester.widget<Container>(
+          find
+              .ancestor(
+                of: find.widgetWithText(
+                  TextButton,
+                  "Saisir le code manuellement",
+                ),
+                matching: find.byType(Container),
+              )
+              .first,
+        );
+        final BoxDecoration decoration = scrim.decoration! as BoxDecoration;
+        expect(decoration.color, const Color(0x99000000));
+      },
+    );
+  });
 }

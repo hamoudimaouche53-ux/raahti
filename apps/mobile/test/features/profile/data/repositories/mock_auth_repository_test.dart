@@ -12,30 +12,21 @@ void main() {
 
     test("signInWithPassword flips watchCurrentUserId to non-null", () async {
       final repo = MockAuthRepository();
-      final Future<String?> next = repo
-          .watchCurrentUserId()
-          .skip(1)
-          .first;
+      final Future<String?> next = repo.watchCurrentUserId().skip(1).first;
       await repo.signInWithPassword(email: "a@b.com", password: "x");
       expect(await next, isNotNull);
     });
 
     test("signUpWithPassword also flips watchCurrentUserId", () async {
       final repo = MockAuthRepository();
-      final Future<String?> next = repo
-          .watchCurrentUserId()
-          .skip(1)
-          .first;
+      final Future<String?> next = repo.watchCurrentUserId().skip(1).first;
       await repo.signUpWithPassword(email: "a@b.com", password: "x");
       expect(await next, isNotNull);
     });
 
     test("signOut flips watchCurrentUserId back to null", () async {
       final repo = MockAuthRepository(initialUserId: "mock-user-1");
-      final Future<String?> next = repo
-          .watchCurrentUserId()
-          .skip(1)
-          .first;
+      final Future<String?> next = repo.watchCurrentUserId().skip(1).first;
       await repo.signOut();
       expect(await next, isNull);
     });

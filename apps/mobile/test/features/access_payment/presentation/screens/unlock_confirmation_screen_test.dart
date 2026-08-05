@@ -35,8 +35,7 @@ Future<GoRouter> _pushViaGoRouter(
       GoRoute(
         path: AppRoutePaths.sessionComplete,
         builder: (context, state) {
-          final SessionCompleteArgs args =
-              state.extra! as SessionCompleteArgs;
+          final SessionCompleteArgs args = state.extra! as SessionCompleteArgs;
           return SessionCompleteScreen(
             amount: args.amount,
             duration: args.duration,
@@ -66,23 +65,20 @@ Future<GoRouter> _pushViaGoRouter(
 }
 
 void main() {
-  testWidgets(
-    "shows the headline, cabin code, station name, and an animating "
-    "progress indicator immediately",
-    (tester) async {
-      await _pushViaGoRouter(tester);
+  testWidgets("shows the headline, cabin code, station name, and an animating "
+      "progress indicator immediately", (tester) async {
+    await _pushViaGoRouter(tester);
 
-      expect(find.text("Cabine déverrouillée"), findsOneWidget);
-      expect(find.text("Cabine 2"), findsOneWidget);
-      expect(find.text("Station Didouche"), findsOneWidget);
-      expect(find.byType(LinearProgressIndicator), findsOneWidget);
-      expect(find.text("Session en cours"), findsNothing);
+    expect(find.text("Cabine déverrouillée"), findsOneWidget);
+    expect(find.text("Cabine 2"), findsOneWidget);
+    expect(find.text("Station Didouche"), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    expect(find.text("Session en cours"), findsNothing);
 
-      // Flush the animation + defensive timeout Timer so the test
-      // binding doesn't flag a pending Timer at teardown.
-      await tester.pump(const Duration(milliseconds: 1700));
-    },
-  );
+    // Flush the animation + defensive timeout Timer so the test
+    // binding doesn't flag a pending Timer at teardown.
+    await tester.pump(const Duration(milliseconds: 1700));
+  });
 
   testWidgets(
     "settles into 'Session en cours' once the unlock sequence completes",
@@ -113,7 +109,8 @@ void main() {
       expect(
         node.flagsCollection.isLiveRegion,
         isTrue,
-        reason: "the progress→session-active transition must be "
+        reason:
+            "the progress→session-active transition must be "
             "announced, matching this app's established live-region "
             "pattern (e.g. CabinStatusIndicator, map status banners)",
       );
@@ -121,47 +118,43 @@ void main() {
     },
   );
 
-  testWidgets(
-    "'J'ai terminé' navigates to SCR-019 (SessionCompleteScreen)",
-    (tester) async {
-      final GoRouter router = await _pushViaGoRouter(
-        tester,
-        amount: const Money(amount: "50", currency: "DZD"),
-      );
-      await tester.pump(const Duration(milliseconds: 1700));
+  testWidgets("'J'ai terminé' navigates to SCR-019 (SessionCompleteScreen)", (
+    tester,
+  ) async {
+    final GoRouter router = await _pushViaGoRouter(
+      tester,
+      amount: const Money(amount: "50", currency: "DZD"),
+    );
+    await tester.pump(const Duration(milliseconds: 1700));
 
-      await tester.tap(find.text("J'ai terminé"));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text("J'ai terminé"));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(SessionCompleteScreen), findsOneWidget);
-      expect(find.text("50 DZD"), findsOneWidget);
-      expect(
-        router.routerDelegate.currentConfiguration.uri.toString(),
-        "/access-payment/session-complete",
-      );
-    },
-  );
+    expect(find.byType(SessionCompleteScreen), findsOneWidget);
+    expect(find.text("50 DZD"), findsOneWidget);
+    expect(
+      router.routerDelegate.currentConfiguration.uri.toString(),
+      "/access-payment/session-complete",
+    );
+  });
 
-  testWidgets(
-    "a cabinFreedStream event (door-sensor close) auto-navigates to "
-    "SCR-019, same as 'J'ai terminé'",
-    (tester) async {
-      final controller = StreamController<void>();
-      addTearDown(controller.close);
+  testWidgets("a cabinFreedStream event (door-sensor close) auto-navigates to "
+      "SCR-019, same as 'J'ai terminé'", (tester) async {
+    final controller = StreamController<void>();
+    addTearDown(controller.close);
 
-      await _pushViaGoRouter(tester, cabinFreedStream: controller.stream);
-      await tester.pump(const Duration(milliseconds: 1700));
+    await _pushViaGoRouter(tester, cabinFreedStream: controller.stream);
+    await tester.pump(const Duration(milliseconds: 1700));
 
-      expect(find.byType(SessionCompleteScreen), findsNothing);
+    expect(find.byType(SessionCompleteScreen), findsNothing);
 
-      controller.add(null);
-      await tester.pumpAndSettle();
+    controller.add(null);
+    await tester.pumpAndSettle();
 
-      expect(find.byType(SessionCompleteScreen), findsOneWidget);
-      // Free cabin (no amount) — SCR-019 shows "Gratuit", not an amount.
-      expect(find.text("Gratuit"), findsOneWidget);
-    },
-  );
+    expect(find.byType(SessionCompleteScreen), findsOneWidget);
+    // Free cabin (no amount) — SCR-019 shows "Gratuit", not an amount.
+    expect(find.text("Gratuit"), findsOneWidget);
+  });
 
   testWidgets("renders correctly under the Arabic (RTL) locale", (
     tester,

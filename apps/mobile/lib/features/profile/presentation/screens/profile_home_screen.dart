@@ -54,8 +54,7 @@ class ProfileHomeScreen extends ConsumerWidget {
                 IconButton(
                   icon: const Icon(Icons.logout),
                   tooltip: l10n.profileSignOutButton,
-                  onPressed: () =>
-                      ref.read(authRepositoryProvider).signOut(),
+                  onPressed: () => ref.read(authRepositoryProvider).signOut(),
                 ),
               ],
       ),
@@ -168,11 +167,11 @@ class _AccountSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    final String identity = user?.email ?? user?.phone ?? l10n.profileGuestLabel;
+    final String identity =
+        user?.email ?? user?.phone ?? l10n.profileGuestLabel;
     final String initial = user == null ? "?" : identity[0].toUpperCase();
     final bool verified =
-        user?.diabeticVerificationStatus ==
-        DiabeticVerificationStatus.verified;
+        user?.diabeticVerificationStatus == DiabeticVerificationStatus.verified;
 
     return Card(
       child: Padding(
@@ -192,7 +191,10 @@ class _AccountSummaryCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(identity, style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    identity,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   if (verified) ...<Widget>[
                     const SizedBox(height: RahatiSpacing.space1),
                     Row(

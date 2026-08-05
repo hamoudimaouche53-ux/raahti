@@ -108,9 +108,7 @@ class UnlockConfirmationScreen extends StatefulWidget {
 
   /// 4 steps × `RahatiMotionDuration.medium4` (400ms) each — the fixed
   /// visual sequence described above, well under [kUnlockWaitTimeout].
-  static const Duration _unlockSequenceDuration = Duration(
-    milliseconds: 1600,
-  );
+  static const Duration _unlockSequenceDuration = Duration(milliseconds: 1600);
 
   @override
   State<UnlockConfirmationScreen> createState() =>
@@ -142,12 +140,9 @@ class _UnlockConfirmationScreenState extends State<UnlockConfirmationScreen>
   void initState() {
     super.initState();
     _progressController.addStatusListener(_onAnimationStatus);
-    _waitTimeoutTimer = Timer(
-      UnlockConfirmationScreen.kUnlockWaitTimeout,
-      () {
-        if (mounted && _unlocking) setState(() => _unlocking = false);
-      },
-    );
+    _waitTimeoutTimer = Timer(UnlockConfirmationScreen.kUnlockWaitTimeout, () {
+      if (mounted && _unlocking) setState(() => _unlocking = false);
+    });
     _cabinFreedSubscription = widget.cabinFreedStream.listen((_) {
       _completeSession();
     });

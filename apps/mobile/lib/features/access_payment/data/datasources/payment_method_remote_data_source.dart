@@ -9,10 +9,7 @@ import "../dtos/payment_method_dto.dart";
 /// docs/api/openapi.yaml — same `baseUrl`-injected pattern as
 /// `AccessSessionRemoteDataSource`.
 class PaymentMethodRemoteDataSource {
-  const PaymentMethodRemoteDataSource(
-    this._client, {
-    required this._baseUrl,
-  });
+  const PaymentMethodRemoteDataSource(this._client, {required this._baseUrl});
 
   final http.Client _client;
   final String? _baseUrl;

@@ -123,39 +123,37 @@ void main() {
     expect(find.byType(UserPositionMarker), findsNothing);
   });
 
-  testWidgets(
-    "the loading banner is announced to screen readers via a live "
-    "region, not only if the user happens to navigate to it (US-06.4 "
-    "finding F24)",
-    (tester) async {
-      final SemanticsHandle handle = tester.ensureSemantics();
-      await tester.pumpWidget(
-        _wrap(
-          ProviderScope(
-            overrides: [
-              ..._pendingPositionOverrides(),
-              _nearbyPlaces(() => Completer<PlacesSnapshot>().future),
-            ],
-            child: const MapScreen(),
-          ),
+  testWidgets("the loading banner is announced to screen readers via a live "
+      "region, not only if the user happens to navigate to it (US-06.4 "
+      "finding F24)", (tester) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await tester.pumpWidget(
+      _wrap(
+        ProviderScope(
+          overrides: [
+            ..._pendingPositionOverrides(),
+            _nearbyPlaces(() => Completer<PlacesSnapshot>().future),
+          ],
+          child: const MapScreen(),
         ),
-      );
-      await tester.pump();
+      ),
+    );
+    await tester.pump();
 
-      final SemanticsNode node = tester.getSemantics(
-        find.byKey(const ValueKey("position-loading")),
-      );
-      expect(node.label, "Localisation en cours…");
-      expect(
-        node.flagsCollection.isLiveRegion,
-        isTrue,
-        reason: "the banner must be a live region so its appearance is "
-            "announced, matching CabinStatusIndicator's established "
-            "pattern",
-      );
-      handle.dispose();
-    },
-  );
+    final SemanticsNode node = tester.getSemantics(
+      find.byKey(const ValueKey("position-loading")),
+    );
+    expect(node.label, "Localisation en cours…");
+    expect(
+      node.flagsCollection.isLiveRegion,
+      isTrue,
+      reason:
+          "the banner must be a live region so its appearance is "
+          "announced, matching CabinStatusIndicator's established "
+          "pattern",
+    );
+    handle.dispose();
+  });
 
   testWidgets(
     "shows the user marker and a single place marker once both resolve, "
@@ -217,57 +215,51 @@ void main() {
     expect(find.text("2"), findsOneWidget);
   });
 
-  testWidgets(
-    "a single place marker's tap target is 48x48dp, not its 32x32dp "
-    "visual pin (US-06.4 — component-library.md's 48dp minimum)",
-    (tester) async {
-      await tester.pumpWidget(
-        _wrap(
-          ProviderScope(
-            overrides: [
-              ..._resolvedPositionOverrides(),
-              _nearbyPlaces(
-                () async => _snapshot([_place("1", PinColor.green)]),
-              ),
-            ],
-            child: const MapScreen(),
-          ),
+  testWidgets("a single place marker's tap target is 48x48dp, not its 32x32dp "
+      "visual pin (US-06.4 — component-library.md's 48dp minimum)", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        ProviderScope(
+          overrides: [
+            ..._resolvedPositionOverrides(),
+            _nearbyPlaces(() async => _snapshot([_place("1", PinColor.green)])),
+          ],
+          child: const MapScreen(),
         ),
-      );
-      await tester.pump();
-      await tester.pump();
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
 
-      expect(tester.getSize(find.byType(PlaceMarker)), const Size(48, 48));
-    },
-  );
+    expect(tester.getSize(find.byType(PlaceMarker)), const Size(48, 48));
+  });
 
-  testWidgets(
-    "a cluster marker's tap target is 48x48dp regardless of its "
-    "count-dependent visual diameter (US-06.4 — component-library.md's "
-    "48dp minimum)",
-    (tester) async {
-      await tester.pumpWidget(
-        _wrap(
-          ProviderScope(
-            overrides: [
-              ..._resolvedPositionOverrides(),
-              _nearbyPlaces(
-                () async => _snapshot([
-                  _place("1", PinColor.green),
-                  _place("2", PinColor.magenta),
-                ]),
-              ),
-            ],
-            child: const MapScreen(),
-          ),
+  testWidgets("a cluster marker's tap target is 48x48dp regardless of its "
+      "count-dependent visual diameter (US-06.4 — component-library.md's "
+      "48dp minimum)", (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        ProviderScope(
+          overrides: [
+            ..._resolvedPositionOverrides(),
+            _nearbyPlaces(
+              () async => _snapshot([
+                _place("1", PinColor.green),
+                _place("2", PinColor.magenta),
+              ]),
+            ),
+          ],
+          child: const MapScreen(),
         ),
-      );
-      await tester.pump();
-      await tester.pump();
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
 
-      expect(tester.getSize(find.byType(ClusterMarker)), const Size(48, 48));
-    },
-  );
+    expect(tester.getSize(find.byType(ClusterMarker)), const Size(48, 48));
+  });
 
   testWidgets(
     "shows a specific permission-denied banner and no places-error banner "

@@ -18,9 +18,7 @@ import "../../domain/repositories/cabin_realtime_repository.dart";
 /// "someone just entered" simulation, fabricated and clearly labeled the
 /// same way every other mock in this codebase is.
 class MockCabinRealtimeRepository implements CabinRealtimeRepository {
-  MockCabinRealtimeRepository({
-    this.interval = const Duration(seconds: 4),
-  });
+  MockCabinRealtimeRepository({this.interval = const Duration(seconds: 4)});
 
   final Duration interval;
 

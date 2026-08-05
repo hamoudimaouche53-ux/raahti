@@ -144,9 +144,9 @@ class _SummaryRow extends StatelessWidget {
       children: <Widget>[
         Text(
           "$label : ",
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(color: colorScheme.onSurfaceVariant),
         ),
         Text(value, style: Theme.of(context).textTheme.bodyLarge),
       ],

@@ -28,7 +28,11 @@ Place _place({required String id, required PlaceKind placeKind}) {
   return Place(
     id: id,
     placeKind: placeKind,
-    name: const LocalizedText(fr: "Station F", ar: "Station A", en: "Station E"),
+    name: const LocalizedText(
+      fr: "Station F",
+      ar: "Station A",
+      en: "Station E",
+    ),
     position: const Coordinates(latitude: 36.75, longitude: 3.05),
     pinColor: PinColor.amber,
     distanceMeters: 100,
@@ -65,30 +69,24 @@ void main() {
       const _UnusedPlaceDetailRepository(),
     );
 
-    test(
-      "removeFavorite always throws FavoriteEndpointNotSpecifiedFailure "
-      "(no delete endpoint exists)",
-      () {
-        expect(
-          () => repo.removeFavorite("fav-1"),
-          throwsA(isA<FavoriteEndpointNotSpecifiedFailure>()),
-        );
-      },
-    );
+    test("removeFavorite always throws FavoriteEndpointNotSpecifiedFailure "
+        "(no delete endpoint exists)", () {
+      expect(
+        () => repo.removeFavorite("fav-1"),
+        throwsA(isA<FavoriteEndpointNotSpecifiedFailure>()),
+      );
+    });
 
-    test(
-      "setNotifyOnAvailable always throws "
-      "FavoriteEndpointNotSpecifiedFailure (no update endpoint exists)",
-      () {
-        expect(
-          () => repo.setNotifyOnAvailable(
-            favoriteId: "fav-1",
-            notifyOnAvailable: true,
-          ),
-          throwsA(isA<FavoriteEndpointNotSpecifiedFailure>()),
-        );
-      },
-    );
+    test("setNotifyOnAvailable always throws "
+        "FavoriteEndpointNotSpecifiedFailure (no update endpoint exists)", () {
+      expect(
+        () => repo.setNotifyOnAvailable(
+          favoriteId: "fav-1",
+          notifyOnAvailable: true,
+        ),
+        throwsA(isA<FavoriteEndpointNotSpecifiedFailure>()),
+      );
+    });
 
     test(
       "getFavorites resolves each favorite's placeName/position via "
@@ -129,32 +127,35 @@ void main() {
       },
     );
 
-    test("addFavorite POSTs and resolves the new favorite's placeName", () async {
-      final client = MockClient((request) async {
-        return http.Response(
-          jsonEncode(<String, dynamic>{
-            "id": "fav-2",
-            "stationId": "s1",
-            "thirdPartyPlaceId": null,
-            "notifyOnAvailable": false,
-          }),
-          201,
+    test(
+      "addFavorite POSTs and resolves the new favorite's placeName",
+      () async {
+        final client = MockClient((request) async {
+          return http.Response(
+            jsonEncode(<String, dynamic>{
+              "id": "fav-2",
+              "stationId": "s1",
+              "thirdPartyPlaceId": null,
+              "notifyOnAvailable": false,
+            }),
+            201,
+          );
+        });
+        final repoWithFakeDetail = RestFavoriteRepository(
+          FavoriteRemoteDataSource(client, baseUrl: "https://api.raahti.dz"),
+          const _FakePlaceDetailRepository(),
         );
-      });
-      final repoWithFakeDetail = RestFavoriteRepository(
-        FavoriteRemoteDataSource(client, baseUrl: "https://api.raahti.dz"),
-        const _FakePlaceDetailRepository(),
-      );
 
-      final favorite = await repoWithFakeDetail.addFavorite(
-        placeKind: PlaceKind.station,
-        placeId: "s1",
-        notifyOnAvailable: false,
-        languageCode: "fr",
-      );
+        final favorite = await repoWithFakeDetail.addFavorite(
+          placeKind: PlaceKind.station,
+          placeId: "s1",
+          notifyOnAvailable: false,
+          languageCode: "fr",
+        );
 
-      expect(favorite.id, "fav-2");
-      expect(favorite.placeName, "Station F");
-    });
+        expect(favorite.id, "fav-2");
+        expect(favorite.placeName, "Station F");
+      },
+    );
   });
 }

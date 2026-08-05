@@ -82,21 +82,20 @@ void main() {
     expect(calls.last, "");
   });
 
-  testWidgets(
-    "exposes a single, unambiguous accessible name via hintText — no "
-    "explicit Semantics wrapper needed (US-06.4 finding F17, verified as "
-    "a false positive: SearchBar's own TextField/InputDecorator "
-    "composition already surfaces hintText as the field's persistent "
-    "semantics label; an added external Semantics(label:) wrapper was "
-    "tried and produced a genuine duplicate node, so it was reverted)",
-    (tester) async {
-      final SemanticsHandle handle = tester.ensureSemantics();
-      await tester.pumpWidget(_wrap(MapSearchBar(onQueryChanged: (_) {})));
+  testWidgets("exposes a single, unambiguous accessible name via hintText — no "
+      "explicit Semantics wrapper needed (US-06.4 finding F17, verified as "
+      "a false positive: SearchBar's own TextField/InputDecorator "
+      "composition already surfaces hintText as the field's persistent "
+      "semantics label; an added external Semantics(label:) wrapper was "
+      "tried and produced a genuine duplicate node, so it was reverted)", (
+    tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await tester.pumpWidget(_wrap(MapSearchBar(onQueryChanged: (_) {})));
 
-      expect(find.bySemanticsLabel("Rechercher un lieu…"), findsOneWidget);
-      handle.dispose();
-    },
-  );
+    expect(find.bySemanticsLabel("Rechercher un lieu…"), findsOneWidget);
+    handle.dispose();
+  });
 
   testWidgets(
     "the accessible name persists once text is entered — a single node, "

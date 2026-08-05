@@ -58,9 +58,7 @@ class _FakePaymentMethodRepository implements PaymentMethodRepository {
   }
 
   @override
-  Future<PaymentMethod> setDefaultPaymentMethod(
-    String paymentMethodId,
-  ) async {
+  Future<PaymentMethod> setDefaultPaymentMethod(String paymentMethodId) async {
     return _methods.first;
   }
 }
@@ -147,30 +145,28 @@ void main() {
     expect(find.text("Payer 50 DZD"), findsOneWidget);
   });
 
-  testWidgets(
-    "pre-selects the default method so the pay button is enabled",
-    (tester) async {
-      await _pumpSheet(tester);
+  testWidgets("pre-selects the default method so the pay button is enabled", (
+    tester,
+  ) async {
+    await _pumpSheet(tester);
 
-      final FilledButton payButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, "Payer 50 DZD"),
-      );
-      expect(payButton.onPressed, isNotNull);
-    },
-  );
+    final FilledButton payButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, "Payer 50 DZD"),
+    );
+    expect(payButton.onPressed, isNotNull);
+  });
 
-  testWidgets(
-    "disables the pay button when there are no saved methods",
-    (tester) async {
-      await _pumpSheet(tester, seed: const []);
+  testWidgets("disables the pay button when there are no saved methods", (
+    tester,
+  ) async {
+    await _pumpSheet(tester, seed: const []);
 
-      final FilledButton payButton = tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, "Payer 50 DZD"),
-      );
-      expect(payButton.onPressed, isNull);
-      expect(find.byType(RadioListTile<String>), findsNothing);
-    },
-  );
+    final FilledButton payButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, "Payer 50 DZD"),
+    );
+    expect(payButton.onPressed, isNull);
+    expect(find.byType(RadioListTile<String>), findsNothing);
+  });
 
   testWidgets("tapping 'Payer' pops with the selected method id", (
     tester,
@@ -240,7 +236,8 @@ void main() {
         expect(
           size.height,
           greaterThanOrEqualTo(48),
-          reason: "SimpleDialogOption '${option.widget}' is ${size.height}dp"
+          reason:
+              "SimpleDialogOption '${option.widget}' is ${size.height}dp"
               " tall, under the 48dp minimum touch target",
         );
       }

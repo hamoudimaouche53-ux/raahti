@@ -64,9 +64,7 @@ class _FakePaymentMethodRepository implements PaymentMethodRepository {
   }
 
   @override
-  Future<PaymentMethod> setDefaultPaymentMethod(
-    String paymentMethodId,
-  ) async {
+  Future<PaymentMethod> setDefaultPaymentMethod(String paymentMethodId) async {
     throw const PaymentMethodEndpointNotSpecifiedFailure();
   }
 }
@@ -117,35 +115,34 @@ void main() {
     },
   );
 
-  testWidgets(
-    "deleting a method (after confirming) removes it from the list",
-    (tester) async {
-      await _pump(tester);
+  testWidgets("deleting a method (after confirming) removes it from the list", (
+    tester,
+  ) async {
+    await _pump(tester);
 
-      await tester.tap(find.byIcon(Icons.delete_outline).first);
-      await tester.pumpAndSettle();
-      expect(find.text("Supprimer ce moyen de paiement ?"), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.delete_outline).first);
+    await tester.pumpAndSettle();
+    expect(find.text("Supprimer ce moyen de paiement ?"), findsOneWidget);
 
-      await tester.tap(find.text("Supprimer"));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text("Supprimer"));
+    await tester.pumpAndSettle();
 
-      expect(find.text("Visa ...4242"), findsNothing);
-      expect(find.text("Wallet Mobile"), findsOneWidget);
-    },
-  );
+    expect(find.text("Visa ...4242"), findsNothing);
+    expect(find.text("Wallet Mobile"), findsOneWidget);
+  });
 
-  testWidgets(
-    "setDefault against the API-contract-gap repository shows the "
-    "gap error Snackbar",
-    (tester) async {
-      await _pump(tester);
+  testWidgets("setDefault against the API-contract-gap repository shows the "
+      "gap error Snackbar", (tester) async {
+    await _pump(tester);
 
-      await tester.tap(find.text("Définir par défaut"));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text("Définir par défaut"));
+    await tester.pumpAndSettle();
 
-      expect(find.text("Cette action n'est pas encore disponible."), findsOneWidget);
-    },
-  );
+    expect(
+      find.text("Cette action n'est pas encore disponible."),
+      findsOneWidget,
+    );
+  });
 
   testWidgets("renders correctly under the Arabic (RTL) locale", (
     tester,
@@ -165,25 +162,22 @@ void main() {
     },
   );
 
-  testWidgets(
-    "the AppBar back button is a real BackButton, carrying Flutter's "
-    "automatic localized tooltip instead of an unlabeled custom "
-    "IconButton (US-06.4)",
-    (tester) async {
-      await _pump(tester);
+  testWidgets("the AppBar back button is a real BackButton, carrying Flutter's "
+      "automatic localized tooltip instead of an unlabeled custom "
+      "IconButton (US-06.4)", (tester) async {
+    await _pump(tester);
 
-      expect(find.byType(BackButton), findsOneWidget);
-      final Tooltip tooltip = tester.widget<Tooltip>(
-        find
-            .descendant(
-              of: find.byType(BackButton),
-              matching: find.byType(Tooltip),
-            )
-            .first,
-      );
-      expect(tooltip.message, isNotEmpty);
-    },
-  );
+    expect(find.byType(BackButton), findsOneWidget);
+    final Tooltip tooltip = tester.widget<Tooltip>(
+      find
+          .descendant(
+            of: find.byType(BackButton),
+            matching: find.byType(Tooltip),
+          )
+          .first,
+    );
+    expect(tooltip.message, isNotEmpty);
+  });
 
   testWidgets(
     "the default-method Chip and the delete IconButton have an explicit "
@@ -204,7 +198,8 @@ void main() {
       expect(
         deleteRect.left - chipRect.right,
         greaterThanOrEqualTo(RahatiSpacing.space2),
-        reason: "the default-method Chip and the delete IconButton must "
+        reason:
+            "the default-method Chip and the delete IconButton must "
             "not sit flush against each other, or their hit regions risk "
             "overlapping on a real device even though each nominally "
             "meets the 48dp minimum alone",
@@ -238,7 +233,8 @@ void main() {
       expect(
         deleteRect.left - textButtonRect.right,
         greaterThanOrEqualTo(RahatiSpacing.space2),
-        reason: "the 'Définir par défaut' TextButton and the delete "
+        reason:
+            "the 'Définir par défaut' TextButton and the delete "
             "IconButton must not sit flush against each other, or their "
             "hit regions risk overlapping on a real device even though "
             "each nominally meets the 48dp minimum alone",
@@ -246,31 +242,29 @@ void main() {
     },
   );
 
-  testWidgets(
-    "each 'add payment method' dialog option meets the 48dp minimum "
-    "touch target, unlike SimpleDialogOption's unpadded default "
-    "(US-06.4)",
-    (tester) async {
-      await _pump(tester);
+  testWidgets("each 'add payment method' dialog option meets the 48dp minimum "
+      "touch target, unlike SimpleDialogOption's unpadded default "
+      "(US-06.4)", (tester) async {
+    await _pump(tester);
 
-      await tester.tap(find.text("Ajouter un moyen de paiement"));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text("Ajouter un moyen de paiement"));
+    await tester.pumpAndSettle();
 
-      final Iterable<Element> options = find
-          .byType(SimpleDialogOption)
-          .evaluate();
-      expect(options, isNotEmpty);
-      for (final Element option in options) {
-        final Size size = (option.renderObject! as RenderBox).size;
-        expect(
-          size.height,
-          greaterThanOrEqualTo(48),
-          reason: "SimpleDialogOption '${option.widget}' is ${size.height}dp"
-              " tall, under the 48dp minimum touch target",
-        );
-      }
-    },
-  );
+    final Iterable<Element> options = find
+        .byType(SimpleDialogOption)
+        .evaluate();
+    expect(options, isNotEmpty);
+    for (final Element option in options) {
+      final Size size = (option.renderObject! as RenderBox).size;
+      expect(
+        size.height,
+        greaterThanOrEqualTo(48),
+        reason:
+            "SimpleDialogOption '${option.widget}' is ${size.height}dp"
+            " tall, under the 48dp minimum touch target",
+      );
+    }
+  });
 
   testWidgets(
     "the initial loading spinner is announced to screen readers via a "

@@ -25,27 +25,24 @@ void main() {
       expect(container.read(themeModeProvider), ThemeMode.dark);
     });
 
-    test(
-      "setThemeMode persists via SharedPreferences, and a fresh "
-      "Notifier reads the persisted value back (US-06.1's 'persists "
-      "across sessions' requirement)",
-      () async {
-        SharedPreferences.setMockInitialValues({});
-        final SharedPreferences prefs = await SharedPreferences.getInstance();
+    test("setThemeMode persists via SharedPreferences, and a fresh "
+        "Notifier reads the persisted value back (US-06.1's 'persists "
+        "across sessions' requirement)", () async {
+      SharedPreferences.setMockInitialValues({});
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-        final ProviderContainer writer = ProviderContainer(
-          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-        );
-        writer.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
-        writer.dispose();
+      final ProviderContainer writer = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      writer.read(themeModeProvider.notifier).setThemeMode(ThemeMode.dark);
+      writer.dispose();
 
-        final ProviderContainer reader = ProviderContainer(
-          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-        );
-        addTearDown(reader.dispose);
-        expect(reader.read(themeModeProvider), ThemeMode.dark);
-      },
-    );
+      final ProviderContainer reader = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(reader.dispose);
+      expect(reader.read(themeModeProvider), ThemeMode.dark);
+    });
   });
 
   group("localeProvider", () {
@@ -63,47 +60,41 @@ void main() {
       expect(container.read(localeProvider), const Locale("ar"));
     });
 
-    test(
-      "setLocale persists via SharedPreferences, and a fresh Notifier "
-      "reads the persisted value back",
-      () async {
-        SharedPreferences.setMockInitialValues({});
-        final SharedPreferences prefs = await SharedPreferences.getInstance();
+    test("setLocale persists via SharedPreferences, and a fresh Notifier "
+        "reads the persisted value back", () async {
+      SharedPreferences.setMockInitialValues({});
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-        final ProviderContainer writer = ProviderContainer(
-          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-        );
-        writer.read(localeProvider.notifier).setLocale(const Locale("ar"));
-        writer.dispose();
+      final ProviderContainer writer = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      writer.read(localeProvider.notifier).setLocale(const Locale("ar"));
+      writer.dispose();
 
-        final ProviderContainer reader = ProviderContainer(
-          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-        );
-        addTearDown(reader.dispose);
-        expect(reader.read(localeProvider), const Locale("ar"));
-      },
-    );
+      final ProviderContainer reader = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(reader.dispose);
+      expect(reader.read(localeProvider), const Locale("ar"));
+    });
 
-    test(
-      "setLocale(null) clears the persisted override so a fresh Notifier "
-      "falls back to null (follow device locale) again",
-      () async {
-        SharedPreferences.setMockInitialValues({});
-        final SharedPreferences prefs = await SharedPreferences.getInstance();
+    test("setLocale(null) clears the persisted override so a fresh Notifier "
+        "falls back to null (follow device locale) again", () async {
+      SharedPreferences.setMockInitialValues({});
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-        final ProviderContainer writer = ProviderContainer(
-          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-        );
-        writer.read(localeProvider.notifier).setLocale(const Locale("ar"));
-        writer.read(localeProvider.notifier).setLocale(null);
-        writer.dispose();
+      final ProviderContainer writer = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      writer.read(localeProvider.notifier).setLocale(const Locale("ar"));
+      writer.read(localeProvider.notifier).setLocale(null);
+      writer.dispose();
 
-        final ProviderContainer reader = ProviderContainer(
-          overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
-        );
-        addTearDown(reader.dispose);
-        expect(reader.read(localeProvider), isNull);
-      },
-    );
+      final ProviderContainer reader = ProviderContainer(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(reader.dispose);
+      expect(reader.read(localeProvider), isNull);
+    });
   });
 }

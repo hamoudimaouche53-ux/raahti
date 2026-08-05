@@ -24,30 +24,36 @@ void main() {
       );
     });
 
-    test("requests GET {baseUrl}/v1/users/me/favorites and parses a single page", () async {
-      Uri? capturedUri;
-      final client = MockClient((request) async {
-        capturedUri = request.url;
-        return http.Response(
-          jsonEncode(<String, dynamic>{
-            "data": [_favoriteJson("f1", stationId: "s1")],
-            "nextCursor": null,
-          }),
-          200,
+    test(
+      "requests GET {baseUrl}/v1/users/me/favorites and parses a single page",
+      () async {
+        Uri? capturedUri;
+        final client = MockClient((request) async {
+          capturedUri = request.url;
+          return http.Response(
+            jsonEncode(<String, dynamic>{
+              "data": [_favoriteJson("f1", stationId: "s1")],
+              "nextCursor": null,
+            }),
+            200,
+          );
+        });
+        final source = FavoriteRemoteDataSource(
+          client,
+          baseUrl: "https://api.raahti.dz",
         );
-      });
-      final source = FavoriteRemoteDataSource(
-        client,
-        baseUrl: "https://api.raahti.dz",
-      );
 
-      final favorites = await source.getFavorites();
+        final favorites = await source.getFavorites();
 
-      expect(capturedUri, Uri.parse("https://api.raahti.dz/v1/users/me/favorites"));
-      expect(favorites, hasLength(1));
-      expect(favorites.single.id, "f1");
-      expect(favorites.single.stationId, "s1");
-    });
+        expect(
+          capturedUri,
+          Uri.parse("https://api.raahti.dz/v1/users/me/favorites"),
+        );
+        expect(favorites, hasLength(1));
+        expect(favorites.single.id, "f1");
+        expect(favorites.single.stationId, "s1");
+      },
+    );
 
     test(
       "follows nextCursor until exhausted, returning every favorite across pages",
@@ -123,7 +129,10 @@ void main() {
         final client = MockClient((request) async {
           capturedUri = request.url;
           capturedBody = jsonDecode(request.body) as Map<String, dynamic>;
-          return http.Response(jsonEncode(_favoriteJson("f1", stationId: "s1")), 201);
+          return http.Response(
+            jsonEncode(_favoriteJson("f1", stationId: "s1")),
+            201,
+          );
         });
         final source = FavoriteRemoteDataSource(
           client,
@@ -136,7 +145,10 @@ void main() {
           notifyOnAvailable: true,
         );
 
-        expect(capturedUri, Uri.parse("https://api.raahti.dz/v1/users/me/favorites"));
+        expect(
+          capturedUri,
+          Uri.parse("https://api.raahti.dz/v1/users/me/favorites"),
+        );
         expect(capturedBody, <String, dynamic>{
           "stationId": "s1",
           "thirdPartyPlaceId": null,

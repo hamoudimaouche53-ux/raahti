@@ -152,17 +152,16 @@ void main() {
     },
   );
 
-  testWidgets(
-    "switching to 'Créer un compte' shows the sign-up submit label",
-    (tester) async {
-      await _pushViaGoRouter(tester);
+  testWidgets("switching to 'Créer un compte' shows the sign-up submit label", (
+    tester,
+  ) async {
+    await _pushViaGoRouter(tester);
 
-      await tester.tap(find.text("Créer un compte").first);
-      await tester.pumpAndSettle();
+    await tester.tap(find.text("Créer un compte").first);
+    await tester.pumpAndSettle();
 
-      expect(find.text("Créer un compte"), findsWidgets);
-    },
-  );
+    expect(find.text("Créer un compte"), findsWidgets);
+  });
 
   testWidgets("'Continuer sans compte' pops back without authenticating", (
     tester,
@@ -203,45 +202,41 @@ void main() {
     },
   );
 
-  testWidgets(
-    "the logo mark's glyph uses the theme's onPrimary color, not a "
-    "hard-coded white that fails contrast in dark theme (US-06.4)",
-    (tester) async {
-      await _pushViaGoRouter(tester);
+  testWidgets("the logo mark's glyph uses the theme's onPrimary color, not a "
+      "hard-coded white that fails contrast in dark theme (US-06.4)", (
+    tester,
+  ) async {
+    await _pushViaGoRouter(tester);
 
-      final RahatiLogoMark mark = tester.widget<RahatiLogoMark>(
-        find.byType(RahatiLogoMark),
-      );
-      expect(mark.onColor, RahatiTheme.light.colorScheme.onPrimary);
-    },
-  );
+    final RahatiLogoMark mark = tester.widget<RahatiLogoMark>(
+      find.byType(RahatiLogoMark),
+    );
+    expect(mark.onColor, RahatiTheme.light.colorScheme.onPrimary);
+  });
 
-  testWidgets(
-    "the submit button keeps its accessible name while its spinner "
-    "replaces its Text child, matching submit_review_screen.dart's own "
-    "fix for the identical gap (US-06.4 finding, previously flagged but "
-    "not fixed here)",
-    (tester) async {
-      final delay = Completer<void>();
-      addTearDown(() {
-        if (!delay.isCompleted) delay.complete();
-      });
-      final SemanticsHandle handle = tester.ensureSemantics();
+  testWidgets("the submit button keeps its accessible name while its spinner "
+      "replaces its Text child, matching submit_review_screen.dart's own "
+      "fix for the identical gap (US-06.4 finding, previously flagged but "
+      "not fixed here)", (tester) async {
+    final delay = Completer<void>();
+    addTearDown(() {
+      if (!delay.isCompleted) delay.complete();
+    });
+    final SemanticsHandle handle = tester.ensureSemantics();
 
-      await _pushViaGoRouter(tester, delay: delay.future);
+    await _pushViaGoRouter(tester, delay: delay.future);
 
-      await tester.enterText(find.byType(TextField).first, "a@b.com");
-      await tester.enterText(find.byType(TextField).last, "password123");
-      await tester.tap(find.text("Se connecter").last);
-      await tester.pump();
+    await tester.enterText(find.byType(TextField).first, "a@b.com");
+    await tester.enterText(find.byType(TextField).last, "password123");
+    await tester.tap(find.text("Se connecter").last);
+    await tester.pump();
 
-      final SemanticsNode node = tester.getSemantics(
-        find.byType(CircularProgressIndicator),
-      );
-      expect(node.label, "Se connecter");
-      handle.dispose();
-    },
-  );
+    final SemanticsNode node = tester.getSemantics(
+      find.byType(CircularProgressIndicator),
+    );
+    expect(node.label, "Se connecter");
+    handle.dispose();
+  });
 
   testWidgets(
     "the inline error message is announced to screen readers via a live "

@@ -28,9 +28,7 @@ class ReviewRemoteDataSource {
       throw const ReviewApiNotConfiguredFailure();
     }
 
-    final Uri uri = Uri.parse(
-      "$baseUrl/v1/places/$placeType/$placeId/reviews",
-    );
+    final Uri uri = Uri.parse("$baseUrl/v1/places/$placeType/$placeId/reviews");
     final http.Response response;
     try {
       response = await _client

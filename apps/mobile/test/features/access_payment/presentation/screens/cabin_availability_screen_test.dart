@@ -162,66 +162,56 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
-  testWidgets(
-    "shows the available success message, then pops with the created "
-    "AccessSession",
-    (tester) async {
-      final _PushResult result = await _pumpNavigatorHarness(tester, null);
-      await tester.tap(find.text("push"));
-      // `pumpAndSettle` alone won't advance past this: the 700ms
-      // success-flash delay is a bare `Future.delayed` Timer, not tied to
-      // an animation, so it never marks a frame as "scheduled" for
-      // `pumpAndSettle` to wait on.
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 750));
-      await tester.pumpAndSettle();
+  testWidgets("shows the available success message, then pops with the created "
+      "AccessSession", (tester) async {
+    final _PushResult result = await _pumpNavigatorHarness(tester, null);
+    await tester.tap(find.text("push"));
+    // `pumpAndSettle` alone won't advance past this: the 700ms
+    // success-flash delay is a bare `Future.delayed` Timer, not tied to
+    // an animation, so it never marks a frame as "scheduled" for
+    // `pumpAndSettle` to wait on.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 750));
+    await tester.pumpAndSettle();
 
-      expect(result.completed, isTrue);
-      expect(result.value?.id, "session-1");
-    },
-  );
+    expect(result.completed, isTrue);
+    expect(result.value?.id, "session-1");
+  });
 
-  testWidgets(
-    "flashes 'Cabine disponible' before the auto-advance pop",
-    (tester) async {
-      await _pumpNavigatorHarness(tester, null);
-      await tester.tap(find.text("push"));
-      // Enough time for the fake repository's Future to resolve, not
-      // enough for the 700ms success-flash delay to elapse.
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+  testWidgets("flashes 'Cabine disponible' before the auto-advance pop", (
+    tester,
+  ) async {
+    await _pumpNavigatorHarness(tester, null);
+    await tester.tap(find.text("push"));
+    // Enough time for the fake repository's Future to resolve, not
+    // enough for the 700ms success-flash delay to elapse.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text("Cabine disponible"), findsOneWidget);
+    expect(find.text("Cabine disponible"), findsOneWidget);
 
-      // Flush the remaining success-flash Timer + pop so the test binding
-      // doesn't flag a pending Timer at teardown.
-      await tester.pump(const Duration(milliseconds: 700));
-      await tester.pumpAndSettle();
-    },
-  );
+    // Flush the remaining success-flash Timer + pop so the test binding
+    // doesn't flag a pending Timer at teardown.
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+  });
 
-  testWidgets(
-    "shows the unavailable message and a working 'Retour à la carte' "
-    "button for CabinUnavailableFailure (409)",
-    (tester) async {
-      final GoRouter router = await _pushViaGoRouter(
-        tester,
-        const CabinUnavailableFailure(),
-      );
+  testWidgets("shows the unavailable message and a working 'Retour à la carte' "
+      "button for CabinUnavailableFailure (409)", (tester) async {
+    final GoRouter router = await _pushViaGoRouter(
+      tester,
+      const CabinUnavailableFailure(),
+    );
 
-      expect(
-        find.text("Cette cabine n'est plus disponible."),
-        findsOneWidget,
-      );
-      expect(find.text("Retour à la carte"), findsOneWidget);
+    expect(find.text("Cette cabine n'est plus disponible."), findsOneWidget);
+    expect(find.text("Retour à la carte"), findsOneWidget);
 
-      await tester.tap(find.text("Retour à la carte"));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text("Retour à la carte"));
+    await tester.pumpAndSettle();
 
-      expect(find.text("MAP STUB"), findsOneWidget);
-      expect(router.routerDelegate.currentConfiguration.uri.toString(), "/map");
-    },
-  );
+    expect(find.text("MAP STUB"), findsOneWidget);
+    expect(router.routerDelegate.currentConfiguration.uri.toString(), "/map");
+  });
 
   testWidgets(
     "shows the generic error message (not the cabin-unavailable one) for "
@@ -236,10 +226,7 @@ void main() {
         find.text("Impossible de démarrer la session. Veuillez réessayer."),
         findsOneWidget,
       );
-      expect(
-        find.text("Cette cabine n'est plus disponible."),
-        findsNothing,
-      );
+      expect(find.text("Cette cabine n'est plus disponible."), findsNothing);
       expect(find.text("Retour à la carte"), findsOneWidget);
     },
   );

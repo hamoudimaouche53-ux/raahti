@@ -5,47 +5,59 @@ import "package:rahati/core/network/authenticated_http_client.dart";
 
 void main() {
   group("AuthenticatedHttpClient", () {
-    test("attaches Authorization: Bearer <token> when a token is available", () async {
-      http.Request? captured;
-      final MockClient inner = MockClient((request) async {
-        captured = request;
-        return http.Response("{}", 200);
-      });
-      final client = AuthenticatedHttpClient(inner, () => "token-123");
+    test(
+      "attaches Authorization: Bearer <token> when a token is available",
+      () async {
+        http.Request? captured;
+        final MockClient inner = MockClient((request) async {
+          captured = request;
+          return http.Response("{}", 200);
+        });
+        final client = AuthenticatedHttpClient(inner, () => "token-123");
 
-      await client.get(Uri.parse("https://api.raahti.dz/v1/users/me"));
+        await client.get(Uri.parse("https://api.raahti.dz/v1/users/me"));
 
-      expect(captured!.headers["Authorization"], "Bearer token-123");
-    });
+        expect(captured!.headers["Authorization"], "Bearer token-123");
+      },
+    );
 
-    test("sends no Authorization header when there is no session (guest)", () async {
-      http.Request? captured;
-      final MockClient inner = MockClient((request) async {
-        captured = request;
-        return http.Response("{}", 200);
-      });
-      final client = AuthenticatedHttpClient(inner, () => null);
+    test(
+      "sends no Authorization header when there is no session (guest)",
+      () async {
+        http.Request? captured;
+        final MockClient inner = MockClient((request) async {
+          captured = request;
+          return http.Response("{}", 200);
+        });
+        final client = AuthenticatedHttpClient(inner, () => null);
 
-      await client.get(Uri.parse("https://api.raahti.dz/v1/places/nearby"));
+        await client.get(Uri.parse("https://api.raahti.dz/v1/places/nearby"));
 
-      expect(captured!.headers.containsKey("Authorization"), isFalse);
-    });
+        expect(captured!.headers.containsKey("Authorization"), isFalse);
+      },
+    );
 
-    test("reads the token getter fresh on every request (picks up refreshed tokens)", () async {
-      final List<String?> capturedHeaders = [];
-      final MockClient inner = MockClient((request) async {
-        capturedHeaders.add(request.headers["Authorization"]);
-        return http.Response("{}", 200);
-      });
-      String token = "first-token";
-      final client = AuthenticatedHttpClient(inner, () => token);
+    test(
+      "reads the token getter fresh on every request (picks up refreshed tokens)",
+      () async {
+        final List<String?> capturedHeaders = [];
+        final MockClient inner = MockClient((request) async {
+          capturedHeaders.add(request.headers["Authorization"]);
+          return http.Response("{}", 200);
+        });
+        String token = "first-token";
+        final client = AuthenticatedHttpClient(inner, () => token);
 
-      await client.get(Uri.parse("https://api.raahti.dz/v1/users/me"));
-      token = "refreshed-token";
-      await client.get(Uri.parse("https://api.raahti.dz/v1/users/me"));
+        await client.get(Uri.parse("https://api.raahti.dz/v1/users/me"));
+        token = "refreshed-token";
+        await client.get(Uri.parse("https://api.raahti.dz/v1/users/me"));
 
-      expect(capturedHeaders, ["Bearer first-token", "Bearer refreshed-token"]);
-    });
+        expect(capturedHeaders, [
+          "Bearer first-token",
+          "Bearer refreshed-token",
+        ]);
+      },
+    );
 
     test("preserves other headers set by the caller", () async {
       http.Request? captured;

@@ -141,21 +141,20 @@ void main() {
     expect(button.onPressed, isNull);
   });
 
-  testWidgets(
-    "tapping the 3rd star fills 3 stars and enables Publier",
-    (tester) async {
-      await _pushViaGoRouter(tester);
+  testWidgets("tapping the 3rd star fills 3 stars and enables Publier", (
+    tester,
+  ) async {
+    await _pushViaGoRouter(tester);
 
-      await tester.tap(find.byIcon(Icons.star_border).at(2));
-      await tester.pump();
+    await tester.tap(find.byIcon(Icons.star_border).at(2));
+    await tester.pump();
 
-      expect(find.byIcon(Icons.star), findsNWidgets(3));
-      expect(find.byIcon(Icons.star_border), findsNWidgets(2));
+    expect(find.byIcon(Icons.star), findsNWidgets(3));
+    expect(find.byIcon(Icons.star_border), findsNWidgets(2));
 
-      final FilledButton button = tester.widget(find.byType(FilledButton));
-      expect(button.onPressed, isNotNull);
-    },
-  );
+    final FilledButton button = tester.widget(find.byType(FilledButton));
+    expect(button.onPressed, isNotNull);
+  });
 
   testWidgets(
     "publishing pops back to the map with the 'Avis publié' Snackbar",
@@ -169,31 +168,25 @@ void main() {
 
       expect(find.text("MAP STUB"), findsOneWidget);
       expect(find.text("Avis publié"), findsOneWidget);
-      expect(
-        router.routerDelegate.currentConfiguration.uri.toString(),
-        "/map",
-      );
+      expect(router.routerDelegate.currentConfiguration.uri.toString(), "/map");
     },
   );
 
-  testWidgets(
-    "a submission failure keeps the screen open and shows the error "
-    "Snackbar",
-    (tester) async {
-      await _pushViaGoRouter(tester, throwOnSubmit: true);
+  testWidgets("a submission failure keeps the screen open and shows the error "
+      "Snackbar", (tester) async {
+    await _pushViaGoRouter(tester, throwOnSubmit: true);
 
-      await tester.tap(find.byIcon(Icons.star_border).first);
-      await tester.pump();
-      await tester.tap(find.text("Publier"));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.star_border).first);
+    await tester.pump();
+    await tester.tap(find.text("Publier"));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(SubmitReviewScreen), findsOneWidget);
-      expect(
-        find.text("Impossible d'envoyer votre avis. Réessayez."),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(find.byType(SubmitReviewScreen), findsOneWidget);
+    expect(
+      find.text("Impossible d'envoyer votre avis. Réessayez."),
+      findsOneWidget,
+    );
+  });
 
   testWidgets("renders correctly under the Arabic (RTL) locale", (
     tester,

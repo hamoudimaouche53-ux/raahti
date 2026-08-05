@@ -34,7 +34,10 @@ void main() {
       "(regression: real GET /third-party-places/{id} responses never "
       "include it; found crashing on a real device against the real backend)",
       () {
-        expect(() => ThirdPartyPlaceDetailDto.fromJson(_json()).toEntity(), returnsNormally);
+        expect(
+          () => ThirdPartyPlaceDetailDto.fromJson(_json()).toEntity(),
+          returnsNormally,
+        );
         final entity = ThirdPartyPlaceDetailDto.fromJson(_json()).toEntity();
         expect(entity.summary.distanceMeters, 0);
       },

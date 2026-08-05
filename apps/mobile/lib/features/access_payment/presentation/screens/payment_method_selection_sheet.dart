@@ -54,8 +54,7 @@ class _PaymentMethodSelectionSheetState
         title: Text(l10n.paymentMethodAddDialogTitle),
         children: <Widget>[
           SimpleDialogOption(
-            onPressed: () =>
-                Navigator.of(context).pop(PaymentMethodType.card),
+            onPressed: () => Navigator.of(context).pop(PaymentMethodType.card),
             child: DialogOptionTapTarget(
               text: l10n.paymentMethodAddDialogCardOption,
             ),
@@ -110,7 +109,8 @@ class _PaymentMethodSelectionSheetState
           left: RahatiSpacing.space4,
           right: RahatiSpacing.space4,
           top: RahatiSpacing.space3,
-          bottom: RahatiSpacing.space4 + MediaQuery.of(context).viewInsets.bottom,
+          bottom:
+              RahatiSpacing.space4 + MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

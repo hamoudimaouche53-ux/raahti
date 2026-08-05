@@ -56,36 +56,33 @@ void main() {
   });
 
   group("Reduced-motion route transitions (US-06.4)", () {
-    testWidgets(
-      "route push cross-fades instead of platform-sliding when the "
-      "OS-level reduce-motion setting is on",
-      (tester) async {
-        await tester.pumpWidget(
-          MediaQuery(
-            data: const MediaQueryData(disableAnimations: true),
-            child: MaterialApp(
-              theme: RahatiTheme.light,
-              home: Builder(
-                builder: (context) => ElevatedButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const Text("second screen"),
-                    ),
+    testWidgets("route push cross-fades instead of platform-sliding when the "
+        "OS-level reduce-motion setting is on", (tester) async {
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: MaterialApp(
+            theme: RahatiTheme.light,
+            home: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const Text("second screen"),
                   ),
-                  child: const Text("go"),
                 ),
+                child: const Text("go"),
               ),
             ),
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.text("go"));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(find.text("go"));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
 
-        expect(find.byType(FadeTransition), findsWidgets);
-      },
-    );
+      expect(find.byType(FadeTransition), findsWidgets);
+    });
 
     testWidgets(
       "route push keeps the normal platform transition when reduce-motion "

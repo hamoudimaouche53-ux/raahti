@@ -5,7 +5,8 @@ import "package:shared_preferences/shared_preferences.dart";
 import "shared_preferences_provider.dart";
 
 const String _themeModePrefsKey = "rahati.settings.theme_mode";
-const String _localeLanguageCodePrefsKey = "rahati.settings.locale_language_code";
+const String _localeLanguageCodePrefsKey =
+    "rahati.settings.locale_language_code";
 
 ThemeMode _themeModeFromPrefsValue(String? value) => switch (value) {
   "light" => ThemeMode.light,

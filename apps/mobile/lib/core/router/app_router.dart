@@ -44,8 +44,7 @@ abstract final class AppRoutePaths {
   static const String accessPaymentScan = "/access-payment/scan";
   static const String accessPaymentAvailability =
       "/access-payment/availability";
-  static const String accessPaymentProcessing =
-      "/access-payment/processing";
+  static const String accessPaymentProcessing = "/access-payment/processing";
   static const String accessPaymentUnlock = "/access-payment/unlock";
   static const String sessionComplete = "/access-payment/session-complete";
 }
@@ -157,8 +156,7 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutePaths.sessionComplete,
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
-          final SessionCompleteArgs args =
-              state.extra! as SessionCompleteArgs;
+          final SessionCompleteArgs args = state.extra! as SessionCompleteArgs;
           return SessionCompleteScreen(
             amount: args.amount,
             duration: args.duration,

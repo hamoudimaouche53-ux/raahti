@@ -99,17 +99,16 @@ Future<GoRouter> _pushViaGoRouter(
 }
 
 void main() {
-  testWidgets(
-    "shows the empty state when there are no favorites",
-    (tester) async {
-      await _pushViaGoRouter(tester, favorites: const []);
+  testWidgets("shows the empty state when there are no favorites", (
+    tester,
+  ) async {
+    await _pushViaGoRouter(tester, favorites: const []);
 
-      expect(
-        find.text("Aucun favori — ajoutez-en depuis la fiche lieu"),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(
+      find.text("Aucun favori — ajoutez-en depuis la fiche lieu"),
+      findsOneWidget,
+    );
+  });
 
   testWidgets("shows each favorite's name, distance, and notify switch", (
     tester,
@@ -158,44 +157,42 @@ void main() {
     expect(toggle.value, isTrue);
   });
 
-  testWidgets(
-    "the settings AppBar action navigates to SCR-027 "
-    "(NotificationSettingsScreen)",
-    (tester) async {
-      await _pushViaGoRouter(tester, favorites: const []);
+  testWidgets("the settings AppBar action navigates to SCR-027 "
+      "(NotificationSettingsScreen)", (tester) async {
+    await _pushViaGoRouter(tester, favorites: const []);
 
-      await tester.tap(find.byIcon(Icons.settings_outlined));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
 
-      expect(find.byType(NotificationSettingsScreen), findsOneWidget);
-    },
-  );
+    expect(find.byType(NotificationSettingsScreen), findsOneWidget);
+  });
 
   testWidgets("renders correctly under the Arabic (RTL) locale", (
     tester,
   ) async {
-    await _pushViaGoRouter(tester, favorites: const [], locale: const Locale("ar"));
+    await _pushViaGoRouter(
+      tester,
+      favorites: const [],
+      locale: const Locale("ar"),
+    );
 
     expect(find.text("المفضلة"), findsOneWidget);
   });
 
-  testWidgets(
-    "the AppBar back button is a real BackButton, carrying Flutter's "
-    "automatic localized tooltip instead of an unlabeled custom "
-    "IconButton (US-06.4)",
-    (tester) async {
-      await _pushViaGoRouter(tester, favorites: const []);
+  testWidgets("the AppBar back button is a real BackButton, carrying Flutter's "
+      "automatic localized tooltip instead of an unlabeled custom "
+      "IconButton (US-06.4)", (tester) async {
+    await _pushViaGoRouter(tester, favorites: const []);
 
-      expect(find.byType(BackButton), findsOneWidget);
-      final Tooltip tooltip = tester.widget<Tooltip>(
-        find
-            .descendant(
-              of: find.byType(BackButton),
-              matching: find.byType(Tooltip),
-            )
-            .first,
-      );
-      expect(tooltip.message, isNotEmpty);
-    },
-  );
+    expect(find.byType(BackButton), findsOneWidget);
+    final Tooltip tooltip = tester.widget<Tooltip>(
+      find
+          .descendant(
+            of: find.byType(BackButton),
+            matching: find.byType(Tooltip),
+          )
+          .first,
+    );
+    expect(tooltip.message, isNotEmpty);
+  });
 }

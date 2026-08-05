@@ -41,7 +41,9 @@ class _SavedPaymentMethodsScreenState
   @override
   void initState() {
     super.initState();
-    _future = ref.read(paymentMethodRepositoryProvider).getSavedPaymentMethods();
+    _future = ref
+        .read(paymentMethodRepositoryProvider)
+        .getSavedPaymentMethods();
   }
 
   void _reload() {
@@ -97,8 +99,7 @@ class _SavedPaymentMethodsScreenState
         title: Text(l10n.paymentMethodAddDialogTitle),
         children: <Widget>[
           SimpleDialogOption(
-            onPressed: () =>
-                Navigator.of(context).pop(PaymentMethodType.card),
+            onPressed: () => Navigator.of(context).pop(PaymentMethodType.card),
             child: DialogOptionTapTarget(
               text: l10n.paymentMethodAddDialogCardOption,
             ),

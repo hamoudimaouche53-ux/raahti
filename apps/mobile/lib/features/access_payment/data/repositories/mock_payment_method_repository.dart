@@ -77,9 +77,7 @@ class MockPaymentMethodRepository implements PaymentMethodRepository {
   }
 
   @override
-  Future<PaymentMethod> setDefaultPaymentMethod(
-    String paymentMethodId,
-  ) async {
+  Future<PaymentMethod> setDefaultPaymentMethod(String paymentMethodId) async {
     await Future<void>.delayed(const Duration(milliseconds: 300));
     PaymentMethod? newDefault;
     for (int i = 0; i < _methods.length; i++) {

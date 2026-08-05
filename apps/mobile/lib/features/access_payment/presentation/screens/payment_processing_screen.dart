@@ -108,7 +108,8 @@ class _PaymentProcessingScreenState
             child: Padding(
               padding: const EdgeInsets.all(RahatiSpacing.space6),
               child: state.when(
-                data: (session) => _ProcessingView(message: l10n.paymentProcessingMessage),
+                data: (session) =>
+                    _ProcessingView(message: l10n.paymentProcessingMessage),
                 loading: () =>
                     _ProcessingView(message: l10n.paymentProcessingMessage),
                 error: (error, stackTrace) => _PaymentFailedView(error: error),
@@ -182,9 +183,7 @@ class _PaymentFailedView extends StatelessWidget {
         // Payment-declined and generic-failure variants both retry via
         // "pick a different (or the same) method" — pops back up to
         // `PlaceDetailSheet`'s retry loop rather than navigating here.
-        Navigator.of(
-          context,
-        ).pop(PaymentRetrySignal.retryMethodSelection);
+        Navigator.of(context).pop(PaymentRetrySignal.retryMethodSelection);
       }
     }
 

@@ -113,8 +113,9 @@ final Provider<CabinRealtimeRepository> cabinRealtimeRepositoryProvider =
 /// for the app's whole lifetime.
 final cabinOccupancyUpdatesProvider = StreamProvider.autoDispose
     .family<CabinOccupancyUpdate, String>(
-      (ref, stationId) =>
-          ref.watch(cabinRealtimeRepositoryProvider).watchStationCabins(stationId),
+      (ref, stationId) => ref
+          .watch(cabinRealtimeRepositoryProvider)
+          .watchStationCabins(stationId),
     );
 
 final Provider<ReviewRemoteDataSource> reviewRemoteDataSourceProvider =

@@ -8,25 +8,28 @@ import "package:rahati/features/access_payment/domain/repositories/payment_metho
 
 void main() {
   group("RestPaymentMethodRepository", () {
-    test("getSavedPaymentMethods delegates and maps DTOs to entities", () async {
-      final client = MockClient((request) async {
-        // ASCII, not the real UI's "Visa •••• 4242" — `http.Response`'s
-        // default `latin1` encoding can't represent U+2022 BULLET.
-        return http.Response(
-          '{"data":[{"id":"pm-1","methodType":"card",'
-          '"providerRef":"Visa ...4242","isDefault":true}]}',
-          200,
+    test(
+      "getSavedPaymentMethods delegates and maps DTOs to entities",
+      () async {
+        final client = MockClient((request) async {
+          // ASCII, not the real UI's "Visa •••• 4242" — `http.Response`'s
+          // default `latin1` encoding can't represent U+2022 BULLET.
+          return http.Response(
+            '{"data":[{"id":"pm-1","methodType":"card",'
+            '"providerRef":"Visa ...4242","isDefault":true}]}',
+            200,
+          );
+        });
+        final repository = RestPaymentMethodRepository(
+          PaymentMethodRemoteDataSource(client, baseUrl: "http://test.local"),
         );
-      });
-      final repository = RestPaymentMethodRepository(
-        PaymentMethodRemoteDataSource(client, baseUrl: "http://test.local"),
-      );
 
-      final result = await repository.getSavedPaymentMethods();
+        final result = await repository.getSavedPaymentMethods();
 
-      expect(result, hasLength(1));
-      expect(result.single.id, "pm-1");
-    });
+        expect(result, hasLength(1));
+        expect(result.single.id, "pm-1");
+      },
+    );
 
     test("addPaymentMethod converts the enum to its wire snake_case value "
         "and maps the response back to an entity", () async {
@@ -53,40 +56,34 @@ void main() {
       expect(result.methodType, PaymentMethodType.mobileWallet);
     });
 
-    test(
-      "deletePaymentMethod always throws "
-      "PaymentMethodEndpointNotSpecifiedFailure (no delete endpoint "
-      "exists)",
-      () {
-        final repository = RestPaymentMethodRepository(
-          PaymentMethodRemoteDataSource(
-            http.Client(),
-            baseUrl: "http://test.local",
-          ),
-        );
-        expect(
-          () => repository.deletePaymentMethod("pm-1"),
-          throwsA(isA<PaymentMethodEndpointNotSpecifiedFailure>()),
-        );
-      },
-    );
+    test("deletePaymentMethod always throws "
+        "PaymentMethodEndpointNotSpecifiedFailure (no delete endpoint "
+        "exists)", () {
+      final repository = RestPaymentMethodRepository(
+        PaymentMethodRemoteDataSource(
+          http.Client(),
+          baseUrl: "http://test.local",
+        ),
+      );
+      expect(
+        () => repository.deletePaymentMethod("pm-1"),
+        throwsA(isA<PaymentMethodEndpointNotSpecifiedFailure>()),
+      );
+    });
 
-    test(
-      "setDefaultPaymentMethod always throws "
-      "PaymentMethodEndpointNotSpecifiedFailure (no update endpoint "
-      "exists)",
-      () {
-        final repository = RestPaymentMethodRepository(
-          PaymentMethodRemoteDataSource(
-            http.Client(),
-            baseUrl: "http://test.local",
-          ),
-        );
-        expect(
-          () => repository.setDefaultPaymentMethod("pm-1"),
-          throwsA(isA<PaymentMethodEndpointNotSpecifiedFailure>()),
-        );
-      },
-    );
+    test("setDefaultPaymentMethod always throws "
+        "PaymentMethodEndpointNotSpecifiedFailure (no update endpoint "
+        "exists)", () {
+      final repository = RestPaymentMethodRepository(
+        PaymentMethodRemoteDataSource(
+          http.Client(),
+          baseUrl: "http://test.local",
+        ),
+      );
+      expect(
+        () => repository.setDefaultPaymentMethod("pm-1"),
+        throwsA(isA<PaymentMethodEndpointNotSpecifiedFailure>()),
+      );
+    });
   });
 }

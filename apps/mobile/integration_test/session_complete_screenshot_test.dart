@@ -313,49 +313,46 @@ void main() {
     },
   );
 
-  testWidgets(
-    "RTL (AR): SCR-019 Session Complete, reached via the door-sensor "
-    "auto-trigger, mirrored",
-    (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            ..._positionOverrides(),
-            themeModeProvider.overrideWith(_LightThemeModeNotifier.new),
-            localeProvider.overrideWith(_ArabicLocaleNotifier.new),
-            accessSessionRepositoryProvider.overrideWithValue(
-              const _PaidAccessSessionRepository(),
-            ),
-            paymentMethodRepositoryProvider.overrideWithValue(
-              const _FakePaymentMethodRepository(),
-            ),
-            paymentRepositoryProvider.overrideWithValue(
-              const _SuccessfulPaymentRepository(),
-            ),
-            nearbyPlacesProvider.overrideWith(
-              () => _FakeNearbyPlacesNotifier(
-                () async => PlacesSnapshot(
-                  places: [_station()],
-                  lastSyncedAt: DateTime.now(),
-                  isFromCache: false,
-                ),
+  testWidgets("RTL (AR): SCR-019 Session Complete, reached via the door-sensor "
+      "auto-trigger, mirrored", (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          ..._positionOverrides(),
+          themeModeProvider.overrideWith(_LightThemeModeNotifier.new),
+          localeProvider.overrideWith(_ArabicLocaleNotifier.new),
+          accessSessionRepositoryProvider.overrideWithValue(
+            const _PaidAccessSessionRepository(),
+          ),
+          paymentMethodRepositoryProvider.overrideWithValue(
+            const _FakePaymentMethodRepository(),
+          ),
+          paymentRepositoryProvider.overrideWithValue(
+            const _SuccessfulPaymentRepository(),
+          ),
+          nearbyPlacesProvider.overrideWith(
+            () => _FakeNearbyPlacesNotifier(
+              () async => PlacesSnapshot(
+                places: [_station()],
+                lastSyncedAt: DateTime.now(),
+                isFromCache: false,
               ),
             ),
-          ],
-          child: const RahatiApp(),
-        ),
-      );
-      await _navigateToSessionCompleteViaAutoTrigger(
-        tester,
-        buttonText: "مسح رمز QR",
-        manualEntryButtonText: "إدخال الرمز يدويًا",
-        submitButtonText: "تأكيد",
-        payButtonText: "دفع 50 DZD",
-      );
+          ),
+        ],
+        child: const RahatiApp(),
+      ),
+    );
+    await _navigateToSessionCompleteViaAutoTrigger(
+      tester,
+      buttonText: "مسح رمز QR",
+      manualEntryButtonText: "إدخال الرمز يدويًا",
+      submitButtonText: "تأكيد",
+      payButtonText: "دفع 50 DZD",
+    );
 
-      // ignore: avoid_print
-      print("HOLD_START");
-      await _settle(tester, seconds: 30);
-    },
-  );
+    // ignore: avoid_print
+    print("HOLD_START");
+    await _settle(tester, seconds: 30);
+  });
 }

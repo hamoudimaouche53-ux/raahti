@@ -281,14 +281,14 @@ void main() {
         expect(
           node.flagsCollection.isLiveRegion,
           isTrue,
-          reason: "an unprompted fetch-failure message must be announced, "
+          reason:
+              "an unprompted fetch-failure message must be announced, "
               "matching this app's established live-region pattern (e.g. "
               "map status banners)",
         );
         handle.dispose();
       },
     );
-
   });
 
   group("QR scan entry point (US-04.1)", () {
@@ -390,103 +390,99 @@ void main() {
   });
 
   group("live cabin status updates (US-04.5)", () {
-    testWidgets(
-      "patches a cabin's occupancy in place when a Realtime update "
-      "arrives, without a re-fetch",
-      (tester) async {
-        final place = _place();
-        final controller = StreamController<CabinOccupancyUpdate>();
-        addTearDown(controller.close);
+    testWidgets("patches a cabin's occupancy in place when a Realtime update "
+        "arrives, without a re-fetch", (tester) async {
+      final place = _place();
+      final controller = StreamController<CabinOccupancyUpdate>();
+      addTearDown(controller.close);
 
-        await _pumpSheet(
-          tester,
-          place,
-          overrides: [
-            stationDetailProvider(place.id).overrideWith(
-              (ref) async => _stationDetail(
-                place,
-                cabins: const [
-                  Cabin(
-                    id: "c1",
-                    code: "1",
-                    type: CabinType.women,
-                    occupancyStatus: CabinOccupancyStatus.free,
-                    isPaid: false,
-                    price: null,
-                  ),
-                ],
-              ),
+      await _pumpSheet(
+        tester,
+        place,
+        overrides: [
+          stationDetailProvider(place.id).overrideWith(
+            (ref) async => _stationDetail(
+              place,
+              cabins: const [
+                Cabin(
+                  id: "c1",
+                  code: "1",
+                  type: CabinType.women,
+                  occupancyStatus: CabinOccupancyStatus.free,
+                  isPaid: false,
+                  price: null,
+                ),
+              ],
             ),
-            cabinOccupancyUpdatesProvider(
-              place.id,
-            ).overrideWith((ref) => controller.stream),
-          ],
-        );
-
-        expect(find.text("Libre"), findsOneWidget);
-        expect(find.text("Occupé"), findsNothing);
-
-        controller.add(
-          const CabinOccupancyUpdate(
-            cabinId: "c1",
-            occupancyStatus: CabinOccupancyStatus.occupied,
           ),
-        );
-        // Two pumps: one for the StreamController's event to reach the
-        // StreamProvider (a real async hop, not just a widget rebuild),
-        // one for the resulting setState's rebuild.
-        await tester.pump();
-        await tester.pump();
+          cabinOccupancyUpdatesProvider(
+            place.id,
+          ).overrideWith((ref) => controller.stream),
+        ],
+      );
 
-        expect(find.text("Libre"), findsNothing);
-        expect(find.text("Occupé"), findsOneWidget);
-      },
-    );
+      expect(find.text("Libre"), findsOneWidget);
+      expect(find.text("Occupé"), findsNothing);
 
-    testWidgets(
-      "ignores an update for a cabin id not in the fetched list",
-      (tester) async {
-        final place = _place();
-        final controller = StreamController<CabinOccupancyUpdate>();
-        addTearDown(controller.close);
+      controller.add(
+        const CabinOccupancyUpdate(
+          cabinId: "c1",
+          occupancyStatus: CabinOccupancyStatus.occupied,
+        ),
+      );
+      // Two pumps: one for the StreamController's event to reach the
+      // StreamProvider (a real async hop, not just a widget rebuild),
+      // one for the resulting setState's rebuild.
+      await tester.pump();
+      await tester.pump();
 
-        await _pumpSheet(
-          tester,
-          place,
-          overrides: [
-            stationDetailProvider(place.id).overrideWith(
-              (ref) async => _stationDetail(
-                place,
-                cabins: const [
-                  Cabin(
-                    id: "c1",
-                    code: "1",
-                    type: CabinType.women,
-                    occupancyStatus: CabinOccupancyStatus.free,
-                    isPaid: false,
-                    price: null,
-                  ),
-                ],
-              ),
+      expect(find.text("Libre"), findsNothing);
+      expect(find.text("Occupé"), findsOneWidget);
+    });
+
+    testWidgets("ignores an update for a cabin id not in the fetched list", (
+      tester,
+    ) async {
+      final place = _place();
+      final controller = StreamController<CabinOccupancyUpdate>();
+      addTearDown(controller.close);
+
+      await _pumpSheet(
+        tester,
+        place,
+        overrides: [
+          stationDetailProvider(place.id).overrideWith(
+            (ref) async => _stationDetail(
+              place,
+              cabins: const [
+                Cabin(
+                  id: "c1",
+                  code: "1",
+                  type: CabinType.women,
+                  occupancyStatus: CabinOccupancyStatus.free,
+                  isPaid: false,
+                  price: null,
+                ),
+              ],
             ),
-            cabinOccupancyUpdatesProvider(
-              place.id,
-            ).overrideWith((ref) => controller.stream),
-          ],
-        );
-
-        controller.add(
-          const CabinOccupancyUpdate(
-            cabinId: "unknown-cabin",
-            occupancyStatus: CabinOccupancyStatus.occupied,
           ),
-        );
-        await tester.pump();
-        await tester.pump();
+          cabinOccupancyUpdatesProvider(
+            place.id,
+          ).overrideWith((ref) => controller.stream),
+        ],
+      );
 
-        expect(find.text("Libre"), findsOneWidget);
-        expect(find.text("Occupé"), findsNothing);
-      },
-    );
+      controller.add(
+        const CabinOccupancyUpdate(
+          cabinId: "unknown-cabin",
+          occupancyStatus: CabinOccupancyStatus.occupied,
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text("Libre"), findsOneWidget);
+      expect(find.text("Occupé"), findsNothing);
+    });
   });
 }

@@ -166,23 +166,20 @@ void main() {
     },
   );
 
-  testWidgets(
-    "the AppBar back button is a real BackButton, carrying Flutter's "
-    "automatic localized tooltip instead of an unlabeled custom "
-    "IconButton (US-06.4)",
-    (tester) async {
-      await _pump(tester, reviews: []);
+  testWidgets("the AppBar back button is a real BackButton, carrying Flutter's "
+      "automatic localized tooltip instead of an unlabeled custom "
+      "IconButton (US-06.4)", (tester) async {
+    await _pump(tester, reviews: []);
 
-      expect(find.byType(BackButton), findsOneWidget);
-      final Tooltip tooltip = tester.widget<Tooltip>(
-        find
-            .descendant(
-              of: find.byType(BackButton),
-              matching: find.byType(Tooltip),
-            )
-            .first,
-      );
-      expect(tooltip.message, isNotEmpty);
-    },
-  );
+    expect(find.byType(BackButton), findsOneWidget);
+    final Tooltip tooltip = tester.widget<Tooltip>(
+      find
+          .descendant(
+            of: find.byType(BackButton),
+            matching: find.byType(Tooltip),
+          )
+          .first,
+    );
+    expect(tooltip.message, isNotEmpty);
+  });
 }

@@ -86,18 +86,15 @@ void main() {
     expect(decoration.color, RahatiColorTokens.light.secondaryContainer);
   });
 
-  testWidgets(
-    "the tap target is 48x48dp even for a small cluster whose visual "
-    "diameter is well under 48dp (US-06.4)",
-    (tester) async {
-      final cluster = PlaceClusterItem(
-        position: const Coordinates(latitude: 36.75, longitude: 3.06),
-        places: [_place("1"), _place("2")],
-      );
+  testWidgets("the tap target is 48x48dp even for a small cluster whose visual "
+      "diameter is well under 48dp (US-06.4)", (tester) async {
+    final cluster = PlaceClusterItem(
+      position: const Coordinates(latitude: 36.75, longitude: 3.06),
+      places: [_place("1"), _place("2")],
+    );
 
-      await tester.pumpWidget(_wrap(ClusterMarker(cluster: cluster)));
+    await tester.pumpWidget(_wrap(ClusterMarker(cluster: cluster)));
 
-      expect(tester.getSize(find.byType(ClusterMarker)), const Size(48, 48));
-    },
-  );
+    expect(tester.getSize(find.byType(ClusterMarker)), const Size(48, 48));
+  });
 }

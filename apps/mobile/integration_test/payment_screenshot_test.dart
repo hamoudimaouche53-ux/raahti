@@ -283,44 +283,43 @@ void main() {
     await _settle(tester, seconds: 30);
   });
 
-  testWidgets(
-    "RTL (AR): SCR-015 Payment Method Selection Sheet, mirrored",
-    (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            ..._positionOverrides(),
-            themeModeProvider.overrideWith(_LightThemeModeNotifier.new),
-            localeProvider.overrideWith(_ArabicLocaleNotifier.new),
-            accessSessionRepositoryProvider.overrideWithValue(
-              const _PaidAccessSessionRepository(),
-            ),
-            paymentMethodRepositoryProvider.overrideWithValue(
-              const _FakePaymentMethodRepository(),
-            ),
-            nearbyPlacesProvider.overrideWith(
-              () => _FakeNearbyPlacesNotifier(
-                () async => PlacesSnapshot(
-                  places: [_station()],
-                  lastSyncedAt: DateTime.now(),
-                  isFromCache: false,
-                ),
+  testWidgets("RTL (AR): SCR-015 Payment Method Selection Sheet, mirrored", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          ..._positionOverrides(),
+          themeModeProvider.overrideWith(_LightThemeModeNotifier.new),
+          localeProvider.overrideWith(_ArabicLocaleNotifier.new),
+          accessSessionRepositoryProvider.overrideWithValue(
+            const _PaidAccessSessionRepository(),
+          ),
+          paymentMethodRepositoryProvider.overrideWithValue(
+            const _FakePaymentMethodRepository(),
+          ),
+          nearbyPlacesProvider.overrideWith(
+            () => _FakeNearbyPlacesNotifier(
+              () async => PlacesSnapshot(
+                places: [_station()],
+                lastSyncedAt: DateTime.now(),
+                isFromCache: false,
               ),
             ),
-          ],
-          child: const RahatiApp(),
-        ),
-      );
-      await _navigateToPaymentMethodSheet(
-        tester,
-        buttonText: "مسح رمز QR",
-        manualEntryButtonText: "إدخال الرمز يدويًا",
-        submitButtonText: "تأكيد",
-      );
+          ),
+        ],
+        child: const RahatiApp(),
+      ),
+    );
+    await _navigateToPaymentMethodSheet(
+      tester,
+      buttonText: "مسح رمز QR",
+      manualEntryButtonText: "إدخال الرمز يدويًا",
+      submitButtonText: "تأكيد",
+    );
 
-      // ignore: avoid_print
-      print("HOLD_START");
-      await _settle(tester, seconds: 30);
-    },
-  );
+    // ignore: avoid_print
+    print("HOLD_START");
+    await _settle(tester, seconds: 30);
+  });
 }

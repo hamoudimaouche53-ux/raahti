@@ -90,9 +90,7 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen> {
                 for (final Review review in reviews)
                   ListTile(
                     title: Semantics(
-                      label: l10n.submitReviewStarSemanticLabel(
-                        review.rating,
-                      ),
+                      label: l10n.submitReviewStarSemanticLabel(review.rating),
                       child: ExcludeSemantics(
                         child: Row(
                           children: List<Widget>.generate(
@@ -111,9 +109,9 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen> {
                     subtitle: Text(
                       review.comment?.isNotEmpty == true
                           ? "${review.comment} — ${DateFormat.yMd(languageCode).format(review.createdAt)}"
-                          : DateFormat.yMd(languageCode).format(
-                              review.createdAt,
-                            ),
+                          : DateFormat.yMd(
+                              languageCode,
+                            ).format(review.createdAt),
                     ),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete_outline),

@@ -152,16 +152,17 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
-  testWidgets("pops with the updated AccessSession on success", (
-    tester,
-  ) async {
+  testWidgets("pops with the updated AccessSession on success", (tester) async {
     final result = await _pumpNavigatorHarness(tester, null);
     await tester.tap(find.text("push"));
     await tester.pumpAndSettle();
 
     expect(result.completed, isTrue);
     expect(result.value, isA<AccessSession>());
-    expect((result.value! as AccessSession).status, AccessSessionStatus.unlocked);
+    expect(
+      (result.value! as AccessSession).status,
+      AccessSessionStatus.unlocked,
+    );
   });
 
   testWidgets(
@@ -214,10 +215,7 @@ void main() {
   testWidgets(
     "shows the generic error message for any other PaymentRepositoryFailure",
     (tester) async {
-      await _pushViaGoRouter(
-        tester,
-        const PaymentApiNotConfiguredFailure(),
-      );
+      await _pushViaGoRouter(tester, const PaymentApiNotConfiguredFailure());
 
       expect(find.text("Une erreur est survenue"), findsOneWidget);
       expect(find.text("Paiement refusé"), findsNothing);
@@ -261,38 +259,32 @@ void main() {
     },
   );
 
-  testWidgets(
-    "the failure title is announced via a live region, and the Retry/"
-    "back buttons keep their own accessible names (US-06.4 finding — the "
-    "live region must be scoped to just the icon+title, not the whole "
-    "view, or the buttons would lose their semantics)",
-    (tester) async {
-      final SemanticsHandle handle = tester.ensureSemantics();
+  testWidgets("the failure title is announced via a live region, and the Retry/"
+      "back buttons keep their own accessible names (US-06.4 finding — the "
+      "live region must be scoped to just the icon+title, not the whole "
+      "view, or the buttons would lose their semantics)", (tester) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
 
-      await _pushViaGoRouter(
-        tester,
-        const PaymentDeclinedFailure("declined"),
-      );
+    await _pushViaGoRouter(tester, const PaymentDeclinedFailure("declined"));
 
-      final SemanticsNode titleNode = tester.getSemantics(
-        find.text("Paiement refusé"),
-      );
-      expect(titleNode.label, "Paiement refusé");
-      expect(titleNode.flagsCollection.isLiveRegion, isTrue);
+    final SemanticsNode titleNode = tester.getSemantics(
+      find.text("Paiement refusé"),
+    );
+    expect(titleNode.label, "Paiement refusé");
+    expect(titleNode.flagsCollection.isLiveRegion, isTrue);
 
-      final SemanticsNode retryNode = tester.getSemantics(
-        find.widgetWithText(FilledButton, "Réessayer"),
-      );
-      expect(retryNode.label, "Réessayer");
-      expect(retryNode.flagsCollection.isButton, isTrue);
+    final SemanticsNode retryNode = tester.getSemantics(
+      find.widgetWithText(FilledButton, "Réessayer"),
+    );
+    expect(retryNode.label, "Réessayer");
+    expect(retryNode.flagsCollection.isButton, isTrue);
 
-      final SemanticsNode backNode = tester.getSemantics(
-        find.widgetWithText(TextButton, "Retour à la carte"),
-      );
-      expect(backNode.label, "Retour à la carte");
-      expect(backNode.flagsCollection.isButton, isTrue);
+    final SemanticsNode backNode = tester.getSemantics(
+      find.widgetWithText(TextButton, "Retour à la carte"),
+    );
+    expect(backNode.label, "Retour à la carte");
+    expect(backNode.flagsCollection.isButton, isTrue);
 
-      handle.dispose();
-    },
-  );
+    handle.dispose();
+  });
 }

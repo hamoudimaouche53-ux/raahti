@@ -32,16 +32,13 @@ Future<ProviderContainer> _pump(
 }
 
 void main() {
-  testWidgets(
-    "shows the AppBar title and both section labels",
-    (tester) async {
-      await _pump(tester);
+  testWidgets("shows the AppBar title and both section labels", (tester) async {
+    await _pump(tester);
 
-      expect(find.text("Langue et thème"), findsOneWidget);
-      expect(find.text("Langue"), findsOneWidget);
-      expect(find.text("Thème"), findsOneWidget);
-    },
-  );
+    expect(find.text("Langue et thème"), findsOneWidget);
+    expect(find.text("Langue"), findsOneWidget);
+    expect(find.text("Thème"), findsOneWidget);
+  });
 
   testWidgets(
     "shows the 3 language options in their own script, not translated",
@@ -73,17 +70,16 @@ void main() {
     },
   );
 
-  testWidgets(
-    "tapping 'العربية' sets localeProvider to Locale('ar')",
-    (tester) async {
-      final ProviderContainer container = await _pump(tester);
+  testWidgets("tapping 'العربية' sets localeProvider to Locale('ar')", (
+    tester,
+  ) async {
+    final ProviderContainer container = await _pump(tester);
 
-      await tester.tap(find.text("العربية"));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text("العربية"));
+    await tester.pumpAndSettle();
 
-      expect(container.read(localeProvider), const Locale("ar"));
-    },
-  );
+    expect(container.read(localeProvider), const Locale("ar"));
+  });
 
   testWidgets(
     "tapping the 'Sombre' segment sets themeModeProvider to ThemeMode.dark",
@@ -107,23 +103,20 @@ void main() {
     expect(find.text("Français"), findsOneWidget);
   });
 
-  testWidgets(
-    "the AppBar back button is a real BackButton, carrying Flutter's "
-    "automatic localized tooltip instead of an unlabeled custom "
-    "IconButton (US-06.4)",
-    (tester) async {
-      await _pump(tester);
+  testWidgets("the AppBar back button is a real BackButton, carrying Flutter's "
+      "automatic localized tooltip instead of an unlabeled custom "
+      "IconButton (US-06.4)", (tester) async {
+    await _pump(tester);
 
-      expect(find.byType(BackButton), findsOneWidget);
-      final Tooltip tooltip = tester.widget<Tooltip>(
-        find
-            .descendant(
-              of: find.byType(BackButton),
-              matching: find.byType(Tooltip),
-            )
-            .first,
-      );
-      expect(tooltip.message, isNotEmpty);
-    },
-  );
+    expect(find.byType(BackButton), findsOneWidget);
+    final Tooltip tooltip = tester.widget<Tooltip>(
+      find
+          .descendant(
+            of: find.byType(BackButton),
+            matching: find.byType(Tooltip),
+          )
+          .first,
+    );
+    expect(tooltip.message, isNotEmpty);
+  });
 }

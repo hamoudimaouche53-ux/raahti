@@ -58,9 +58,7 @@ class _FakePaymentMethodRepository implements PaymentMethodRepository {
   Future<void> deletePaymentMethod(String paymentMethodId) async {}
 
   @override
-  Future<PaymentMethod> setDefaultPaymentMethod(
-    String paymentMethodId,
-  ) async {
+  Future<PaymentMethod> setDefaultPaymentMethod(String paymentMethodId) async {
     return _methods.first;
   }
 }
@@ -70,9 +68,7 @@ void main() {
     test("starts as AsyncData(null)", () {
       final container = ProviderContainer(
         overrides: [
-          paymentRepositoryProvider.overrideWithValue(
-            _FakePaymentRepository(),
-          ),
+          paymentRepositoryProvider.overrideWithValue(_FakePaymentRepository()),
         ],
       );
       addTearDown(container.dispose);
@@ -87,9 +83,7 @@ void main() {
         "success", () async {
       final container = ProviderContainer(
         overrides: [
-          paymentRepositoryProvider.overrideWithValue(
-            _FakePaymentRepository(),
-          ),
+          paymentRepositoryProvider.overrideWithValue(_FakePaymentRepository()),
         ],
       );
       addTearDown(container.dispose);
@@ -177,8 +171,9 @@ void main() {
       expect(result.single.id, "pm-1");
     });
 
-    test("addMethod() appends the newly added method to the current state", (
-      () async {
+    test(
+      "addMethod() appends the newly added method to the current state",
+      (() async {
         final container = ProviderContainer(
           overrides: [
             paymentMethodRepositoryProvider.overrideWithValue(

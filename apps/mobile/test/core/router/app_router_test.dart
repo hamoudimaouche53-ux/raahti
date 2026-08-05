@@ -106,16 +106,17 @@ void main() {
     expect(find.text("Mode Urgence"), findsOneWidget);
   });
 
-  testWidgets("tapping the Profile destination shows the real Profile Home screen", (
-    WidgetTester tester,
-  ) async {
-    await _buildRouter(tester, goTo: AppRoutePaths.slatoki);
+  testWidgets(
+    "tapping the Profile destination shows the real Profile Home screen",
+    (WidgetTester tester) async {
+      await _buildRouter(tester, goTo: AppRoutePaths.slatoki);
 
-    await tester.tap(find.text("Profil"));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text("Profil"));
+      await tester.pumpAndSettle();
 
-    expect(find.byType(ProfileHomeScreen), findsOneWidget);
-  });
+      expect(find.byType(ProfileHomeScreen), findsOneWidget);
+    },
+  );
 
   testWidgets("tapping the compact Qibla Compass card pushes /slatoki/qibla "
       "(US-02.1.2)", (WidgetTester tester) async {

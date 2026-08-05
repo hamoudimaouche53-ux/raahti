@@ -62,19 +62,16 @@ Map<String, dynamic> _cabinJson({
 
 void main() {
   group("StationDetailDto", () {
-    test(
-      "parses successfully with no 'distanceMeters' in the payload "
-      "(regression: real GET /stations/{id} responses never include it; "
-      "found crashing on a real device against the real backend)",
-      () {
-        expect(
-          () => StationDetailDto.fromJson(_baseJson()).toEntity(),
-          returnsNormally,
-        );
-        final entity = StationDetailDto.fromJson(_baseJson()).toEntity();
-        expect(entity.summary.distanceMeters, 0);
-      },
-    );
+    test("parses successfully with no 'distanceMeters' in the payload "
+        "(regression: real GET /stations/{id} responses never include it; "
+        "found crashing on a real device against the real backend)", () {
+      expect(
+        () => StationDetailDto.fromJson(_baseJson()).toEntity(),
+        returnsNormally,
+      );
+      final entity = StationDetailDto.fromJson(_baseJson()).toEntity();
+      expect(entity.summary.distanceMeters, 0);
+    });
 
     test("maps the French-wire 'fixe' configuration value to "
         "StationConfiguration.fixed, not a firstWhere(name==) mismatch", () {

@@ -74,8 +74,9 @@ void main() {
   });
 
   group("PaymentMethodRemoteDataSource.addPaymentMethod", () {
-    test("POSTs the method type and provider token, parses a 201 response", (
-      () async {
+    test(
+      "POSTs the method type and provider token, parses a 201 response",
+      (() async {
         Uri? capturedUri;
         String? capturedBody;
         final client = MockClient((request) async {

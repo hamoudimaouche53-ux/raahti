@@ -36,7 +36,8 @@ class _FakeNearbyPlacesNotifier extends NearbyPlacesNotifier {
 
 /// Never resolves within this diagnostic's hold window — freezes SCR-014
 /// in its `checking` state so it can be screenshotted.
-class _NeverResolvingAccessSessionRepository implements AccessSessionRepository {
+class _NeverResolvingAccessSessionRepository
+    implements AccessSessionRepository {
   const _NeverResolvingAccessSessionRepository();
 
   @override

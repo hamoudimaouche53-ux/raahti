@@ -36,8 +36,7 @@ class SubmitReviewScreen extends ConsumerStatefulWidget {
   final SubmitReviewArgs args;
 
   @override
-  ConsumerState<SubmitReviewScreen> createState() =>
-      _SubmitReviewScreenState();
+  ConsumerState<SubmitReviewScreen> createState() => _SubmitReviewScreenState();
 }
 
 class _SubmitReviewScreenState extends ConsumerState<SubmitReviewScreen> {

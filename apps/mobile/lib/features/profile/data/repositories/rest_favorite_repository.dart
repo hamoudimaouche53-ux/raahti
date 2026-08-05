@@ -55,9 +55,7 @@ class RestFavoriteRepository implements FavoriteRepository {
   ) async {
     switch (placeKind) {
       case PlaceKind.station:
-        final detail = await _placeDetailRepository.getStationDetail(
-          placeId,
-        );
+        final detail = await _placeDetailRepository.getStationDetail(placeId);
         return (
           detail.summary.name.forLanguageCode(languageCode),
           detail.summary.position,

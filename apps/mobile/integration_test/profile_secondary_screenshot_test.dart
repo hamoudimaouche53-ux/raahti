@@ -37,9 +37,7 @@ Future<void> _settle(WidgetTester tester, {int seconds = 2}) async {
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets("Light (FR): SCR-026 Favorites List, populated", (
-    tester,
-  ) async {
+  testWidgets("Light (FR): SCR-026 Favorites List, populated", (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -59,10 +57,7 @@ void main() {
 
     await tester.tap(find.text("Se connecter"));
     await _settle(tester, seconds: 2);
-    await tester.enterText(
-      find.byType(TextField).first,
-      "amina.b@example.com",
-    );
+    await tester.enterText(find.byType(TextField).first, "amina.b@example.com");
     await tester.enterText(find.byType(TextField).last, "password123");
     await tester.tap(find.text("Se connecter").last);
     await _settle(tester, seconds: 2);

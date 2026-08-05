@@ -12,24 +12,27 @@ Map<String, dynamic> _accessSessionJson() => <String, dynamic>{
 
 void main() {
   group("TransactionDto", () {
-    test("parses a full JSON payload, including the embedded accessSession", () {
-      final dto = TransactionDto.fromJson(<String, dynamic>{
-        "id": "txn-1",
-        "amount": <String, dynamic>{"amount": "50", "currency": "DZD"},
-        "discountApplied": null,
-        "status": "captured",
-        "accessSession": _accessSessionJson(),
-      });
+    test(
+      "parses a full JSON payload, including the embedded accessSession",
+      () {
+        final dto = TransactionDto.fromJson(<String, dynamic>{
+          "id": "txn-1",
+          "amount": <String, dynamic>{"amount": "50", "currency": "DZD"},
+          "discountApplied": null,
+          "status": "captured",
+          "accessSession": _accessSessionJson(),
+        });
 
-      final entity = dto.toEntity();
-      expect(entity.id, "txn-1");
-      expect(entity.amount.amount, "50");
-      expect(entity.amount.currency, "DZD");
-      expect(entity.discountApplied, isNull);
-      expect(entity.status, TransactionStatus.captured);
-      expect(entity.providerRef, isNull);
-      expect(dto.accessSession.toEntity().id, "session-1");
-    });
+        final entity = dto.toEntity();
+        expect(entity.id, "txn-1");
+        expect(entity.amount.amount, "50");
+        expect(entity.amount.currency, "DZD");
+        expect(entity.discountApplied, isNull);
+        expect(entity.status, TransactionStatus.captured);
+        expect(entity.providerRef, isNull);
+        expect(dto.accessSession.toEntity().id, "session-1");
+      },
+    );
 
     test("parses a non-null discountApplied as a DiscountRate percentage", () {
       final dto = TransactionDto.fromJson(<String, dynamic>{

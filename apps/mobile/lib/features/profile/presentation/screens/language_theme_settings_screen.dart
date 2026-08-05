@@ -27,12 +27,11 @@ import "../../../../l10n/app_localizations.dart";
 class LanguageThemeSettingsScreen extends ConsumerWidget {
   const LanguageThemeSettingsScreen({super.key});
 
-  static const List<(String languageCode, String label)> _languageOptions =
-      [
-        ("fr", "Français"),
-        ("ar", "العربية"),
-        ("en", "English"),
-      ];
+  static const List<(String languageCode, String label)> _languageOptions = [
+    ("fr", "Français"),
+    ("ar", "العربية"),
+    ("en", "English"),
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,7 +42,8 @@ class LanguageThemeSettingsScreen extends ConsumerWidget {
     // override is set yet — the currently *resolved* locale (device
     // default) is the honest representation of "what's active right now".
     final String selectedLanguageCode =
-        localeOverride?.languageCode ?? Localizations.localeOf(context).languageCode;
+        localeOverride?.languageCode ??
+        Localizations.localeOf(context).languageCode;
 
     return Scaffold(
       appBar: AppBar(
@@ -72,7 +72,9 @@ class LanguageThemeSettingsScreen extends ConsumerWidget {
               groupValue: selectedLanguageCode,
               onChanged: (languageCode) {
                 if (languageCode != null) {
-                  ref.read(localeProvider.notifier).setLocale(Locale(languageCode));
+                  ref
+                      .read(localeProvider.notifier)
+                      .setLocale(Locale(languageCode));
                 }
               },
               child: Column(
@@ -124,8 +126,9 @@ class LanguageThemeSettingsScreen extends ConsumerWidget {
                   ),
                 ],
                 selected: <ThemeMode>{themeMode},
-                onSelectionChanged: (selection) =>
-                    ref.read(themeModeProvider.notifier).setThemeMode(selection.first),
+                onSelectionChanged: (selection) => ref
+                    .read(themeModeProvider.notifier)
+                    .setThemeMode(selection.first),
               ),
             ),
             const SizedBox(height: RahatiSpacing.space6),

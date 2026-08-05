@@ -37,9 +37,7 @@ class RestPaymentMethodRepository implements PaymentMethodRepository {
   }
 
   @override
-  Future<PaymentMethod> setDefaultPaymentMethod(
-    String paymentMethodId,
-  ) async {
+  Future<PaymentMethod> setDefaultPaymentMethod(String paymentMethodId) async {
     throw const PaymentMethodEndpointNotSpecifiedFailure();
   }
 }

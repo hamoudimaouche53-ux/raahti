@@ -70,23 +70,20 @@ void main() {
     }
   });
 
-  test(
-    "a station always matches every filter, regardless of (always-empty) "
-    "tags — mirrors the backend's own rule (SlatokiQueryService.matchesFilter: "
-    "'A RAHETI Slatoki tent always offers both prayer and wudu'). Regression: "
-    "found on a real device against the real backend — a qualifying Station "
-    "the backend correctly returned never appeared under any filter tab, "
-    "because Stations carry no tags at all (ERD §3.5/§3.6) and the old "
-    "implementation didn't special-case placeKind.",
-    () {
-      final SlatokiPlace station = _place(
-        "5",
-        const [],
-        placeKind: PlaceKind.station,
-      );
-      for (final filter in PrayerFacilityFilter.values) {
-        expect(filterSlatokiPlaces([station], filter), [station]);
-      }
-    },
-  );
+  test("a station always matches every filter, regardless of (always-empty) "
+      "tags — mirrors the backend's own rule (SlatokiQueryService.matchesFilter: "
+      "'A RAHETI Slatoki tent always offers both prayer and wudu'). Regression: "
+      "found on a real device against the real backend — a qualifying Station "
+      "the backend correctly returned never appeared under any filter tab, "
+      "because Stations carry no tags at all (ERD §3.5/§3.6) and the old "
+      "implementation didn't special-case placeKind.", () {
+    final SlatokiPlace station = _place(
+      "5",
+      const [],
+      placeKind: PlaceKind.station,
+    );
+    for (final filter in PrayerFacilityFilter.values) {
+      expect(filterSlatokiPlaces([station], filter), [station]);
+    }
+  });
 }

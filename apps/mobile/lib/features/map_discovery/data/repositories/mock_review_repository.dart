@@ -9,7 +9,8 @@ import "../../domain/repositories/review_repository.dart";
 /// perform (list-mine/update/delete) — this mock is the only way to
 /// demonstrate SCR-023 (My Reviews) end-to-end today.
 class MockReviewRepository implements ReviewRepository {
-  MockReviewRepository({List<Review>? seed}) : _reviews = seed ?? _defaultSeed();
+  MockReviewRepository({List<Review>? seed})
+    : _reviews = seed ?? _defaultSeed();
 
   final List<Review> _reviews;
 

@@ -10,10 +10,7 @@ void main() {
     });
 
     test("falls back to fr for an unrecognized value", () {
-      expect(
-        LanguagePreference.fromWireValue("de"),
-        LanguagePreference.fr,
-      );
+      expect(LanguagePreference.fromWireValue("de"), LanguagePreference.fr);
     });
   });
 }

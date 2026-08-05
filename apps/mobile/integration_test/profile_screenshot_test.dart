@@ -53,9 +53,7 @@ Future<void> _navigateToProfileHome(
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets("Light (FR): SCR-020 Profile Home, guest state", (
-    tester,
-  ) async {
+  testWidgets("Light (FR): SCR-020 Profile Home, guest state", (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -101,26 +99,23 @@ void main() {
     },
   );
 
-  testWidgets(
-    "RTL (AR): SCR-030 Sign In / Sign Up, mirrored",
-    (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            themeModeProvider.overrideWith(_LightThemeModeNotifier.new),
-            localeProvider.overrideWith(_ArabicLocaleNotifier.new),
-          ],
-          child: const RahatiApp(),
-        ),
-      );
-      await _navigateToProfileHome(tester, profileTabLabel: "الملف الشخصي");
+  testWidgets("RTL (AR): SCR-030 Sign In / Sign Up, mirrored", (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          themeModeProvider.overrideWith(_LightThemeModeNotifier.new),
+          localeProvider.overrideWith(_ArabicLocaleNotifier.new),
+        ],
+        child: const RahatiApp(),
+      ),
+    );
+    await _navigateToProfileHome(tester, profileTabLabel: "الملف الشخصي");
 
-      await tester.tap(find.text("تسجيل الدخول").first);
-      await _settle(tester, seconds: 2);
+    await tester.tap(find.text("تسجيل الدخول").first);
+    await _settle(tester, seconds: 2);
 
-      // ignore: avoid_print
-      print("HOLD_START");
-      await _settle(tester, seconds: 30);
-    },
-  );
+    // ignore: avoid_print
+    print("HOLD_START");
+    await _settle(tester, seconds: 30);
+  });
 }
