@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { GeoPosition } from '../../../shared-kernel';
+import { GeoPosition, Money } from '../../../shared-kernel';
 import { Station } from '../domain/entities/station.entity';
 import { STATION_REPOSITORY, StationRepository } from '../domain/ports/station.repository';
 import { STATION_REVIEW_REPOSITORY, StationRatingAggregate, StationReviewRepository } from '../domain/ports/station-review.repository';
@@ -41,6 +41,21 @@ export interface StationNearbySearchCriteria {
   query?: string;
   cursor?: string | null;
   limit: number;
+}
+
+export interface StationFleetCabinSummary {
+  id: string;
+  code: string;
+  type: string;
+  occupancyStatus: string;
+  isPaid: boolean;
+  price: Money | null;
+}
+
+export interface StationFleetSummary {
+  stationId: string;
+  status: string;
+  cabins: StationFleetCabinSummary[];
 }
 
 /**
@@ -88,5 +103,28 @@ export class StationQueryService {
       })),
       nextCursor: page.nextCursor,
     };
+  }
+
+  /**
+   * Backing GET /ops/stations (Operations, FR-OPS-01) — the sanctioned
+   * `Ops -> StationNet` edge (module-dependency-diagram.md §3, plain ✔).
+   * Returns a plain projection (not the `Station`/`Cabin` domain entities)
+   * so the consuming module never needs to import station-network/domain —
+   * same pattern as `StationPlaceSearchItem` above.
+   */
+  async listAllForFleetView(): Promise<StationFleetSummary[]> {
+    const stations = await this.stationRepository.findAll();
+    return stations.map((station) => ({
+      stationId: station.id,
+      status: station.status,
+      cabins: station.cabins.map((cabin) => ({
+        id: cabin.id,
+        code: cabin.code,
+        type: cabin.type,
+        occupancyStatus: cabin.occupancyStatus,
+        isPaid: cabin.isPaid,
+        price: cabin.price,
+      })),
+    }));
   }
 }

@@ -4,7 +4,7 @@ function createPrismaMock() {
   return {
     $queryRaw: jest.fn(),
     cabin: { findMany: jest.fn().mockResolvedValue([]) },
-    slatokiTent: { findUnique: jest.fn().mockResolvedValue(null) },
+    slatokiTent: { findUnique: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) },
   } as any;
 }
 
@@ -87,5 +87,41 @@ describe('PrismaStationRepository', () => {
 
     expect(station!.cabins).toHaveLength(0);
     expect(station!.hasSlatokiTent).toBe(false);
+  });
+
+  describe('findAll', () => {
+    it('returns an empty array when there are no stations', async () => {
+      const prisma = createPrismaMock();
+      prisma.$queryRaw.mockResolvedValue([]);
+      const repo = new PrismaStationRepository(prisma);
+
+      expect(await repo.findAll()).toEqual([]);
+    });
+
+    it('batch-loads cabins/tents for every station (no N+1)', async () => {
+      const prisma = createPrismaMock();
+      const otherRow = { ...STATION_ROW, id: 's2', code: 'ST-002' };
+      prisma.$queryRaw.mockResolvedValue([STATION_ROW, otherRow]);
+      prisma.cabin.findMany.mockResolvedValue([
+        { id: 'c1', stationId: 's1', code: 'C-01', type: 'H', occupancyStatus: 'free', isPaid: false, priceAmount: null, priceCurrency: null },
+      ]);
+      prisma.slatokiTent.findMany.mockResolvedValue([
+        { id: 't2', stationId: 's2', deploymentStatus: 'folded', matCapacity: 2, hasLighting: false, hasPrivacyCurtain: false },
+      ]);
+
+      const repo = new PrismaStationRepository(prisma);
+      const stations = await repo.findAll();
+
+      expect(stations).toHaveLength(2);
+      expect(prisma.cabin.findMany).toHaveBeenCalledWith({ where: { stationId: { in: ['s1', 's2'] } } });
+      expect(prisma.slatokiTent.findMany).toHaveBeenCalledWith({ where: { stationId: { in: ['s1', 's2'] } } });
+
+      const stationOne = stations.find((s) => s.id === 's1')!;
+      const stationTwo = stations.find((s) => s.id === 's2')!;
+      expect(stationOne.cabins).toHaveLength(1);
+      expect(stationOne.hasSlatokiTent).toBe(false);
+      expect(stationTwo.cabins).toHaveLength(0);
+      expect(stationTwo.hasSlatokiTent).toBe(true);
+    });
   });
 });

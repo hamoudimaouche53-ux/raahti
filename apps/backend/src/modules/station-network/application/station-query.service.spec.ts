@@ -1,4 +1,5 @@
-import { GeoPosition } from '../../../shared-kernel';
+import { GeoPosition, Money } from '../../../shared-kernel';
+import { Cabin } from '../domain/entities/cabin.entity';
 import { Station } from '../domain/entities/station.entity';
 import { StationRepository } from '../domain/ports/station.repository';
 import { StationReviewRepository } from '../domain/ports/station-review.repository';
@@ -23,7 +24,7 @@ function aStation(id = 's1'): Station {
 }
 
 function createRepoMock(): jest.Mocked<StationRepository> {
-  return { findById: jest.fn(), searchNearby: jest.fn() };
+  return { findById: jest.fn(), searchNearby: jest.fn(), findAll: jest.fn() };
 }
 
 function createReviewRepoMock(): jest.Mocked<StationReviewRepository> {
@@ -105,6 +106,58 @@ describe('StationQueryService', () => {
         },
       ]);
       expect(page.nextCursor).toBe('cursor-1');
+    });
+  });
+
+  describe('listAllForFleetView', () => {
+    it('projects stations/cabins into a plain summary shape (Operations FR-OPS-01)', async () => {
+      const repo = createRepoMock();
+      const cabin = Cabin.restore({
+        id: 'c1',
+        stationId: 's1',
+        code: 'C-01',
+        type: 'F',
+        occupancyStatus: 'occupied',
+        isPaid: true,
+        price: Money.fromDecimalString('50.00', 'DZD'),
+      });
+      repo.findAll.mockResolvedValue([
+        Station.restore({
+          id: 's1',
+          code: 'ST-001',
+          configuration: 'fixe',
+          position: GeoPosition.of(36.75, 3.05),
+          status: 'active',
+          cabinCapacity: 1,
+          tankCapacityLiters: 0,
+          installedAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          cabins: [cabin],
+          slatokiTent: null,
+        }),
+      ]);
+      const service = new StationQueryService(repo, createReviewRepoMock());
+
+      const summaries = await service.listAllForFleetView();
+
+      expect(summaries).toEqual([
+        {
+          stationId: 's1',
+          status: 'active',
+          cabins: [
+            {
+              id: 'c1',
+              code: 'C-01',
+              type: 'F',
+              occupancyStatus: 'occupied',
+              isPaid: true,
+              price: expect.any(Money),
+            },
+          ],
+        },
+      ]);
+      expect(summaries[0].cabins[0].price?.toDecimalString()).toBe('50.00');
     });
   });
 });

@@ -81,6 +81,10 @@ class FakeStationRepository implements StationRepository {
   async searchNearby(): Promise<StationSearchPage> {
     return { data: [], nextCursor: null };
   }
+
+  async findAll(): Promise<Station[]> {
+    return [];
+  }
 }
 
 class FakeThirdPartyPlaceRepository implements ThirdPartyPlaceRepository {

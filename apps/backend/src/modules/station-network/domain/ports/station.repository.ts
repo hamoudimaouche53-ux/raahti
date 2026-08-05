@@ -44,4 +44,7 @@ export interface StationRepository {
 
   /** ST_DWithin nearby search (FR-MAP-01/02/04/05) — lightweight projection, not the full aggregate (no cabin rows fetched per result). */
   searchNearby(criteria: StationSearchCriteria): Promise<StationSearchPage>;
+
+  /** Every station with its cabins, fleet-wide, no filter/pagination — backs Operations FR-OPS-01 via StationQueryService.listAllForFleetView(). */
+  findAll(): Promise<Station[]>;
 }

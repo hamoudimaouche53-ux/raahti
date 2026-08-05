@@ -44,6 +44,9 @@ class FakeStationRepository implements StationRepository {
   async findById() {
     return null;
   }
+  async findAll() {
+    return [];
+  }
   async searchNearby(): Promise<StationSearchPage> {
     return {
       data: [

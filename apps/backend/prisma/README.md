@@ -76,3 +76,70 @@ implicated by Phase 4's query patterns (`station.status`, `cabin.occupancy_statu
 `third_party_place.place_type`, `review.station_id`, `review.third_party_place_id`,
 plus every FK Prisma indexes automatically via `@relation`) are already declared
 directly in `schema.prisma` and need no manual migration step.
+
+## Operations module (`telemetry_reading` partitioning)
+
+[ADR-0013](../../../docs/adr/0013-time-series-storage-strategy.md) specifies
+**native declarative range partitioning** on `telemetry_reading.recorded_at`
+(monthly partitions, managed by `pg_partman` or a `pg_cron` job) — Prisma's
+schema language cannot declare a partitioned table at all, so `schema.prisma`'s
+`TelemetryReading` model is an ordinary (unpartitioned) table for now. The
+first real migration must convert it by hand:
+
+```sql
+-- Recreate telemetry_reading as a partitioned table (ADR-0013). Prisma's
+-- migration engine cannot express PARTITION BY, so this must be authored
+-- directly in the first hand-edited migration, same treatment as the GIST
+-- indexes above.
+-- (Illustrative only — exact DDL depends on whatever `prisma migrate dev`
+-- generates for the initial CREATE TABLE, which this then supersedes.)
+CREATE TABLE telemetry_reading (
+  ...
+) PARTITION BY RANGE (recorded_at);
+
+CREATE TABLE telemetry_reading_2026_08 PARTITION OF telemetry_reading
+  FOR VALUES FROM ('2026-08-01') TO ('2026-09-01');
+-- subsequent months created ahead of need by pg_cron, per ADR-0013.
+```
+
+Until this exists, `telemetry_reading` is a normal table — correct, just not
+partitioned, and irrelevant at the row counts this environment could ever
+produce (see the ingestion gap below).
+
+### Known gaps (flagged, not silently resolved)
+
+- **No ingestion write path.** `TelemetryReadingRepository`
+  (`src/modules/operations/domain/ports/telemetry-reading.repository.ts`) is
+  read-only. Writing rows is Station Network's telemetry Anti-Corruption
+  Layer per the Domain Model §1 context map (`SN -->|ACL| IOT_EXT`), fed by
+  the IoT Platform — Master Roadmap Phase 9, entirely out of scope for every
+  pass so far (not merely deferred like Access & Payment/Emergency/
+  Sponsorship/Analytics). `telemetry_reading` is therefore expected to stay
+  empty, and `GET /ops/stations`'s `batteryLevel`/`waterLevel` and
+  `GET /ops/stations/{id}/occupancy-history` will correctly return
+  null/empty until Phase 9 exists. The query logic itself is real and
+  covered by unit tests against a mocked Prisma client — same treatment as
+  Facilities' PostGIS queries, which also have no live database to run
+  against (ADR-0016 hosting still Proposed).
+- **No bounded-context owner in `domain-model.md`.** None of the documented
+  10 bounded contexts list `TelemetryReading` as an owned entity — a real
+  gap, distinct from (but same category as) the Review/Favorite gap already
+  noted in Phase 4 Implementation Plan §12. Modeled under Operations because
+  its only documented consumer endpoint (`GET /ops/stations/{id}/occupancy-history`)
+  is tagged `Operations` and ADR-0013 ties it directly to FR-OPS-04.
+- **`site_scope`-based filtering is not implemented.** `GET /ops/stations`'s
+  openapi.yaml description says "scoped by site_scope", and ERD §3.7 defines
+  `user_role.site_scope`, but no ERD entity or `schema.prisma` model defines
+  a `Site` concept or a `station.site_id`/`site` column for that scope to
+  filter against — `site_scope` is a free-form string with no documented
+  station-side counterpart. `SiteScopeGuard` (identity module) only compares
+  against a literal `:siteId` route parameter, which none of the `/ops/*`
+  routes have, so it is a structural no-op here. `GET /ops/stations` and
+  `GET /ops/alerts` therefore return the full, unscoped fleet/alert set.
+  Flagged rather than inventing a `Site` entity not in the ERD.
+- **FR-OPS-05 (role/site-scope administration) needed no new endpoint.**
+  Neither `docs/api/openapi.yaml`'s `Operations` tag nor any other tag
+  defines a role-management route. FR-OPS-05 is already satisfied by
+  Identity Pass 1's `Role`/`UserRole` entities and its globally-wired
+  `RolesGuard`/`SiteScopeGuard` — same "needed no new work" treatment
+  Slatoki's FR-SLK-05 got from the already-shipped Facilities module.

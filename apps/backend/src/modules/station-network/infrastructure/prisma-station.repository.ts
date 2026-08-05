@@ -106,6 +106,66 @@ export class PrismaStationRepository implements StationRepository {
   }
 
   /**
+   * Fleet-wide listing (Operations FR-OPS-01) — every station regardless of
+   * status, with its cabins. Cabins/tents are batch-loaded (2 extra queries
+   * total, not N+1) the same way `findById` avoids fanning out per station.
+   */
+  async findAll(): Promise<Station[]> {
+    const rows = await this.prisma.$queryRaw<StationRow[]>`
+      SELECT id, code, configuration, status, cabin_capacity, tank_capacity_liters,
+             installed_at, created_at, updated_at,
+             ST_Y(position::geometry) AS lat, ST_X(position::geometry) AS lng
+      FROM station
+    `;
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const stationIds = rows.map((row) => row.id);
+    const [cabinRecords, tentRecords] = await Promise.all([
+      this.prisma.cabin.findMany({ where: { stationId: { in: stationIds } } }),
+      this.prisma.slatokiTent.findMany({ where: { stationId: { in: stationIds } } }),
+    ]);
+
+    const cabinsByStation = new Map<string, typeof cabinRecords>();
+    for (const cabin of cabinRecords) {
+      const list = cabinsByStation.get(cabin.stationId) ?? [];
+      list.push(cabin);
+      cabinsByStation.set(cabin.stationId, list);
+    }
+    const tentByStation = new Map(tentRecords.map((tent) => [tent.stationId, tent]));
+
+    return rows.map((row) => {
+      assertStationConfiguration(row.configuration);
+      assertStationStatus(row.status);
+      const tentRecord = tentByStation.get(row.id);
+      return Station.restore({
+        id: row.id,
+        code: row.code,
+        configuration: row.configuration,
+        position: GeoPosition.of(row.lat, row.lng),
+        status: row.status,
+        cabinCapacity: row.cabin_capacity,
+        tankCapacityLiters: row.tank_capacity_liters,
+        installedAt: row.installed_at,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        cabins: (cabinsByStation.get(row.id) ?? []).map((record) => this.cabinToDomain(record)),
+        slatokiTent: tentRecord
+          ? SlatokiTent.restore({
+              id: tentRecord.id,
+              stationId: tentRecord.stationId,
+              deploymentStatus: tentRecord.deploymentStatus,
+              matCapacity: tentRecord.matCapacity,
+              hasLighting: tentRecord.hasLighting,
+              hasPrivacyCurtain: tentRecord.hasPrivacyCurtain,
+            })
+          : null,
+      });
+    });
+  }
+
+  /**
    * ST_DWithin nearby search (FR-MAP-01/02/04/05). Only `active` stations are
    * discoverable (a station under maintenance/inactive shouldn't appear as an
    * available option — inferred from FR-PLC-02's real-time-status intent, not

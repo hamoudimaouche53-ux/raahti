@@ -196,6 +196,15 @@ model Station {
   cabins      Cabin[]
   slatokiTent SlatokiTent?
 
+  /// Sanctioned Operations read dependency (module-dependency-diagram.md §3:
+  /// `Ops -> StationNet` plain ✔). ERD §4 relationship table: Station -> Alert
+  /// and Station -> MaintenanceIntervention are both 1:N RESTRICT ("preserve
+  /// audit trail") — a Station with recorded alerts/interventions cannot be
+  /// deleted. Same sanctioned-edge treatment as Notification.user (Notif -> Identity).
+  alerts                   Alert[]
+  maintenanceInterventions MaintenanceIntervention[]
+  telemetryReadings        TelemetryReading[]
+
   /// ERD §5 "idx_station_status" — searchNearby (Facilities Pass 3) filters
   /// on status = 'active'; also supports FR-OPS-01 fleet filtering.
   @@index([status])
@@ -215,6 +224,9 @@ model Cabin {
   lastStatusChangeAt DateTime?       @map("last_status_change_at")
 
   station Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+
+  /// Sanctioned Operations read dependency, same as Station.telemetryReadings.
+  telemetryReadings TelemetryReading[]
 
   @@unique([stationId, code])
   /// ERD §5 "idx_cabin_occupancy_status" — FR-PLC-02 real-time availability lookups.
@@ -397,4 +409,123 @@ enum NotificationStatus {
   sent
   delivered
   failed
+}
+
+// --- Operations bounded context (docs/architecture/domain-model.md §10) ---
+
+/// ERD §3.11 — aggregate root. `type` mirrors FR-OPS-02's priority order.
+/// `onDelete: Restrict` on `station` — ERD §4 "RESTRICT (preserve audit trail)".
+model Alert {
+  id             String        @id @default(uuid()) @db.Uuid
+  stationId      String        @map("station_id") @db.Uuid
+  type           AlertType
+  severity       AlertSeverity
+  status         AlertStatus   @default(open)
+  acknowledgedBy String?       @map("acknowledged_by") @db.Uuid
+  raisedAt       DateTime      @default(now()) @map("raised_at")
+  resolvedAt     DateTime?     @map("resolved_at")
+
+  station       Station                   @relation(fields: [stationId], references: [id], onDelete: Restrict)
+  interventions MaintenanceIntervention[]
+
+  /// ERD §5 "idx_alert_station_status" / "idx_alert_severity_status" — the
+  /// prioritized queue (FR-OPS-02) filters by status and sorts by severity.
+  @@index([stationId, status])
+  @@index([severity, status])
+  @@map("alert")
+}
+
+/// ERD §3.12 [NEW] — separate aggregate from Alert (Domain Model §10),
+/// optionally linked to the Alert that triggered it; may also be scheduled
+/// preventively with no triggering alert. `onDelete: Restrict` on `station`
+/// — ERD §4 "RESTRICT".
+model MaintenanceIntervention {
+  id               String             @id @default(uuid()) @db.Uuid
+  stationId        String             @map("station_id") @db.Uuid
+  alertId          String?            @map("alert_id") @db.Uuid
+  interventionType InterventionType   @map("intervention_type")
+  status           InterventionStatus @default(scheduled)
+  assignedTo       String             @map("assigned_to") @db.Uuid
+  scheduledAt      DateTime           @map("scheduled_at")
+  completedAt      DateTime?          @map("completed_at")
+
+  station Station @relation(fields: [stationId], references: [id], onDelete: Restrict)
+  alert   Alert?  @relation(fields: [alertId], references: [id])
+
+  @@index([stationId])
+  @@map("maintenance_intervention")
+}
+
+/// ERD §3.13 [NEW] — supports FR-CLD-01/8 (capteurs) and, via its `occupancy`
+/// metric, FR-OPS-04's per-station history. NOT explicitly assigned to a
+/// bounded context in domain-model.md's 10 contexts (flagged documentation
+/// gap — same treatment as Review/Favorite's Phase-0-vs-ERD gap noted in
+/// Phase 4 Implementation Plan §12). Modeled here because its only documented
+/// consumer endpoint (`GET /ops/stations/{id}/occupancy-history`) is tagged
+/// Operations; ADR-0013 ties it directly to FR-OPS-04. Read-only in this
+/// pass — see domain/ports/telemetry-reading.repository.ts for why no write
+/// path exists yet. ADR-0013's native declarative range partitioning
+/// (monthly, on `recorded_at`) is not expressible in Prisma's schema
+/// language — documented in prisma/README.md for the first real migration,
+/// same treatment as the GIST spatial indexes.
+model TelemetryReading {
+  id         String           @id @default(uuid()) @db.Uuid
+  stationId  String           @map("station_id") @db.Uuid
+  /// Nullable — ERD §3.13: "station-level readings have no cabin". The
+  /// `occupancy` metric (FR-OPS-04 series) is always station-level (null) —
+  /// see the port doc comment for why a per-cabin fan-out isn't modeled here.
+  cabinId    String?          @map("cabin_id") @db.Uuid
+  metric     TelemetryMetric
+  value      Decimal          @db.Decimal(10, 2)
+  recordedAt DateTime         @map("recorded_at")
+
+  station Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  cabin   Cabin?  @relation(fields: [cabinId], references: [id], onDelete: Cascade)
+
+  /// Composite index (station_id, recorded_at) — ADR-0013's stated query-performance
+  /// mechanism for time-bounded reads, alongside partition pruning once partitioned.
+  @@index([stationId, metric, recordedAt])
+  @@map("telemetry_reading")
+}
+
+enum AlertType {
+  fire
+  sos
+  technical_anomaly
+  preventive_maintenance
+}
+
+enum AlertSeverity {
+  critical
+  high
+  medium
+  low
+}
+
+enum AlertStatus {
+  open
+  acknowledged
+  in_progress
+  resolved
+}
+
+enum InterventionType {
+  refill
+  emptying
+  repair
+  preventive
+}
+
+enum InterventionStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+}
+
+enum TelemetryMetric {
+  battery_level
+  water_level
+  door_sensor
+  occupancy
 }

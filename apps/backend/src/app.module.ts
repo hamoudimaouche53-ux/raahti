@@ -6,6 +6,7 @@ import { ThirdPartyPlacesModule } from './modules/third-party-places/third-party
 import { PlacesModule } from './composition/places/places.module';
 import { SlatokiModule } from './modules/slatoki/slatoki.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { OperationsModule } from './modules/operations/operations.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     PlacesModule,
     SlatokiModule,
     NotificationsModule,
+    OperationsModule,
   ],
 })
 export class AppModule {}

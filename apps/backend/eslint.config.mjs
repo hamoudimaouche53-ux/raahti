@@ -134,6 +134,37 @@ export default [
               message: 'No module may depend on notifications/ — it has no sanctioned incoming edges (module-dependency-diagram.md §3).',
             },
             {
+              // Operations (module-dependency-diagram.md §3: `Ops -> StationNet`
+              // plain ✔) may depend only on Station Network's exported
+              // *QueryService (application/) — never its domain/infrastructure/
+              // interface layers.
+              target: './src/modules/operations',
+              from: [
+                './src/modules/station-network/domain',
+                './src/modules/station-network/infrastructure',
+                './src/modules/station-network/interface',
+              ],
+              message:
+                "Operations may only depend on Station Network's exported *QueryService (application/) — see module-dependency-diagram.md §3.",
+            },
+            {
+              // The matrix grants Operations no incoming edges from any module
+              // built so far (Analytics -> Ops is the only sanctioned inbound
+              // edge, and AnalyticsModule doesn't exist yet — out of scope for
+              // this pass per Phase 4 Implementation Plan §6).
+              target: [
+                './src/modules/identity',
+                './src/modules/station-network',
+                './src/modules/third-party-places',
+                './src/modules/slatoki',
+                './src/modules/notifications',
+                './src/composition',
+              ],
+              from: ['./src/modules/operations'],
+              message:
+                'No module may depend on operations/ — its only sanctioned incoming edge (Analytics) is out of scope for this pass (module-dependency-diagram.md §3).',
+            },
+            {
               // Places composition layer (ADR-0029) may depend ONLY on each Facilities
               // module's exported *QueryService (application/) — never their domain/,
               // infrastructure/, or interface/ layers directly.
