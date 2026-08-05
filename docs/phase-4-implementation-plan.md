@@ -156,3 +156,29 @@ OpenAPI: added `isRead`/`readAt` to the `Notification` schema (per the confirmed
 Tests: 235 unit tests (up from 186) + 47 e2e tests (up from 41). `tsc`/build/lint clean (0 errors, pre-existing `no-explicit-any` warnings only).
 
 **Notifications module: code/design complete, verified, documented. Ready to commit.**
+
+## 15. Status Update — Operations (2026-08-05)
+
+Final module of this pass's confirmed 6-item implementation order (§6). Implemented `Alert`/`MaintenanceIntervention` (own aggregates, Domain Model §10), fleet-wide station view (FR-OPS-01), and telemetry-backed occupancy history (FR-OPS-04, ADR-0013) against `docs/api/openapi.yaml`'s `Operations` tag exactly (`GET`/`PATCH /ops/alerts*`, `GET`/`POST /ops/maintenance-interventions`, `GET /ops/stations`, `GET /ops/stations/{id}/occupancy-history`). FR-OPS-05 needed no new endpoint at all — already satisfied by Identity Pass 1's `Role`/`UserRole` entities and globally-wired `RolesGuard`/`SiteScopeGuard` (same "needed no new work" precedent as Slatoki's FR-SLK-05).
+
+Extended `StationNetworkModule` (not a new architecture decision — the sanctioned `Ops -> StationNet` edge, module-dependency-diagram.md §3, plain ✔) with `StationRepository.findAll()` and `StationQueryService.listAllForFleetView()`, returning a plain projection (not the `Station`/`Cabin` domain entities) so Operations never imports station-network/domain — same pattern `StationPlaceSearchItem` already established for Slatoki.
+
+Three real gaps were found and flagged (not silently resolved), consistent with every prior module's treatment of a documentation gap:
+
+- **`site_scope`-based filtering cannot be implemented.** `GET /ops/stations`'s openapi.yaml description says "scoped by site_scope," and ERD §3.7 defines `user_role.site_scope`, but no ERD entity or `schema.prisma` model defines a `Site` concept or a `station.site_id`/`site` column for that scope to filter against. `SiteScopeGuard` (identity module) only compares against a literal `:siteId` route parameter, which none of the `/ops/*` routes have. `GET /ops/stations` and `GET /ops/alerts` return the full, unscoped fleet/alert set — flagged rather than inventing a `Site` entity not in the ERD. Resolving this needs a Site/multi-tenancy design decision outside this pass's scope.
+- **`telemetry_reading` has no bounded-context owner in `domain-model.md`** (none of the 10 documented contexts list it as an owned entity) **and no ingestion write path exists.** Modeled under Operations because its only documented consumer endpoint (`GET /ops/stations/{id}/occupancy-history`) is tagged `Operations` and ADR-0013 ties it directly to FR-OPS-04. Ingestion is Station Network's telemetry Anti-Corruption Layer per the Domain Model §1 context map, fed by the IoT Platform — Master Roadmap Phase 9, entirely out of scope (not merely deferred, unlike Access & Payment/Emergency/Sponsorship/Analytics). The read-side query and schema are real and unit-tested against a mocked Prisma client; the table itself will stay empty until Phase 9, same treatment as Facilities' PostGIS queries validated with no live database.
+- **ADR-0013's native declarative range partitioning isn't expressible in Prisma's schema language** — documented in `apps/backend/prisma/README.md` for the first real migration, same treatment as the existing GIST spatial indexes.
+
+Two judgment calls (same treatment as every prior module's flagged, evidence-grounded decisions):
+- **Alert/MaintenanceIntervention status-transition graphs**: neither the ERD, `domain-model.md`, nor `openapi.yaml` specify the full transition graph beyond the enum values and `AlertUpdateRequest`'s allowed targets. Alert requires acknowledgement before any further transition (`open -> acknowledged -> {in_progress, resolved}`); MaintenanceIntervention allows `scheduled/in_progress -> cancelled` alongside the natural `scheduled -> in_progress -> completed` path. Both flagged inline in the entity source.
+- **`MaintenanceInterventionCreateRequest.assignedTo`** is optional in openapi.yaml but NOT NULL in ERD §3.12 — reconciled by defaulting to the scheduling operator (JWT `sub`) when omitted, rather than relaxing the DB constraint or inventing a new nullable-assignee concept.
+
+Tests: 277 unit tests (up from 235, includes 2 new `station-network` tests for `findAll`/`listAllForFleetView`) + 61 e2e tests (up from 47). `tsc`/build/lint clean (0 errors, pre-existing `no-explicit-any` warnings only).
+
+**Operations module: code/design complete, verified, documented. Committed (`472d77e`).**
+
+## 16. Phase 4 Completion
+
+All 6 items of this pass's confirmed implementation order (§6) are now complete: Identity (Authentication, Users/Profiles/Favorites), Station Network + Third-Party Places (Facilities), Slatoki, Notifications, and Operations. `access-payment`, `emergency`, `sponsorship`, `analytics` remain scaffold-only, exactly as scoped in §6 — out of scope for this pass, not silently dropped.
+
+**Phase 4 Implementation Plan: COMPLETE per this document's own confirmed scope.** See `docs/phase-4-completion-report.md` for the full completion report, architecture summary, and recommended next phase.
