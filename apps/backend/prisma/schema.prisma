@@ -1,0 +1,77 @@
+// RAHATI API Backend — Prisma schema.
+// Canonical, generated-from, single definition of the relational schema, kept in
+// 1:1 correspondence with the ERD (docs/erd/erd.md) per System Architecture §7.
+// Built incrementally, module by module (Phase 4 Implementation Plan §7) — only
+// entities needed by modules implemented so far are present.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Identity & Access bounded context (docs/architecture/domain-model.md §2) ---
+
+/// ERD §3.7 — lookup table for the 4 fixed RBAC roles. Seeded, not user-editable via API.
+model Role {
+  id    String @id @default(uuid()) @db.Uuid
+  code  String @unique // usager | operateur | sponsor | admin
+  labelFr String @map("label_fr")
+  labelAr String @map("label_ar")
+
+  userRoles UserRole[]
+
+  @@map("role")
+}
+
+/// ERD §3.6 — aggregate root of the Identity & Access bounded context (Domain Model §2).
+/// Guest usage (no account) is represented by the absence of a User row entirely, per
+/// FR-USR-01 — this table only ever holds account-holding users.
+model User {
+  id                       String                 @id @default(uuid()) @db.Uuid
+  email                    String?                @unique
+  phone                    String?                @unique
+  preferredLanguage        PreferredLanguage      @default(fr) @map("preferred_language")
+  diabeticVerificationStatus DiabeticVerificationStatus @default(none) @map("diabetic_verified_status")
+  isActive                 Boolean                @default(true) @map("is_active")
+  createdAt                DateTime               @default(now()) @map("created_at")
+  updatedAt                DateTime               @updatedAt @map("updated_at")
+
+  roles                    UserRole[]
+
+  @@map("user_account")
+}
+
+/// ERD §3.7 — grants a Role to a User, optionally scoped to a site (multi-site operateur, §4).
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  siteScope String?  @map("site_scope")
+  grantedAt DateTime @default(now()) @map("granted_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId, siteScope])
+  @@map("user_role")
+}
+
+// VerificationDocument, PaymentMethod, Favorite (ERD §3.9, §3.16) are Identity
+// Pass 2 (users/profiles/favorites, Phase 4 Implementation Plan §6 item 2) —
+// intentionally not modeled yet, per the one-module/pass-at-a-time rule.
+
+enum PreferredLanguage {
+  fr
+  ar
+}
+
+enum DiabeticVerificationStatus {
+  none
+  pending
+  verified
+  rejected
+}
