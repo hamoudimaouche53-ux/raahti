@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-build-only (android/app/src/debug/, never merged into the release
+  variant): permits plain HTTP to the local-loopback addresses a physical
+  device reaches via `adb reverse`, or an emulator reaches via its host
+  alias, when running the backend/Supabase stack locally for release
+  validation (docs/phase-5-release-validation-report.md). Android blocks
+  cleartext traffic app-wide by default once targetSdkVersion >= 28
+  (this app's targetSdk, via flutter.targetSdkVersion, is well above that).
+  Production API endpoints (AppEnv.apiBaseUrl/supabaseUrl) are always
+  HTTPS and are never covered by this exemption.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>

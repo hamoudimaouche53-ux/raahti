@@ -41,7 +41,19 @@ class PlaceDto {
         latitude: (coordinates[1] as num).toDouble(),
       ),
       pinColor: json["pinColor"] as String,
-      distanceMeters: (json["distanceMeters"] as num).toDouble(),
+      // Absent on `StationDetail`/`ThirdPartyPlaceDetail` responses (`GET
+      // /stations/{id}`, `GET /third-party-places/{id}`) — there is no
+      // search origin for a by-id detail lookup, unlike `GET /places/nearby`
+      // and `GET /slatoki/places`, which always compute a real one. Found on
+      // a real device against the real backend (Release Validation,
+      // docs/phase-5-release-validation-report.md): the detail sheet's
+      // lazy detail fetch threw here and surfaced as a generic "Impossible
+      // de charger les détails de ce lieu." error. The distance shown in
+      // the sheet's header always comes from the already-known search-result
+      // `Place` passed into `PlaceDetailSheet`, never from this embedded
+      // summary (see `PlaceDetailSheet`'s own `place.distanceMeters` usage),
+      // so defaulting to 0 here is inert, not a displayed value.
+      distanceMeters: (json["distanceMeters"] as num?)?.toDouble() ?? 0,
       averageRating: (json["averageRating"] as num?)?.toDouble(),
       reviewCount: json["reviewCount"] as int,
       isFree: json["isFree"] as bool,

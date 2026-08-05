@@ -16,7 +16,8 @@ Map<String, dynamic> _json({
     "coordinates": [3.06, 36.75],
   },
   "pinColor": "green",
-  "distanceMeters": 100.0,
+  // No "distanceMeters" — GET /third-party-places/{id} never includes it,
+  // same reasoning as station_detail_dto_test.dart's fixture.
   "averageRating": null,
   "reviewCount": 0,
   "isFree": true,
@@ -28,6 +29,17 @@ Map<String, dynamic> _json({
 
 void main() {
   group("ThirdPartyPlaceDetailDto", () {
+    test(
+      "parses successfully with no 'distanceMeters' in the payload "
+      "(regression: real GET /third-party-places/{id} responses never "
+      "include it; found crashing on a real device against the real backend)",
+      () {
+        expect(() => ThirdPartyPlaceDetailDto.fromJson(_json()).toEntity(), returnsNormally);
+        final entity = ThirdPartyPlaceDetailDto.fromJson(_json()).toEntity();
+        expect(entity.summary.distanceMeters, 0);
+      },
+    );
+
     test("maps the snake_case wire value 'gas_station' to "
         "ThirdPartyPlaceType.gasStation", () {
       final entity = ThirdPartyPlaceDetailDto.fromJson(

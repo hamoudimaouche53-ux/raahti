@@ -19,7 +19,11 @@ Map<String, dynamic> _baseJson({
     "coordinates": [3.06, 36.75],
   },
   "pinColor": "amber",
-  "distanceMeters": 100.0,
+  // No "distanceMeters" — GET /stations/{id} never includes it (there is no
+  // search origin for a by-id lookup, unlike /places/nearby), confirmed
+  // against the real backend during Release Validation
+  // (docs/phase-5-release-validation-report.md). Deliberately omitted here
+  // to match the real response shape, not oversight.
   "averageRating": null,
   "reviewCount": 0,
   "isFree": false,
@@ -58,6 +62,20 @@ Map<String, dynamic> _cabinJson({
 
 void main() {
   group("StationDetailDto", () {
+    test(
+      "parses successfully with no 'distanceMeters' in the payload "
+      "(regression: real GET /stations/{id} responses never include it; "
+      "found crashing on a real device against the real backend)",
+      () {
+        expect(
+          () => StationDetailDto.fromJson(_baseJson()).toEntity(),
+          returnsNormally,
+        );
+        final entity = StationDetailDto.fromJson(_baseJson()).toEntity();
+        expect(entity.summary.distanceMeters, 0);
+      },
+    );
+
     test("maps the French-wire 'fixe' configuration value to "
         "StationConfiguration.fixed, not a firstWhere(name==) mismatch", () {
       final entity = StationDetailDto.fromJson(

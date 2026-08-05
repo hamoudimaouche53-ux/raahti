@@ -58,6 +58,18 @@ void main() {
       expect(dto.averageRating, isNull);
       expect(dto.tags, isEmpty);
     });
+
+    test(
+      "defaults distanceMeters to 0 rather than throwing when absent "
+      "(regression: StationDetail/ThirdPartyPlaceDetail responses never "
+      "include it — Release Validation, found on a real device against "
+      "the real backend)",
+      () {
+        final json = _stationJson(en: "x")..remove("distanceMeters");
+        final dto = PlaceDto.fromJson(json);
+        expect(dto.distanceMeters, 0);
+      },
+    );
   });
 
   group("PlaceDto.toEntity", () {
