@@ -61,6 +61,7 @@ ADRs record decisions that **operationalize** RAH-DOC-005's indicative architect
 | ID | Title | Status |
 |---|---|---|
 | [0028](./0028-user-provisioning-strategy.md) | User Provisioning Strategy — JIT via Supabase `sub` as Primary Key | Accepted |
+| [0029](./0029-places-query-composition.md) | Places Query Composition — Read-Only Cross-Context Aggregation for Unified Discovery Endpoints | Accepted |
 
 ## New ADRs
 Copy [`template.md`](./template.md), number sequentially, and add a row above.
@@ -68,4 +69,4 @@ Copy [`template.md`](./template.md), number sequentially, and add a row above.
 ## Completion Status
 ✅ Complete for Phase 0, Phase 1, Phase 2, and Phase 3 through **EPIC-01 and EPIC-02 in full**, plus EPIC-04 in progress (0026 pre-implementation review decisions, 0027 QR-scanning package for US-04.1); Phase 4 (Backend) in progress (0028 user provisioning strategy). Remaining open items: hosting provider final selection (0016), web component library for M3 parity on dashboards (Phase 2 execution), payment provider and diabetic-verification mechanism (both intentionally deferred pending external decisions — see Risk Register), brand typography/logo assets (blocker, see Phase 3 implementation log).
 
-**28 ADRs total — 26 Accepted, 2 intentionally Proposed pending external business/vendor decisions.**
+**29 ADRs total — 27 Accepted, 2 intentionally Proposed pending external business/vendor decisions.**

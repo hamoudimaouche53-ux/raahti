@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedExceptio
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { JWT_VERIFIER, JwtVerifier } from '../../infrastructure/auth/jwt-verifier.port';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { IS_PUBLIC_KEY } from '../../../../platform/auth';
 
 /**
  * AuthN gate (Security Architecture §1). Public routes (`@Public()`, mirrors

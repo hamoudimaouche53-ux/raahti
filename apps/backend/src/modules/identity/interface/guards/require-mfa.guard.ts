@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtClaims } from '../../infrastructure/auth/jwt-claims';
-import { REQUIRE_MFA_KEY } from '../decorators/require-mfa.decorator';
+import { REQUIRE_MFA_KEY } from '../../../../platform/auth';
 
 const MFA_VERIFIED_ASSURANCE_LEVEL = 'aal2';
 

@@ -1,9 +1,12 @@
+import { AuthenticatedPrincipal } from '../../../../platform/auth';
 import { RoleCode } from '../../domain/value-objects/role-code.vo';
 
 /**
  * Shape of a verified Supabase Auth JWT payload, as consumed by the API Backend's
  * guards (security-architecture.md §1–2, ADR-0009). `role`/`site_scope` are the
  * custom claims set at role-grant time via a Supabase Auth hook/Edge Function.
+ * Refines platform/'s cross-cutting `AuthenticatedPrincipal` contract with
+ * identity/'s own branded `RoleCode` type for internal (guard/repository) use.
  *
  * KNOWN INTEGRATION RISK (flagged, not silently resolved): Supabase reserves a
  * top-level `role` claim for its own Postgres role (typically "authenticated"),
@@ -12,14 +15,6 @@ import { RoleCode } from '../../domain/value-objects/role-code.vo';
  * configured (no backend has ever been deployed — Phase 4 Implementation Plan
  * context) — implemented literally per the docs for now.
  */
-export interface JwtClaims {
-  sub: string;
-  email?: string;
-  phone?: string;
+export interface JwtClaims extends Omit<AuthenticatedPrincipal, 'role'> {
   role?: RoleCode;
-  site_scope?: string;
-  /** Authentication assurance level — Supabase sets "aal2" once MFA/TOTP is verified. */
-  aal?: string;
-  exp: number;
-  iat: number;
 }

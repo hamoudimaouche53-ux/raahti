@@ -1,8 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { VerificationDocumentService } from '../../application/verification-document.service';
-import { JwtClaims } from '../../infrastructure/auth/jwt-claims';
-import { CurrentUser } from '../decorators/current-user.decorator';
+import { AuthenticatedPrincipal, CurrentUser } from '../../../../platform/auth';
 import { VerificationDocumentCreateRequestDto, VerificationDocumentResponseDto } from '../dto/verification-document.dto';
 
 /** POST /users/me/verification-documents — openapi.yaml tag Identity (FR-USR-03). */
@@ -15,10 +14,10 @@ export class VerificationDocumentsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async submit(
-    @CurrentUser() claims: JwtClaims,
+    @CurrentUser() principal: AuthenticatedPrincipal,
     @Body() body: VerificationDocumentCreateRequestDto,
   ): Promise<VerificationDocumentResponseDto> {
-    const document = await this.verificationDocumentService.submit(claims.sub, body);
+    const document = await this.verificationDocumentService.submit(principal.sub, body);
     return VerificationDocumentResponseDto.fromDomain(document);
   }
 }

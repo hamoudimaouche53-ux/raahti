@@ -74,6 +74,34 @@ export default [
               message:
                 "No cross-module repository/domain access — depend on the other module's exported application service only.",
             },
+            {
+              // No module may import identity/ directly — the module-dependency-diagram.md §3
+              // matrix grants no module a sanctioned dependency on IdentityModule. Cross-cutting
+              // AuthN/AuthZ decorators/types (@Public, @Roles, @CurrentUser, AuthenticatedPrincipal)
+              // live in platform/auth/ specifically so every module CAN use them without this
+              // violation — caught the hard way once already (Facilities module, Phase 4).
+              target: ['./src/modules/station-network', './src/modules/third-party-places'],
+              from: ['./src/modules/identity'],
+              message:
+                'No module may import identity/ directly — use platform/auth/ for AuthN/AuthZ decorators and types.',
+            },
+            {
+              // Places composition layer (ADR-0029) may depend ONLY on each Facilities
+              // module's exported *QueryService (application/) — never their domain/,
+              // infrastructure/, or interface/ layers directly.
+              target: './src/composition',
+              from: [
+                './src/modules/station-network/domain',
+                './src/modules/station-network/infrastructure',
+                './src/modules/station-network/interface',
+                './src/modules/third-party-places/domain',
+                './src/modules/third-party-places/infrastructure',
+                './src/modules/third-party-places/interface',
+                './src/modules/identity',
+              ],
+              message:
+                'composition/ may only depend on a Facilities module\'s exported *QueryService (application/) — see ADR-0029.',
+            },
           ],
         },
       ],

@@ -1,9 +1,9 @@
-import { JwtClaims } from '../modules/identity/infrastructure/auth/jwt-claims';
+import { AuthenticatedPrincipal } from '../platform/auth';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: JwtClaims;
+      user?: AuthenticatedPrincipal;
     }
   }
 }

@@ -1,8 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { FavoriteService } from '../../application/favorite.service';
-import { JwtClaims } from '../../infrastructure/auth/jwt-claims';
-import { CurrentUser } from '../decorators/current-user.decorator';
+import { AuthenticatedPrincipal, CurrentUser } from '../../../../platform/auth';
 import { FavoriteCreateRequestDto, FavoriteListResponseDto, FavoriteResponseDto } from '../dto/favorite.dto';
 import { FavoriteListQueryDto } from '../dto/favorite-list-query.dto';
 
@@ -14,8 +13,11 @@ export class FavoritesController {
   constructor(private readonly favoriteService: FavoriteService) {}
 
   @Get()
-  async list(@CurrentUser() claims: JwtClaims, @Query() query: FavoriteListQueryDto): Promise<FavoriteListResponseDto> {
-    const page = await this.favoriteService.list(claims.sub, query.cursor ?? null, query.limit);
+  async list(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Query() query: FavoriteListQueryDto,
+  ): Promise<FavoriteListResponseDto> {
+    const page = await this.favoriteService.list(principal.sub, query.cursor ?? null, query.limit);
     return {
       data: page.data.map((favorite) => FavoriteResponseDto.fromDomain(favorite)),
       nextCursor: page.nextCursor,
@@ -24,8 +26,11 @@ export class FavoritesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@CurrentUser() claims: JwtClaims, @Body() body: FavoriteCreateRequestDto): Promise<FavoriteResponseDto> {
-    const favorite = await this.favoriteService.create(claims.sub, body);
+  async create(
+    @CurrentUser() principal: AuthenticatedPrincipal,
+    @Body() body: FavoriteCreateRequestDto,
+  ): Promise<FavoriteResponseDto> {
+    const favorite = await this.favoriteService.create(principal.sub, body);
     return FavoriteResponseDto.fromDomain(favorite);
   }
 }

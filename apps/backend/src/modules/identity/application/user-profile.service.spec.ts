@@ -1,7 +1,7 @@
 import { LanguagePreference } from '../../../shared-kernel';
+import { AuthenticatedPrincipal } from '../../../platform/auth';
 import { User } from '../domain/entities/user.entity';
 import { UserRepository } from '../domain/ports/user.repository';
-import { JwtClaims } from '../infrastructure/auth/jwt-claims';
 import { UserProfileService } from './user-profile.service';
 
 /**
@@ -40,7 +40,7 @@ class InMemoryUserRepository implements UserRepository {
   }
 }
 
-function claims(overrides: Partial<JwtClaims> = {}): JwtClaims {
+function claims(overrides: Partial<AuthenticatedPrincipal> = {}): AuthenticatedPrincipal {
   return { sub: 'u1', email: 'a@example.com', exp: 0, iat: 0, ...overrides };
 }
 

@@ -5,12 +5,19 @@
 // entities needed by modules implemented so far are present.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
+// postgis: backs the Unsupported("geography(Point, 4326)") columns below
+// (Station.position, ThirdPartyPlace.position) — System Architecture §7,
+// ADR-0012. `previewFeatures = ["postgresqlExtensions"]` is required for
+// Prisma to manage the extension in a real migration; not exercised here,
+// no live database is provisioned yet (see prisma/README.md).
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
 }
 
 // --- Identity & Access bounded context (docs/architecture/domain-model.md §2) ---
@@ -47,6 +54,7 @@ model User {
   reviewedVerificationDocs VerificationDocument[] @relation("VerificationDocumentReviewer")
   paymentMethods           PaymentMethod[]
   favorites                Favorite[]
+  reviews                  Review[]
 
   @@map("user_account")
 }
@@ -129,10 +137,200 @@ model Favorite {
   @@map("favorite")
 }
 
+/// ERD §3.15 — polymorphic over Station XOR ThirdPartyPlace, same pattern as
+/// Favorite (§3.16). Not "owned" by either bounded-context module in the
+/// domain sense — StationNetworkModule and ThirdPartyPlacesModule each keep
+/// their own independent Review domain entity + repository port, both
+/// backed by this single shared table (each scoped to its own non-null FK
+/// column), per ADR-0029's "read composition only, writes stay in their
+/// owning context" rule. The XOR CHECK constraint is not expressible in
+/// Prisma's schema language — see prisma/README.md for the deferred SQL
+/// migration (same situation as Favorite).
+model Review {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  stationId         String?  @map("station_id") @db.Uuid
+  thirdPartyPlaceId String?  @map("third_party_place_id") @db.Uuid
+  rating            Int
+  comment           String?
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // stationId/thirdPartyPlaceId carry no `@relation` (see the module note
+  // above), so Prisma's automatic FK-scalar indexing doesn't apply to them —
+  // both are queried directly (rating-aggregation WHERE/JOIN/GROUP BY in
+  // Facilities Pass 4's searchNearby and getRatingAggregate), so both need
+  // an explicit index.
+  @@index([stationId])
+  @@index([thirdPartyPlaceId])
+  @@map("review")
+}
+
 enum VerificationReviewStatus {
   pending
   approved
   rejected
+}
+
+// --- Station Network bounded context (docs/architecture/domain-model.md §3) ---
+
+/// ERD §3.1 — aggregate root (Domain Model §3). `position` is PostGIS
+/// geography(Point,4326) — Prisma's query builder can't express ST_DWithin/
+/// ST_Distance (ADR-0012), so it's declared `Unsupported` for schema/migration
+/// parity with the ERD and read/written exclusively via $queryRaw/$executeRaw
+/// (see infrastructure/prisma-station.repository.ts).
+model Station {
+  id                 String                                @id @default(uuid()) @db.Uuid
+  code               String                                @unique
+  configuration      StationConfiguration
+  position           Unsupported("geography(Point, 4326)")
+  status             StationStatus
+  cabinCapacity      Int                                   @map("cabin_capacity")
+  tankCapacityLiters Int                                   @map("tank_capacity_liters")
+  installedAt        DateTime                              @map("installed_at")
+  createdAt          DateTime                              @default(now()) @map("created_at")
+  updatedAt          DateTime                              @updatedAt @map("updated_at")
+
+  cabins      Cabin[]
+  slatokiTent SlatokiTent?
+
+  /// ERD §5 "idx_station_status" — searchNearby (Facilities Pass 3) filters
+  /// on status = 'active'; also supports FR-OPS-01 fleet filtering.
+  @@index([status])
+  @@map("station")
+}
+
+/// ERD §3.2 — entity within the Station aggregate.
+model Cabin {
+  id                 String          @id @default(uuid()) @db.Uuid
+  stationId          String          @map("station_id") @db.Uuid
+  code               String
+  type               CabinType
+  occupancyStatus    OccupancyStatus @default(free) @map("occupancy_status")
+  isPaid             Boolean         @map("is_paid")
+  priceAmount        Decimal?        @map("price_amount") @db.Decimal(10, 2)
+  priceCurrency      String?         @map("price_currency")
+  lastStatusChangeAt DateTime?       @map("last_status_change_at")
+
+  station Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+
+  @@unique([stationId, code])
+  /// ERD §5 "idx_cabin_occupancy_status" — FR-PLC-02 real-time availability lookups.
+  @@index([occupancyStatus])
+  @@map("cabin")
+}
+
+/// ERD §3.3 — at most one per Station.
+model SlatokiTent {
+  id                String                      @id @default(uuid()) @db.Uuid
+  stationId         String                      @unique @map("station_id") @db.Uuid
+  deploymentStatus  SlatokiTentDeploymentStatus @map("deployment_status")
+  matCapacity       Int                         @map("mat_capacity")
+  hasLighting       Boolean                     @map("has_lighting")
+  hasPrivacyCurtain Boolean                     @map("has_privacy_curtain")
+  lastUpdatedAt     DateTime                    @default(now()) @map("last_updated_at")
+
+  station Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+
+  @@map("slatoki_tent")
+}
+
+// --- Third-Party Places bounded context (docs/architecture/domain-model.md §5) ---
+
+/// ERD §3.4 — aggregate root. `position` — see the Station model's note on Unsupported geography columns.
+model ThirdPartyPlace {
+  id             String                                @id @default(uuid()) @db.Uuid
+  nameFr         String                                @map("name_fr")
+  nameAr         String                                @map("name_ar")
+  placeType      PlaceType                             @map("place_type")
+  position       Unsupported("geography(Point, 4326)")
+  isFree         Boolean                               @map("is_free")
+  priceAmount    Decimal?                              @map("price_amount") @db.Decimal(10, 2)
+  priceCurrency  String?                               @map("price_currency")
+  declaredStatus DeclaredStatus                        @map("declared_status")
+  statusSource   StatusSource                          @map("status_source")
+  createdAt      DateTime                              @default(now()) @map("created_at")
+  updatedAt      DateTime                              @updatedAt @map("updated_at")
+
+  tags ThirdPartyPlaceTag[]
+
+  /// ERD §5 "idx_place_type".
+  @@index([placeType])
+  @@map("third_party_place")
+}
+
+/// ERD §3.5 — lookup table for the 5 fixed tag codes. Seeded, not user-editable via API.
+model Tag {
+  id      String @id @default(uuid()) @db.Uuid
+  code    String @unique
+  labelFr String @map("label_fr")
+  labelAr String @map("label_ar")
+
+  places ThirdPartyPlaceTag[]
+
+  @@map("tag")
+}
+
+/// ERD §3.6 — M:N join between ThirdPartyPlace and Tag.
+model ThirdPartyPlaceTag {
+  thirdPartyPlaceId String   @map("third_party_place_id") @db.Uuid
+  tagId             String   @map("tag_id") @db.Uuid
+  appliedAt         DateTime @default(now()) @map("applied_at")
+
+  thirdPartyPlace ThirdPartyPlace @relation(fields: [thirdPartyPlaceId], references: [id], onDelete: Cascade)
+  tag             Tag             @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([thirdPartyPlaceId, tagId])
+  @@map("third_party_place_tag")
+}
+
+enum StationConfiguration {
+  fixe
+  mobile
+  event
+}
+
+enum StationStatus {
+  active
+  inactive
+  maintenance
+}
+
+enum CabinType {
+  H
+  F
+  Slatoki
+  PMR
+}
+
+enum OccupancyStatus {
+  free
+  occupied
+  out_of_service
+}
+
+enum SlatokiTentDeploymentStatus {
+  deployed
+  folded
+}
+
+enum PlaceType {
+  mosque
+  business
+  gas_station
+  other
+}
+
+enum DeclaredStatus {
+  open
+  closed
+  unknown
+}
+
+enum StatusSource {
+  community
+  owner_declared
 }
 
 enum PreferredLanguage {
