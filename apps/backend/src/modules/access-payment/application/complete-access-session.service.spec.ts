@@ -6,7 +6,7 @@ import { AccessSessionNotFoundException } from './access-session-not-found.excep
 import { CompleteAccessSessionService } from './complete-access-session.service';
 
 function createRepoMock(): jest.Mocked<AccessSessionRepository> {
-  return { save: jest.fn(), findById: jest.fn(), findActiveByCabinId: jest.fn() };
+  return { save: jest.fn(), findById: jest.fn(), findActiveByCabinId: jest.fn(), listVisitHistoryForUser: jest.fn() };
 }
 
 function unlockedSession(userId = 'u1') {

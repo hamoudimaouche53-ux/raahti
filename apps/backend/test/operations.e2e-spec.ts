@@ -68,6 +68,10 @@ class FakeStationRepository implements StationRepository {
 
   async updateCabinOccupancy(): Promise<void> {}
 
+  async findStationCodesByCabinIds(): Promise<Map<string, string>> {
+    return new Map();
+  }
+
   private station(id: string): Station {
     return Station.restore({
       id,

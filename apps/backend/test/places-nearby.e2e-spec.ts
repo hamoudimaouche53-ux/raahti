@@ -73,6 +73,9 @@ class FakeStationRepository implements StationRepository {
   async findNearestAccessible() {
     return null;
   }
+  async findStationCodesByCabinIds(): Promise<Map<string, string>> {
+    return new Map();
+  }
 }
 
 class FakeThirdPartyPlaceRepository implements ThirdPartyPlaceRepository {

@@ -86,4 +86,14 @@ export interface StationRepository {
    * (EMERGENCY_SEARCH_RADIUS_METERS, station-query.service.ts).
    */
   findNearestAccessible(position: GeoPosition, radiusMeters: number): Promise<NearestAccessibleStationResult | null>;
+
+  /**
+   * Batched cabinId -> station.code lookup, added for AccessPaymentModule's
+   * visit-history endpoint (GET /users/me/visit-history, EPIC-05 US-05.2) —
+   * resolves a whole page of visit-history rows' `placeName` in one query
+   * instead of N+1 per-row lookups. Cabins with no matching station (should
+   * not happen given the FK, but the input list is caller-supplied) are
+   * simply absent from the returned Map.
+   */
+  findStationCodesByCabinIds(cabinIds: string[]): Promise<Map<string, string>>;
 }

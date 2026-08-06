@@ -29,6 +29,7 @@ describe('StationCommandService', () => {
       findCabinById: jest.fn(),
       updateCabinOccupancy: jest.fn(),
       findNearestAccessible: jest.fn(),
+      findStationCodesByCabinIds: jest.fn(),
     };
     service = new StationCommandService(stationRepository);
   });

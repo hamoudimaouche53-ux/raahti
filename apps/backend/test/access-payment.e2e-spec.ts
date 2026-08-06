@@ -9,7 +9,11 @@ import { IdempotencyService } from '../src/modules/access-payment/application/id
 import { InitiateAccessSessionService } from '../src/modules/access-payment/application/initiate-access-session.service';
 import { AccessSession } from '../src/modules/access-payment/domain/entities/access-session.entity';
 import { Transaction } from '../src/modules/access-payment/domain/entities/transaction.entity';
-import { ACCESS_SESSION_REPOSITORY, AccessSessionRepository } from '../src/modules/access-payment/domain/ports/access-session.repository';
+import {
+  ACCESS_SESSION_REPOSITORY,
+  AccessSessionRepository,
+  VisitHistoryPage,
+} from '../src/modules/access-payment/domain/ports/access-session.repository';
 import { IDEMPOTENCY_KEY_REPOSITORY, IdempotencyKeyRepository, IdempotencyRecord } from '../src/modules/access-payment/domain/ports/idempotency-key.repository';
 import { LOCK_CONTROL_GATEWAY, LockControlGateway, UnlockOrderResult } from '../src/modules/access-payment/domain/ports/lock-control-gateway';
 import {
@@ -119,6 +123,10 @@ class FakeStationRepository implements StationRepository {
     return null;
   }
 
+  async findStationCodesByCabinIds(): Promise<Map<string, string>> {
+    return new Map();
+  }
+
   getOccupancy(cabinId: string): OccupancyStatus | undefined {
     return this.occupancy.get(cabinId);
   }
@@ -168,6 +176,10 @@ class InMemoryAccessSessionRepository implements AccessSessionRepository {
 
   async findActiveByCabinId(): Promise<AccessSession | null> {
     return null;
+  }
+
+  async listVisitHistoryForUser(): Promise<VisitHistoryPage> {
+    return { data: [], nextCursor: null };
   }
 
   get size(): number {

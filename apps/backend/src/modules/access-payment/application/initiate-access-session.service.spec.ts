@@ -3,7 +3,7 @@ import { CabinNotFoundException } from '../../station-network/application/cabin-
 import { CabinUnavailableException as StationCabinUnavailableException } from '../../station-network/application/cabin-unavailable.exception';
 import { StationCommandService } from '../../station-network/application/station-command.service';
 import { AccessSession } from '../domain/entities/access-session.entity';
-import { AccessSessionRepository } from '../domain/ports/access-session.repository';
+import { AccessSessionRepository, VisitHistoryPage } from '../domain/ports/access-session.repository';
 import { IdempotencyRecord, IdempotencyKeyRepository } from '../domain/ports/idempotency-key.repository';
 import { CabinUnavailableException } from './cabin-unavailable.exception';
 import { IdempotencyService } from './idempotency.service';
@@ -26,6 +26,10 @@ class InMemoryAccessSessionRepository implements AccessSessionRepository {
 
   async findActiveByCabinId(): Promise<AccessSession | null> {
     return null;
+  }
+
+  async listVisitHistoryForUser(): Promise<VisitHistoryPage> {
+    return { data: [], nextCursor: null };
   }
 
   get size(): number {

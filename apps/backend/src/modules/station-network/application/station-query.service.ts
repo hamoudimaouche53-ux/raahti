@@ -163,4 +163,15 @@ export class StationQueryService {
       })),
     }));
   }
+
+  /**
+   * Batched cabinId -> station.code lookup, the sanctioned exported surface
+   * AccessPaymentModule calls to resolve `VisitHistoryItem.placeName` for a
+   * page of visit-history results (GET /users/me/visit-history, EPIC-05
+   * US-05.2) — never the repository directly (module-dependency-diagram.md
+   * §5 rule 1).
+   */
+  async getStationCodesForCabinIds(cabinIds: string[]): Promise<Map<string, string>> {
+    return this.stationRepository.findStationCodesByCabinIds(cabinIds);
+  }
 }

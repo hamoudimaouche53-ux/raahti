@@ -4,7 +4,7 @@ import { Cabin } from '../../station-network/domain/entities/cabin.entity';
 import { CabinUnavailableException as StationCabinUnavailableException } from '../../station-network/application/cabin-unavailable.exception';
 import { StationCommandService } from '../../station-network/application/station-command.service';
 import { AccessSession } from '../domain/entities/access-session.entity';
-import { AccessSessionRepository } from '../domain/ports/access-session.repository';
+import { AccessSessionRepository, VisitHistoryPage } from '../domain/ports/access-session.repository';
 import { IdempotencyRecord, IdempotencyKeyRepository } from '../domain/ports/idempotency-key.repository';
 import { LockControlGateway } from '../domain/ports/lock-control-gateway';
 import { PaymentGateway } from '../domain/ports/payment-gateway';
@@ -38,6 +38,10 @@ class InMemoryAccessSessionRepository implements AccessSessionRepository {
 
   async findActiveByCabinId(): Promise<AccessSession | null> {
     return null;
+  }
+
+  async listVisitHistoryForUser(): Promise<VisitHistoryPage> {
+    return { data: [], nextCursor: null };
   }
 }
 

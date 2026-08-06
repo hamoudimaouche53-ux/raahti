@@ -76,6 +76,10 @@ class ConfigurableStationRepository implements StationRepository {
 
   async updateCabinOccupancy(): Promise<void> {}
 
+  async findStationCodesByCabinIds(): Promise<Map<string, string>> {
+    return new Map();
+  }
+
   async findNearestAccessible(): Promise<NearestAccessibleStationResult | null> {
     if (!this.hasFacility) {
       return null;

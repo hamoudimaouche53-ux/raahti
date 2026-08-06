@@ -168,4 +168,34 @@ describe('PrismaStationRepository', () => {
       });
     });
   });
+
+  describe('findStationCodesByCabinIds', () => {
+    it('returns an empty Map without querying when given an empty array', async () => {
+      const prisma = createPrismaMock();
+      const repo = new PrismaStationRepository(prisma);
+
+      const result = await repo.findStationCodesByCabinIds([]);
+
+      expect(result.size).toBe(0);
+      expect(prisma.cabin.findMany).not.toHaveBeenCalled();
+    });
+
+    it('builds a cabinId -> station.code Map from a batched lookup', async () => {
+      const prisma = createPrismaMock();
+      prisma.cabin.findMany.mockResolvedValue([
+        { id: 'c1', station: { code: 'ST-001' } },
+        { id: 'c2', station: { code: 'ST-002' } },
+      ]);
+      const repo = new PrismaStationRepository(prisma);
+
+      const result = await repo.findStationCodesByCabinIds(['c1', 'c2']);
+
+      expect(prisma.cabin.findMany).toHaveBeenCalledWith({
+        where: { id: { in: ['c1', 'c2'] } },
+        select: { id: true, station: { select: { code: true } } },
+      });
+      expect(result.get('c1')).toBe('ST-001');
+      expect(result.get('c2')).toBe('ST-002');
+    });
+  });
 });

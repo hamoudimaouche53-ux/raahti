@@ -4,7 +4,7 @@ import { AccessSessionNotFoundException } from './access-session-not-found.excep
 import { AccessSessionQueryService } from './access-session-query.service';
 
 function createRepoMock(): jest.Mocked<AccessSessionRepository> {
-  return { save: jest.fn(), findById: jest.fn(), findActiveByCabinId: jest.fn() };
+  return { save: jest.fn(), findById: jest.fn(), findActiveByCabinId: jest.fn(), listVisitHistoryForUser: jest.fn() };
 }
 
 describe('AccessSessionQueryService', () => {

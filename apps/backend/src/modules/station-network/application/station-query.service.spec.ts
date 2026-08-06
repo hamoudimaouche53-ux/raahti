@@ -31,6 +31,7 @@ function createRepoMock(): jest.Mocked<StationRepository> {
     findCabinById: jest.fn(),
     updateCabinOccupancy: jest.fn(),
     findNearestAccessible: jest.fn(),
+    findStationCodesByCabinIds: jest.fn(),
   };
 }
 
@@ -251,6 +252,31 @@ describe('StationQueryService', () => {
         },
       ]);
       expect(summaries[0].cabins[0].price?.toDecimalString()).toBe('50.00');
+    });
+  });
+
+  describe('getStationCodesForCabinIds', () => {
+    it('delegates to the repository and returns its Map unchanged', async () => {
+      const repo = createRepoMock();
+      const codesByCabin = new Map([['c1', 'ST-001']]);
+      repo.findStationCodesByCabinIds.mockResolvedValue(codesByCabin);
+      const service = new StationQueryService(repo, createReviewRepoMock());
+
+      const result = await service.getStationCodesForCabinIds(['c1']);
+
+      expect(result).toBe(codesByCabin);
+      expect(repo.findStationCodesByCabinIds).toHaveBeenCalledWith(['c1']);
+    });
+
+    it('passes through an empty input array', async () => {
+      const repo = createRepoMock();
+      repo.findStationCodesByCabinIds.mockResolvedValue(new Map());
+      const service = new StationQueryService(repo, createReviewRepoMock());
+
+      const result = await service.getStationCodesForCabinIds([]);
+
+      expect(result.size).toBe(0);
+      expect(repo.findStationCodesByCabinIds).toHaveBeenCalledWith([]);
     });
   });
 });

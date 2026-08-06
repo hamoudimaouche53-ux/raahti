@@ -433,6 +433,37 @@ paths:
             application/problem+json:
               schema: { $ref: "#/components/schemas/ProblemDetail" }
 
+  /users/me/visit-history:
+    get:
+      tags: [AccessPayment]
+      summary: List the caller's completed access sessions (visit history)
+      description: >
+        Implements FR-USR-02 ("view visit history"). Only `completed` access
+        sessions are visits — in-progress sessions are excluded (judgment
+        call, no source document specifies this). `placeName` is the
+        Station's `code` (Station has no bilingual name field elsewhere
+        either).
+      parameters:
+        - name: cursor
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+      responses:
+        "200":
+          description: Visit history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/VisitHistoryItem" }
+                  nextCursor: { type: string, nullable: true }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
   /ops/stations:
     get:
       tags: [Operations]
@@ -890,6 +921,18 @@ components:
         discountApplied: { type: string, nullable: true }
         status: { type: string, enum: [pending, authorized, captured, failed, refunded] }
         accessSession: { $ref: "#/components/schemas/AccessSession" }
+
+    VisitHistoryItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        placeName: { type: string, description: "Station.code — Station has no bilingual name field (see StationDetail's flagged name judgment call)." }
+        occurredAt: { type: string, format: date-time }
+        amount:
+          allOf:
+            - $ref: "#/components/schemas/Money"
+          nullable: true
+          description: "Null for free-cabin visits (Domain Model §6: a free-access session produces no transaction row)."
 
     StationFleetStatus:
       type: object

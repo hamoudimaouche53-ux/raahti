@@ -328,6 +328,18 @@ export class PrismaStationRepository implements StationRepository {
     });
   }
 
+  /** Backs StationQueryService.getStationCodesForCabinIds() — see the port doc comment. */
+  async findStationCodesByCabinIds(cabinIds: string[]): Promise<Map<string, string>> {
+    if (cabinIds.length === 0) {
+      return new Map();
+    }
+    const cabins = await this.prisma.cabin.findMany({
+      where: { id: { in: cabinIds } },
+      select: { id: true, station: { select: { code: true } } },
+    });
+    return new Map(cabins.map((cabin) => [cabin.id, cabin.station.code]));
+  }
+
   private buildTypeFilterSql(types: PlaceFilterType[]): Prisma.Sql {
     if (types.length === 0) {
       return Prisma.sql`TRUE`;

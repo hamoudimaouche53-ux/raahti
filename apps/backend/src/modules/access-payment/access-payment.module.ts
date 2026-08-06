@@ -6,6 +6,7 @@ import { AuthorizeAndCapturePaymentService } from './application/authorize-and-c
 import { CompleteAccessSessionService } from './application/complete-access-session.service';
 import { IdempotencyService } from './application/idempotency.service';
 import { InitiateAccessSessionService } from './application/initiate-access-session.service';
+import { VisitHistoryQueryService } from './application/visit-history-query.service';
 import { ACCESS_SESSION_REPOSITORY } from './domain/ports/access-session.repository';
 import { IDEMPOTENCY_KEY_REPOSITORY } from './domain/ports/idempotency-key.repository';
 import { LOCK_CONTROL_GATEWAY } from './domain/ports/lock-control-gateway';
@@ -17,6 +18,7 @@ import { PrismaAccessSessionRepository } from './infrastructure/persistence/pris
 import { PrismaIdempotencyKeyRepository } from './infrastructure/persistence/prisma-idempotency-key.repository';
 import { PrismaTransactionRepository } from './infrastructure/persistence/prisma-transaction.repository';
 import { AccessSessionsController } from './interface/controllers/access-sessions.controller';
+import { VisitHistoryController } from './interface/controllers/visit-history.controller';
 
 /**
  * Access & Payment bounded context (Domain Model §6) — "owns the QR-scan-
@@ -39,7 +41,7 @@ import { AccessSessionsController } from './interface/controllers/access-session
  */
 @Module({
   imports: [StationNetworkModule, IdentityModule],
-  controllers: [AccessSessionsController],
+  controllers: [AccessSessionsController, VisitHistoryController],
   providers: [
     { provide: ACCESS_SESSION_REPOSITORY, useClass: PrismaAccessSessionRepository },
     { provide: TRANSACTION_REPOSITORY, useClass: PrismaTransactionRepository },
@@ -51,6 +53,7 @@ import { AccessSessionsController } from './interface/controllers/access-session
     AuthorizeAndCapturePaymentService,
     AccessSessionQueryService,
     CompleteAccessSessionService,
+    VisitHistoryQueryService,
   ],
 })
 export class AccessPaymentModule {}
