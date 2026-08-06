@@ -70,8 +70,19 @@
   "navProfile": "Profile",
   "slatokiTabTitle": "Slatoki صلاتكِ",
   "slatokiEmptyState": "No Slatoki space nearby",
-  "emergencyPlaceholderTitle": "Emergency Mode",
-  "emergencyPlaceholderBody": "Coming in V1.1.",
+  "emergencyResultTitle": "Emergency",
+  "emergencyResultButton": "Go to the nearest location",
+  "emergencyDiscountBadge": "50% discount available",
+  "emergencyEtaOnFoot": "{minutes, plural, =0{Less than 1 min on foot} one{1 min on foot} other{{minutes} min on foot}}",
+  "@emergencyEtaOnFoot": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "emergencyLoadingMessage": "Finding the nearest accessible location…",
+  "emergencyLocationServiceDisabled": "Location services are disabled on this device.",
+  "emergencyLocationPermissionDenied": "Rahati needs access to your location to find the nearest accessible location.",
+  "emergencyOpenSettingsButton": "Open settings",
+  "emergencyNoFacilityFound": "No accessible location found nearby.",
+  "emergencyGenericError": "Could not find the nearest location. Please try again.",
   "qiblaBearingAnnouncement": "Mecca is {degrees} degrees away, {direction}",
   "@qiblaBearingAnnouncement": {
     "placeholders": {
@@ -130,6 +141,14 @@
   "paymentMethodPayButton": "Pay {amount}",
   "@paymentMethodPayButton": {
     "placeholders": { "amount": { "type": "String" } }
+  },
+  "paymentMethodEmergencyDiscountChip": "Emergency -50%",
+  "paymentMethodEmergencyDiscountAccessibleLabel": "Original price {originalAmount}, 50% discount, total {discountedAmount}",
+  "@paymentMethodEmergencyDiscountAccessibleLabel": {
+    "placeholders": {
+      "originalAmount": { "type": "String" },
+      "discountedAmount": { "type": "String" }
+    }
   },
   "paymentMethodsLoading": "Loading your payment methods…",
   "paymentMethodLoadError": "Could not load your payment methods.",

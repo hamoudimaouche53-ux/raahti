@@ -1,12 +1,12 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
-import "package:url_launcher/url_launcher.dart";
 
 import "../../../../core/constants/env.dart";
 import "../../../../core/router/app_router.dart";
 import "../../../../core/theme/shape_tokens.dart";
 import "../../../../core/theme/spacing_tokens.dart";
+import "../../../../core/utils/external_navigation_launcher.dart";
 import "../../../../l10n/app_localizations.dart";
 import "../../../access_payment/domain/entities/access_session.dart";
 import "../../../access_payment/domain/entities/access_session_status.dart";
@@ -226,24 +226,20 @@ class PlaceDetailSheet extends ConsumerWidget {
         );
   }
 
+  /// Delegates to the shared [launchExternalNavigation] helper (also used
+  /// by the Emergency Mode result screen, SCR-011) — this method now only
+  /// owns the "show a fallback SnackBar if nothing launched" decision,
+  /// unchanged from before the extraction.
   Future<void> _openRoute(BuildContext context, AppLocalizations l10n) async {
-    final Uri geoUri = Uri(
-      scheme: "geo",
-      host: "${place.position.latitude},${place.position.longitude}",
-      queryParameters: <String, String>{
-        "q":
-            "${place.position.latitude},${place.position.longitude}"
-            "(${place.name.forLanguageCode(Localizations.localeOf(context).languageCode)})",
-      },
+    final bool launched = await launchExternalNavigation(
+      lat: place.position.latitude,
+      lng: place.position.longitude,
+      label: place.name.forLanguageCode(
+        Localizations.localeOf(context).languageCode,
+      ),
+      context: context,
+      l10n: l10n,
     );
-    final Uri webFallbackUri = Uri.parse(
-      "https://www.openstreetmap.org/?mlat=${place.position.latitude}"
-      "&mlon=${place.position.longitude}#map=17/${place.position.latitude}/${place.position.longitude}",
-    );
-
-    final bool launched =
-        await launchUrl(geoUri, mode: LaunchMode.externalApplication) ||
-        await launchUrl(webFallbackUri, mode: LaunchMode.externalApplication);
 
     if (!launched && context.mounted) {
       ScaffoldMessenger.of(

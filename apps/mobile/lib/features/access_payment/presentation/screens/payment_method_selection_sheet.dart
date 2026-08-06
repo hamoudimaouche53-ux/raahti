@@ -1,10 +1,12 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../core/theme/color_tokens.dart";
 import "../../../../core/theme/shape_tokens.dart";
 import "../../../../core/theme/spacing_tokens.dart";
 import "../../../../core/widgets/dialog_option_tap_target.dart";
 import "../../../../l10n/app_localizations.dart";
+import "../../../emergency/presentation/providers/emergency_providers.dart";
 import "../../domain/entities/money.dart";
 import "../../domain/entities/payment_method.dart";
 import "../../domain/entities/payment_method_type.dart";
@@ -102,6 +104,15 @@ class _PaymentMethodSelectionSheetState
     final AsyncValue<List<PaymentMethod>> methodsState = ref.watch(
       paymentMethodsProvider,
     );
+    // SCR-012 — a **client-side preview only** (ADR-0031: the actual
+    // charged amount is authoritatively determined server-side); shown
+    // when the session originated from SCR-011 (Mode Urgence) and the
+    // TTL-bounded activation flag is still live and eligible.
+    final EmergencyActivationState? emergencyActivation = ref.watch(
+      effectiveEmergencyActivationProvider,
+    );
+    final bool showEmergencyDiscountPreview =
+        emergencyActivation?.discountEligible ?? false;
 
     return SafeArea(
       child: Padding(
@@ -214,10 +225,13 @@ class _PaymentMethodSelectionSheetState
                   l10n.paymentMethodTotalLabel,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                Text(
-                  "${widget.amount.amount} ${widget.amount.currency}",
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                if (showEmergencyDiscountPreview)
+                  _EmergencyDiscountPricePreview(amount: widget.amount)
+                else
+                  Text(
+                    "${widget.amount.amount} ${widget.amount.currency}",
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
               ],
             ),
             const SizedBox(height: RahatiSpacing.space3),
@@ -230,6 +244,81 @@ class _PaymentMethodSelectionSheetState
                   "${widget.amount.amount} ${widget.amount.currency}",
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// SCR-012's price-row treatment: a struck-through original price next to
+/// the previewed discounted price, plus a small `successContainer`
+/// "Urgence -50%" chip inline. A **preview only** — see this file's own
+/// `build()` doc comment above where [showEmergencyDiscountPreview] is
+/// computed.
+///
+/// The struck-through price's accessible alternative is an explicit
+/// [Semantics] label (strikethrough styling alone is not accessible) —
+/// same `Semantics(label: ..., child: ExcludeSemantics(...))` idiom as
+/// `unlock_confirmation_screen.dart`'s success announcement.
+class _EmergencyDiscountPricePreview extends StatelessWidget {
+  const _EmergencyDiscountPricePreview({required this.amount});
+
+  final Money amount;
+
+  /// Preview-only 50% split — a plain half of [amount], not a
+  /// server-confirmed figure. Trims a trailing ".0" for a whole-DZD
+  /// amount, the common case, same "amount currency" concatenation
+  /// convention this sheet already uses elsewhere (no `intl` currency
+  /// formatting exists in this app yet).
+  String get _discountedAmountText {
+    final double discounted = amount.amountAsDouble * 0.5;
+    final String discountedValue = discounted == discounted.roundToDouble()
+        ? discounted.toStringAsFixed(0)
+        : discounted.toStringAsFixed(2);
+    return "$discountedValue ${amount.currency}";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final RahatiFunctionalColors functionalColors = Theme.of(
+      context,
+    ).extension<RahatiFunctionalColors>()!;
+    final String originalAmountText = "${amount.amount} ${amount.currency}";
+    final String discountedAmountText = _discountedAmountText;
+
+    return Semantics(
+      label: l10n.paymentMethodEmergencyDiscountAccessibleLabel(
+        originalAmountText,
+        discountedAmountText,
+      ),
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(
+              originalAmountText,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                decoration: TextDecoration.lineThrough,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(width: RahatiSpacing.space2),
+            Text(
+              discountedAmountText,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(width: RahatiSpacing.space2),
+            Chip(
+              label: Text(l10n.paymentMethodEmergencyDiscountChip),
+              backgroundColor: functionalColors.successContainer,
+              labelStyle: TextStyle(color: functionalColors.onSuccessContainer),
+              side: BorderSide.none,
+              visualDensity: VisualDensity.compact,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ],
         ),

@@ -232,13 +232,46 @@
   "@slatokiEmptyState": {
     "description": "SCR-008 — empty-state text, per docs/design/wireframes/mobile-slatoki.md#scr-008 States. Currently the only body state: the Qibla widget (US-02.1.2), filter tabs (US-02.1.3), and tent/mosque list (US-02.1.4/02.1.5) are separate, not-yet-implemented stories."
   },
-  "emergencyPlaceholderTitle": "Mode Urgence",
-  "@emergencyPlaceholderTitle": {
-    "description": "SCR (placeholder) — Emergency tab title, per ADR-0024. Replaced wholesale when EPIC-03 (V1.1) is implemented."
+  "emergencyResultTitle": "Urgence",
+  "@emergencyResultTitle": {
+    "description": "SCR-011 Emergency Mode Result — Top App Bar title (error-adjacent chrome, not error-colored: 'urgency without alarm')."
   },
-  "emergencyPlaceholderBody": "Disponible dans la version V1.1.",
-  "@emergencyPlaceholderBody": {
-    "description": "SCR (placeholder) — Emergency tab body text, per ADR-0024."
+  "emergencyResultButton": "Aller au lieu le plus proche",
+  "@emergencyResultButton": {
+    "description": "SCR-011 — large Filled Button; launches external navigation only (confirmed product decision — does not enter the QR-scan flow)."
+  },
+  "emergencyDiscountBadge": "Réduction 50% disponible",
+  "@emergencyDiscountBadge": {
+    "description": "SCR-011 — successContainer Chip/Badge shown when discountEligible is true. Text always present, never conveyed by color alone (accessibility requirement)."
+  },
+  "emergencyEtaOnFoot": "{minutes, plural, =0{Moins d'1 min à pied} one{1 min à pied} other{{minutes} min à pied}}",
+  "@emergencyEtaOnFoot": {
+    "description": "SCR-011 — ETA on foot, e.g. '2 min à pied'. Not returned by the backend — computed client-side from distanceMeters assuming ~5 km/h walking speed (flagged judgment call, see EmergencyFacilityResultDto.toEntity()).",
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "emergencyLoadingMessage": "Recherche du lieu accessible le plus proche…",
+  "@emergencyLoadingMessage": {
+    "description": "SCR-011 — shown while emergencyResultProvider is fetching the device position and calling GET /emergency/nearest-facility."
+  },
+  "emergencyLocationServiceDisabled": "Les services de localisation sont désactivés sur cet appareil.",
+  "@emergencyLocationServiceDisabled": {
+    "description": "SCR-011 — LocationServiceDisabledFailure state, distinct from the permission-denied state."
+  },
+  "emergencyLocationPermissionDenied": "Rahati a besoin d'accéder à votre position pour trouver le lieu accessible le plus proche.",
+  "@emergencyLocationPermissionDenied": {
+    "description": "SCR-011 — LocationPermissionDeniedFailure/LocationPermissionDeniedForeverFailure state, paired with emergencyOpenSettingsButton."
+  },
+  "emergencyOpenSettingsButton": "Ouvrir les paramètres",
+  "@emergencyOpenSettingsButton": {
+    "description": "SCR-011 — settings-deep-link button shown in the location-permission-denied state, calls openAppSettings() (permission_handler)."
+  },
+  "emergencyNoFacilityFound": "Aucun lieu accessible trouvé à proximité.",
+  "@emergencyNoFacilityFound": {
+    "description": "SCR-011 — GET /emergency/nearest-facility returned 404 (no accessible facility found nearby)."
+  },
+  "emergencyGenericError": "Impossible de trouver le lieu le plus proche. Veuillez réessayer.",
+  "@emergencyGenericError": {
+    "description": "SCR-011 — any EmergencyRepositoryFailure other than the 404/no-facility-found case."
   },
   "qiblaBearingAnnouncement": "La Mecque est à {degrees} degrés, {direction}",
   "@qiblaBearingAnnouncement": {
@@ -412,6 +445,18 @@
   "@paymentMethodPayButton": {
     "description": "SCR-015 — bottom-anchored Filled Button, amount already formatted (e.g. '50 DZD').",
     "placeholders": { "amount": { "type": "String" } }
+  },
+  "paymentMethodEmergencyDiscountChip": "Urgence -50%",
+  "@paymentMethodEmergencyDiscountChip": {
+    "description": "SCR-012 — small successContainer Chip shown inline next to the price row when the session originated from SCR-011 (Mode Urgence)."
+  },
+  "paymentMethodEmergencyDiscountAccessibleLabel": "Prix original {originalAmount}, remise de 50 %, total {discountedAmount}",
+  "@paymentMethodEmergencyDiscountAccessibleLabel": {
+    "description": "SCR-012 — screen-reader-only alternative for the struck-through price row (strikethrough styling alone is not accessible); this is a client-side preview of the expected discount, not a server-confirmed amount.",
+    "placeholders": {
+      "originalAmount": { "type": "String" },
+      "discountedAmount": { "type": "String" }
+    }
   },
   "paymentMethodsLoading": "Chargement de vos moyens de paiement…",
   "@paymentMethodsLoading": {

@@ -9,7 +9,7 @@ import "../../features/access_payment/presentation/screens/session_complete_scre
 import "../../features/access_payment/presentation/screens/unlock_confirmation_screen.dart";
 import "../../features/app_shell/presentation/screens/splash_screen.dart";
 import "../../features/app_shell/presentation/widgets/rahati_nav_shell.dart";
-import "../../features/emergency/presentation/screens/emergency_placeholder_screen.dart";
+import "../../features/emergency/presentation/screens/emergency_result_screen.dart";
 import "../../features/map_discovery/presentation/screens/map_screen.dart";
 import "../../features/map_discovery/presentation/screens/submit_review_screen.dart";
 import "../../features/profile/presentation/screens/favorites_list_screen.dart";
@@ -77,10 +77,9 @@ final GlobalKey<NavigatorState> _profileBranchKey = GlobalKey<NavigatorState>(
 /// GoRouter configuration (ADR-0018, ADR-0024). Splash (SCR-001) is a
 /// standalone top-level route; Map/Slatoki/Emergency/Profile live inside a
 /// `StatefulShellRoute.indexedStack` — the 4 fixed bottom-nav destinations
-/// docs/design/component-library.md §5 mandates. Emergency still renders a
-/// zero-logic placeholder screen (ADR-0024) pending EPIC-03 (V1.1); only
-/// its branch's screen changes when that epic lands, not this route
-/// structure. Profile's placeholder was retired when EPIC-05 landed.
+/// docs/design/component-library.md §5 mandates. Emergency renders the real
+/// SCR-011 screen (EPIC-03, ADR-0024's anticipated one-file swap) — its
+/// placeholder was retired the same way Profile's was when EPIC-05 landed.
 ///
 /// SCR-009 (Qibla full-screen, US-02.1.2), SCR-013 (QR Scanner, US-04.1),
 /// SCR-014 (Cabin Availability Confirmation, US-04.2), SCR-016 (Payment
@@ -236,7 +235,7 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((ref) {
             routes: <RouteBase>[
               GoRoute(
                 path: AppRoutePaths.emergency,
-                builder: (context, state) => const EmergencyPlaceholderScreen(),
+                builder: (context, state) => const EmergencyResultScreen(),
               ),
             ],
           ),

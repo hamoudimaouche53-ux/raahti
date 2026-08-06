@@ -1,6 +1,7 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../core/constants/env.dart";
+import "../../../emergency/presentation/providers/emergency_providers.dart";
 import "../../../map_discovery/presentation/providers/place_providers.dart";
 import "../../data/adapters/mock_payment_gateway_adapter.dart";
 import "../../data/datasources/payment_method_remote_data_source.dart";
@@ -81,18 +82,42 @@ class PaymentNotifier extends AsyncNotifier<AccessSession?> {
   @override
   AccessSession? build() => null;
 
+  /// Bridges Emergency Mode's (EPIC-03) client-side activation flag
+  /// (`effectiveEmergencyActivationProvider` — a general "SCR-011 recently
+  /// found this user discount-eligible" signal, TTL-bounded, not tied to
+  /// this specific [accessSessionId]) into [applyEmergencyDiscount]. This
+  /// is a **read of a UI convenience hint only** — unlike the backend's
+  /// deliberately-independent `AccessPay`/`Emergency` modules
+  /// (docs/architecture/module-dependency-diagram.md §3, ADR-0031: "the
+  /// matrix grants no `AccessPay ↔ Emergency` edge in either direction"),
+  /// the backend still re-verifies `diabeticVerificationStatus`
+  /// server-side regardless of what this flag says, so wiring the flag
+  /// through here doesn't weaken that invariant — it only decides whether
+  /// to *ask* for the discount, never whether the discount is granted.
+  /// [EmergencyActivationNotifier.consume] is called only after a
+  /// successful submission — a failed attempt leaves the flag active so a
+  /// retry (same underlying eligibility) can still use it.
   Future<void> submit({
     required String accessSessionId,
     required String paymentMethodId,
   }) async {
     state = const AsyncLoading<AccessSession?>();
     final RequestPayment useCase = ref.read(requestPaymentProvider);
+    final EmergencyActivationState? emergencyActivation = ref.read(
+      effectiveEmergencyActivationProvider,
+    );
+    final bool applyEmergencyDiscount =
+        emergencyActivation != null && emergencyActivation.discountEligible;
     state = await AsyncValue.guard(
       () => useCase(
         accessSessionId: accessSessionId,
         paymentMethodId: paymentMethodId,
+        applyEmergencyDiscount: applyEmergencyDiscount,
       ),
     );
+    if (applyEmergencyDiscount && !state.hasError) {
+      ref.read(emergencyActivationProvider.notifier).consume();
+    }
   }
 
   /// Clears a terminal ([AsyncError]) state so a retry (re-opening

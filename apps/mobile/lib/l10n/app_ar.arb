@@ -70,8 +70,19 @@
   "navProfile": "الملف الشخصي",
   "slatokiTabTitle": "Slatoki صلاتكِ",
   "slatokiEmptyState": "لا توجد مساحة صلاتكِ قريبة منك",
-  "emergencyPlaceholderTitle": "وضع الطوارئ",
-  "emergencyPlaceholderBody": "متوفر في الإصدار V1.1.",
+  "emergencyResultTitle": "الطوارئ",
+  "emergencyResultButton": "الذهاب إلى أقرب مكان",
+  "emergencyDiscountBadge": "خصم 50% متاح",
+  "emergencyEtaOnFoot": "{minutes, plural, =0{أقل من دقيقة سيرًا على الأقدام} one{دقيقة واحدة سيرًا على الأقدام} two{دقيقتان سيرًا على الأقدام} few{{minutes} دقائق سيرًا على الأقدام} many{{minutes} دقيقة سيرًا على الأقدام} other{{minutes} دقيقة سيرًا على الأقدام}}",
+  "@emergencyEtaOnFoot": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "emergencyLoadingMessage": "جارٍ البحث عن أقرب مكان يمكن الوصول إليه…",
+  "emergencyLocationServiceDisabled": "خدمات الموقع معطّلة على هذا الجهاز.",
+  "emergencyLocationPermissionDenied": "يحتاج راحتي إلى الوصول إلى موقعك لإيجاد أقرب مكان يمكن الوصول إليه.",
+  "emergencyOpenSettingsButton": "فتح الإعدادات",
+  "emergencyNoFacilityFound": "لم يتم العثور على مكان يمكن الوصول إليه بالقرب منك.",
+  "emergencyGenericError": "تعذّر العثور على أقرب مكان. يرجى المحاولة مرة أخرى.",
   "qiblaBearingAnnouncement": "تبعد مكة المكرمة {degrees} درجة، {direction}",
   "@qiblaBearingAnnouncement": {
     "placeholders": {
@@ -130,6 +141,14 @@
   "paymentMethodPayButton": "دفع {amount}",
   "@paymentMethodPayButton": {
     "placeholders": { "amount": { "type": "String" } }
+  },
+  "paymentMethodEmergencyDiscountChip": "طوارئ -50%",
+  "paymentMethodEmergencyDiscountAccessibleLabel": "السعر الأصلي {originalAmount}، خصم 50%، الإجمالي {discountedAmount}",
+  "@paymentMethodEmergencyDiscountAccessibleLabel": {
+    "placeholders": {
+      "originalAmount": { "type": "String" },
+      "discountedAmount": { "type": "String" }
+    }
   },
   "paymentMethodsLoading": "جارٍ تحميل وسائل الدفع الخاصة بك…",
   "paymentMethodLoadError": "تعذّر تحميل وسائل الدفع الخاصة بك.",

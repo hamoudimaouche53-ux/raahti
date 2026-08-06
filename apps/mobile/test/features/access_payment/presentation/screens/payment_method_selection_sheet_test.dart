@@ -10,6 +10,7 @@ import "package:rahati/features/access_payment/domain/entities/payment_method_ty
 import "package:rahati/features/access_payment/domain/repositories/payment_method_repository.dart";
 import "package:rahati/features/access_payment/presentation/providers/payment_providers.dart";
 import "package:rahati/features/access_payment/presentation/screens/payment_method_selection_sheet.dart";
+import "package:rahati/features/emergency/presentation/providers/emergency_providers.dart";
 import "package:rahati/l10n/app_localizations.dart";
 
 class _FakePaymentMethodRepository implements PaymentMethodRepository {
@@ -95,6 +96,7 @@ class _PushResult {
 Future<_PushResult> _pumpSheet(
   WidgetTester tester, {
   List<PaymentMethod>? seed,
+  EmergencyActivationState? emergencyActivation,
 }) async {
   final result = _PushResult();
   await tester.pumpWidget(
@@ -103,6 +105,10 @@ Future<_PushResult> _pumpSheet(
         paymentMethodRepositoryProvider.overrideWithValue(
           _FakePaymentMethodRepository(seed: seed),
         ),
+        if (emergencyActivation != null)
+          effectiveEmergencyActivationProvider.overrideWithValue(
+            emergencyActivation,
+          ),
       ],
       child: MaterialApp(
         theme: RahatiTheme.light,
@@ -294,4 +300,76 @@ void main() {
       handle.dispose();
     },
   );
+
+  group("SCR-012 emergency discount preview", () {
+    testWidgets(
+      "shows no struck-through price or discount chip when there is no "
+      "active Mode Urgence session (the normal case)",
+      (tester) async {
+        await _pumpSheet(tester);
+
+        expect(find.text("50 DZD"), findsWidgets);
+        expect(find.text("Urgence -50%"), findsNothing);
+      },
+    );
+
+    testWidgets(
+      "shows the struck-through original price, the previewed discounted "
+      "price, and the 'Urgence -50%' chip when the emergency activation "
+      "state is eligible",
+      (tester) async {
+        await _pumpSheet(
+          tester,
+          emergencyActivation: EmergencyActivationState(
+            discountEligible: true,
+            activatedAt: DateTime.now(),
+          ),
+        );
+
+        expect(find.text("Urgence -50%"), findsOneWidget);
+        // "50 DZD" appears as the struck-through original price line...
+        expect(find.text("50 DZD"), findsWidgets);
+        // ...and "25 DZD" is the previewed 50%-off amount.
+        expect(find.text("25 DZD"), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      "does not show the discount preview when the activation state is "
+      "not discount-eligible",
+      (tester) async {
+        await _pumpSheet(
+          tester,
+          emergencyActivation: EmergencyActivationState(
+            discountEligible: false,
+            activatedAt: DateTime.now(),
+          ),
+        );
+
+        expect(find.text("Urgence -50%"), findsNothing);
+        expect(find.text("25 DZD"), findsNothing);
+      },
+    );
+
+    testWidgets("the struck-through price has an explicit screen-reader-only "
+        "accessible alternative (strikethrough styling alone is not "
+        "accessible)", (tester) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await _pumpSheet(
+        tester,
+        emergencyActivation: EmergencyActivationState(
+          discountEligible: true,
+          activatedAt: DateTime.now(),
+        ),
+      );
+
+      expect(
+        find.bySemanticsLabel(
+          "Prix original 50 DZD, remise de 50 %, total 25 DZD",
+        ),
+        findsOneWidget,
+      );
+      handle.dispose();
+    });
+  });
 }

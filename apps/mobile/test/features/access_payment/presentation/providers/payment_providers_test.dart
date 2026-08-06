@@ -7,11 +7,13 @@ import "package:rahati/features/access_payment/domain/entities/payment_method_ty
 import "package:rahati/features/access_payment/domain/repositories/payment_method_repository.dart";
 import "package:rahati/features/access_payment/domain/repositories/payment_repository.dart";
 import "package:rahati/features/access_payment/presentation/providers/payment_providers.dart";
+import "package:rahati/features/emergency/presentation/providers/emergency_providers.dart";
 
 class _FakePaymentRepository implements PaymentRepository {
   _FakePaymentRepository({this.failure});
 
   final PaymentRepositoryFailure? failure;
+  bool? lastApplyEmergencyDiscount;
 
   @override
   Future<AccessSession> requestPayment({
@@ -20,6 +22,7 @@ class _FakePaymentRepository implements PaymentRepository {
     required bool applyEmergencyDiscount,
     required String idempotencyKey,
   }) async {
+    lastApplyEmergencyDiscount = applyEmergencyDiscount;
     final PaymentRepositoryFailure? f = failure;
     if (f != null) throw f;
     return AccessSession(
@@ -143,6 +146,65 @@ void main() {
         container.read(paymentNotifierProvider),
         const AsyncData<AccessSession?>(null),
       );
+    });
+
+    test("submit() passes applyEmergencyDiscount: true and consumes the "
+        "activation flag when Mode Urgence is active and eligible", () async {
+      final repository = _FakePaymentRepository();
+      final container = ProviderContainer(
+        overrides: [paymentRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+
+      container.read(emergencyActivationProvider.notifier).activate(true);
+      expect(container.read(effectiveEmergencyActivationProvider), isNotNull);
+
+      await container
+          .read(paymentNotifierProvider.notifier)
+          .submit(accessSessionId: "session-1", paymentMethodId: "pm-1");
+
+      expect(repository.lastApplyEmergencyDiscount, isTrue);
+      expect(container.read(paymentNotifierProvider).hasError, isFalse);
+      // Consumed on success — doesn't leak into a later, unrelated
+      // payment.
+      expect(container.read(effectiveEmergencyActivationProvider), isNull);
+    });
+
+    test("submit() passes applyEmergencyDiscount: false when Mode Urgence "
+        "was never activated", () async {
+      final repository = _FakePaymentRepository();
+      final container = ProviderContainer(
+        overrides: [paymentRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(paymentNotifierProvider.notifier)
+          .submit(accessSessionId: "session-1", paymentMethodId: "pm-1");
+
+      expect(repository.lastApplyEmergencyDiscount, isFalse);
+    });
+
+    test("submit() leaves the activation flag active when the payment "
+        "attempt fails, so a retry can still use it", () async {
+      final repository = _FakePaymentRepository(
+        failure: const PaymentDeclinedFailure("declined"),
+      );
+      final container = ProviderContainer(
+        retry: (retryCount, error) => null,
+        overrides: [paymentRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+
+      container.read(emergencyActivationProvider.notifier).activate(true);
+
+      await container
+          .read(paymentNotifierProvider.notifier)
+          .submit(accessSessionId: "session-1", paymentMethodId: "pm-1");
+
+      expect(repository.lastApplyEmergencyDiscount, isTrue);
+      expect(container.read(paymentNotifierProvider).hasError, isTrue);
+      expect(container.read(effectiveEmergencyActivationProvider), isNotNull);
     });
   });
 
