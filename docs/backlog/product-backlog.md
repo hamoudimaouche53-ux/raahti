@@ -73,6 +73,8 @@
 
 **Representative Tasks — US-03.3**: implement `EmergencyDiscountPolicy` domain service; wire into Access & Payment's transaction pricing step; require `DiabeticVerificationStatus = verified` guard; E2E test covering unverified-user rejection path.
 
+**Implementation status: ✅ Complete** (2026-08-06). US-03.1/03.2/03.3 implemented backend (`EmergencyModule`, commit `5e19458`) and mobile (SCR-011/SCR-012, commit `114307f`) — see `docs/phase-4-implementation-plan.md` §18 for the full implementation log and `docs/adr/0031-access-payment-identity-discount-verification.md` for the Access & Payment wiring decision. US-03.4 remains explicitly out of V1 scope, unscheduled. Known, accepted, out-of-scope limitation: Risk Register R-01 (diabetic-verification approval mechanism undefined) means no real user can currently reach `diabeticVerificationStatus = verified` — the discount-eligible branch is built and tested but only reachable via seeded data until that separate, unscoped workflow exists.
+
 ---
 
 ## EPIC-04: Payment & Unlock Journey
