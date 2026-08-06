@@ -1,8 +1,8 @@
-import "../../../map_discovery/domain/entities/coordinates.dart";
-import "../../../map_discovery/domain/entities/place.dart" show PlaceKind;
-import "../../../map_discovery/domain/repositories/place_detail_repository.dart";
+import "../../domain/entities/coordinates.dart";
 import "../../domain/entities/favorite.dart";
+import "../../domain/entities/place.dart" show PlaceKind;
 import "../../domain/repositories/favorite_repository.dart";
+import "../../domain/repositories/place_detail_repository.dart";
 import "../datasources/favorite_remote_data_source.dart";
 import "../dtos/favorite_dto.dart";
 
@@ -12,13 +12,11 @@ import "../dtos/favorite_dto.dart";
 /// [FavoriteEndpointNotSpecifiedFailure] (see that failure's own doc
 /// comment).
 ///
-/// [_placeDetailRepository] (`map_discovery`) resolves each favorite's
+/// [_placeDetailRepository] resolves each favorite's
 /// [Favorite.placeName]/position for [Favorite.distanceMeters] — the wire
 /// `Favorite` schema only carries bare place ids (see `FavoriteDto`'s doc
 /// comment), so this repository does the same kind of client-side
-/// enrichment `PlaceDetailSheet` already does for cabin realtime updates,
-/// just in the opposite direction (profile → map_discovery, the same
-/// allowed one-directional import).
+/// enrichment `PlaceDetailSheet` already does for cabin realtime updates.
 class RestFavoriteRepository implements FavoriteRepository {
   const RestFavoriteRepository(this._remote, this._placeDetailRepository);
 

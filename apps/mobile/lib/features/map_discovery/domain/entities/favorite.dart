@@ -1,7 +1,15 @@
-import "../../../map_discovery/domain/entities/place.dart" show PlaceKind;
+import "place.dart" show PlaceKind;
 
 /// A saved place — `Favorite` in docs/api/openapi.yaml,
 /// `FAVORITE` in docs/erd/erd.md §3.16 (US-05.4, FR-USR-04).
+///
+/// Lives in `map_discovery`, not `profile` — same reasoning as `Review`'s
+/// own doc comment: `PlaceDetailSheet` (SCR-007, in `map_discovery`) needs
+/// to call `addFavorite`/`removeFavorite` directly, and this codebase's
+/// established rule is `map_discovery` is foundational — other features
+/// import from it, never the reverse. `profile` imports this type for
+/// SCR-026 ("Favorites List"), the same one-directional dependency
+/// `Review` already established.
 ///
 /// [placeKind]/[placeId] reuse `map_discovery`'s own polymorphic-target
 /// vocabulary ([PlaceKind]) rather than duplicating a near-identical

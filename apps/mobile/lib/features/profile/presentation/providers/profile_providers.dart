@@ -1,42 +1,10 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../core/constants/env.dart";
-import "../../../map_discovery/presentation/providers/place_detail_providers.dart";
-import "../../../map_discovery/presentation/providers/place_providers.dart";
-import "../../data/datasources/favorite_remote_data_source.dart";
-import "../../data/repositories/mock_favorite_repository.dart";
 import "../../data/repositories/mock_visit_history_repository.dart";
-import "../../data/repositories/rest_favorite_repository.dart";
 import "../../data/repositories/rest_visit_history_repository.dart";
 import "../../domain/entities/visit.dart";
-import "../../domain/repositories/favorite_repository.dart";
 import "../../domain/repositories/visit_history_repository.dart";
-
-final Provider<FavoriteRemoteDataSource> favoriteRemoteDataSourceProvider =
-    Provider<FavoriteRemoteDataSource>(
-      (ref) => FavoriteRemoteDataSource(
-        ref.watch(httpClientProvider),
-        baseUrl: AppEnv.apiBaseUrl,
-      ),
-    );
-
-/// A single shared mock instance for the app's lifetime — same reasoning
-/// `_mockAuthRepositoryProvider` already applies (add/remove/toggle
-/// mutate in-memory state a fresh instance per read would lose).
-final Provider<MockFavoriteRepository> _mockFavoriteRepositoryProvider =
-    Provider<MockFavoriteRepository>((ref) => MockFavoriteRepository());
-
-/// The swap point for SCR-026's data (US-05.4).
-final Provider<FavoriteRepository> favoriteRepositoryProvider =
-    Provider<FavoriteRepository>((ref) {
-      if (AppEnv.useMockAuth) {
-        return ref.watch(_mockFavoriteRepositoryProvider);
-      }
-      return RestFavoriteRepository(
-        ref.watch(favoriteRemoteDataSourceProvider),
-        ref.watch(placeDetailRepositoryProvider),
-      );
-    });
 
 /// The swap point for SCR-021's data (US-05.2). Always resolves to
 /// [MockVisitHistoryRepository] when mocking is on, and always to

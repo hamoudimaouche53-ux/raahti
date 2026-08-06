@@ -5,9 +5,9 @@ import "package:go_router/go_router.dart";
 import "../../../../core/router/app_router.dart";
 import "../../../../l10n/app_localizations.dart";
 import "../../../map_discovery/domain/entities/coordinates.dart";
+import "../../../map_discovery/domain/entities/favorite.dart";
+import "../../../map_discovery/presentation/providers/place_detail_providers.dart";
 import "../../../map_discovery/presentation/providers/place_providers.dart";
-import "../../domain/entities/favorite.dart";
-import "../providers/profile_providers.dart";
 
 /// SCR-026 — Favorites List (US-05.4, FR-USR-04).
 class FavoritesListScreen extends ConsumerStatefulWidget {

@@ -1,6 +1,6 @@
 import "package:flutter_test/flutter_test.dart";
+import "package:rahati/features/map_discovery/data/repositories/mock_favorite_repository.dart";
 import "package:rahati/features/map_discovery/domain/entities/place.dart";
-import "package:rahati/features/profile/data/repositories/mock_favorite_repository.dart";
 
 void main() {
   group("MockFavoriteRepository", () {

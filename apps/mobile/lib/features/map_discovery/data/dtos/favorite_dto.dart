@@ -1,5 +1,5 @@
-import "../../../map_discovery/domain/entities/place.dart" show PlaceKind;
 import "../../domain/entities/favorite.dart";
+import "../../domain/entities/place.dart" show PlaceKind;
 
 /// JSON mapping for the `Favorite` schema in docs/api/openapi.yaml — a
 /// nullable `stationId`/`thirdPartyPlaceId` pair (exactly one non-null),

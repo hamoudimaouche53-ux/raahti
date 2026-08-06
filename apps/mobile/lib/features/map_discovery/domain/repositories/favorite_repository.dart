@@ -1,6 +1,6 @@
-import "../../../map_discovery/domain/entities/coordinates.dart";
-import "../../../map_discovery/domain/entities/place.dart" show PlaceKind;
+import "../entities/coordinates.dart";
 import "../entities/favorite.dart";
+import "../entities/place.dart" show PlaceKind;
 
 sealed class FavoriteRepositoryFailure implements Exception {
   const FavoriteRepositoryFailure(this.message);

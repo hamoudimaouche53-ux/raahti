@@ -16,9 +16,10 @@ import "../../../map_discovery/domain/entities/place.dart";
 ///   field for field. Duplicating it here would just be a second copy of
 ///   the same 9 fields.
 /// - `slatoki` and `profile` already import `map_discovery`'s domain layer
-///   freely and extensively (`Place`, `Coordinates`, `Review`,
-///   `PlaceKind` — see e.g. `slatoki/domain/entities/slatoki_place.dart`,
-///   `profile/domain/entities/favorite.dart`) — `map_discovery`'s domain
+///   freely and extensively (`Place`, `Coordinates`, `Review`, `Favorite`,
+///   `PlaceKind` — see e.g. `slatoki/domain/entities/slatoki_place.dart`) —
+///   `Review`/`Favorite` themselves live in `map_discovery` for the same
+///   reason, imported back up by `profile` — `map_discovery`'s domain
 ///   entities are an established shared/foundational layer other features
 ///   already depend on, not a boundary those features avoid crossing.
 /// - `access_payment` is the one feature that keeps its own independent

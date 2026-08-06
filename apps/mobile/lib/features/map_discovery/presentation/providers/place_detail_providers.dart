@@ -2,11 +2,14 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../core/constants/env.dart";
 import "../../../../core/providers/supabase_provider.dart";
+import "../../data/datasources/favorite_remote_data_source.dart";
 import "../../data/datasources/place_detail_remote_data_source.dart";
 import "../../data/datasources/review_remote_data_source.dart";
 import "../../data/repositories/mock_cabin_realtime_repository.dart";
+import "../../data/repositories/mock_favorite_repository.dart";
 import "../../data/repositories/mock_place_detail_repository.dart";
 import "../../data/repositories/mock_review_repository.dart";
+import "../../data/repositories/rest_favorite_repository.dart";
 import "../../data/repositories/rest_place_detail_repository.dart";
 import "../../data/repositories/rest_review_repository.dart";
 import "../../data/repositories/supabase_cabin_realtime_repository.dart";
@@ -14,6 +17,7 @@ import "../../domain/entities/cabin_occupancy_update.dart";
 import "../../domain/entities/station_detail.dart";
 import "../../domain/entities/third_party_place_detail.dart";
 import "../../domain/repositories/cabin_realtime_repository.dart";
+import "../../domain/repositories/favorite_repository.dart";
 import "../../domain/repositories/place_detail_repository.dart";
 import "../../domain/repositories/review_repository.dart";
 import "../../domain/usecases/get_station_detail.dart";
@@ -144,4 +148,30 @@ final Provider<ReviewRepository> reviewRepositoryProvider =
         return ref.watch(_mockReviewRepositoryProvider);
       }
       return RestReviewRepository(ref.watch(reviewRemoteDataSourceProvider));
+    });
+
+final Provider<FavoriteRemoteDataSource> favoriteRemoteDataSourceProvider =
+    Provider<FavoriteRemoteDataSource>(
+      (ref) => FavoriteRemoteDataSource(
+        ref.watch(httpClientProvider),
+        baseUrl: AppEnv.apiBaseUrl,
+      ),
+    );
+
+/// A single shared mock instance for the app's lifetime — same reasoning
+/// `_mockAuthRepositoryProvider` already applies (add/remove/toggle
+/// mutate in-memory state a fresh instance per read would lose).
+final Provider<MockFavoriteRepository> _mockFavoriteRepositoryProvider =
+    Provider<MockFavoriteRepository>((ref) => MockFavoriteRepository());
+
+/// The swap point for SCR-026's data (US-05.4).
+final Provider<FavoriteRepository> favoriteRepositoryProvider =
+    Provider<FavoriteRepository>((ref) {
+      if (AppEnv.useMockAuth) {
+        return ref.watch(_mockFavoriteRepositoryProvider);
+      }
+      return RestFavoriteRepository(
+        ref.watch(favoriteRemoteDataSourceProvider),
+        ref.watch(placeDetailRepositoryProvider),
+      );
     });

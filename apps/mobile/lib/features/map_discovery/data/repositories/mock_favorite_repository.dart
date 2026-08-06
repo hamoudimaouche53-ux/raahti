@@ -1,6 +1,6 @@
-import "../../../map_discovery/domain/entities/coordinates.dart";
-import "../../../map_discovery/domain/entities/place.dart" show PlaceKind;
+import "../../domain/entities/coordinates.dart";
 import "../../domain/entities/favorite.dart";
+import "../../domain/entities/place.dart" show PlaceKind;
 import "../../domain/repositories/favorite_repository.dart";
 
 /// **Explicitly-opt-in mock adapter** for [FavoriteRepository] — gated by
