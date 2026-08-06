@@ -9,10 +9,12 @@ import "package:rahati/core/theme/app_theme.dart";
 import "package:rahati/features/map_discovery/domain/entities/cabin.dart";
 import "package:rahati/features/map_discovery/domain/entities/cabin_occupancy_update.dart";
 import "package:rahati/features/map_discovery/domain/entities/coordinates.dart";
+import "package:rahati/features/map_discovery/domain/entities/favorite.dart";
 import "package:rahati/features/map_discovery/domain/entities/money.dart";
 import "package:rahati/features/map_discovery/domain/entities/place.dart";
 import "package:rahati/features/map_discovery/domain/entities/station_detail.dart";
 import "package:rahati/features/map_discovery/domain/entities/third_party_place_detail.dart";
+import "package:rahati/features/map_discovery/domain/repositories/favorite_repository.dart";
 import "package:rahati/features/map_discovery/presentation/providers/place_detail_providers.dart";
 import "package:rahati/features/map_discovery/presentation/widgets/cabin_status_indicator.dart";
 import "package:rahati/features/map_discovery/presentation/widgets/place_detail_sheet.dart";
@@ -49,6 +51,74 @@ StationDetail _stationDetail(Place place, {List<Cabin> cabins = const []}) =>
       cabins: cabins,
       slatokiTent: null,
     );
+
+/// A minimal in-memory [FavoriteRepository] fake for the favorite-toggle
+/// button tests (US-05.4) — same `Completer<void>? delay` precedent
+/// `_FakeAccessSessionRepository` (cabin_availability_screen_test.dart)
+/// already established for freezing a repository call mid-flight so the
+/// screen's saving/loading state can be asserted on.
+class _FakeFavoriteRepository implements FavoriteRepository {
+  _FakeFavoriteRepository({
+    List<Favorite> seed = const [],
+    this.failure,
+    this.delay,
+  }) : _favorites = List<Favorite>.of(seed);
+
+  final List<Favorite> _favorites;
+  final FavoriteRepositoryFailure? failure;
+  final Completer<void>? delay;
+
+  int addFavoriteCallCount = 0;
+  int removeFavoriteCallCount = 0;
+  String? lastRemovedFavoriteId;
+
+  @override
+  Future<List<Favorite>> getFavorites({
+    Coordinates? currentPosition,
+    required String languageCode,
+  }) async => List<Favorite>.unmodifiable(_favorites);
+
+  @override
+  Future<Favorite> addFavorite({
+    required PlaceKind placeKind,
+    required String placeId,
+    required bool notifyOnAvailable,
+    required String languageCode,
+  }) async {
+    addFavoriteCallCount++;
+    final Completer<void>? d = delay;
+    if (d != null) await d.future;
+    final FavoriteRepositoryFailure? f = failure;
+    if (f != null) throw f;
+    final Favorite added = Favorite(
+      id: "fav-new",
+      placeKind: placeKind,
+      placeId: placeId,
+      placeName: placeId,
+      distanceMeters: null,
+      notifyOnAvailable: notifyOnAvailable,
+    );
+    _favorites.add(added);
+    return added;
+  }
+
+  @override
+  Future<void> removeFavorite(String favoriteId) async {
+    removeFavoriteCallCount++;
+    lastRemovedFavoriteId = favoriteId;
+    final Completer<void>? d = delay;
+    if (d != null) await d.future;
+    final FavoriteRepositoryFailure? f = failure;
+    if (f != null) throw f;
+    _favorites.removeWhere((existing) => existing.id == favoriteId);
+  }
+
+  @override
+  Future<Favorite> setNotifyOnAvailable({
+    required String favoriteId,
+    required bool notifyOnAvailable,
+  }) => throw UnimplementedError();
+}
 
 Future<void> _pumpSheet(
   WidgetTester tester,
@@ -484,5 +554,197 @@ void main() {
       expect(find.text("Libre"), findsOneWidget);
       expect(find.text("Occupé"), findsNothing);
     });
+  });
+
+  group("favorite toggle (US-05.4)", () {
+    testWidgets("shows an outline heart when the place isn't yet favorited", (
+      tester,
+    ) async {
+      final place = _place();
+      await _pumpSheet(
+        tester,
+        place,
+        overrides: [
+          favoriteRepositoryProvider.overrideWithValue(
+            _FakeFavoriteRepository(),
+          ),
+          stationDetailProvider(
+            place.id,
+          ).overrideWith((ref) async => _stationDetail(place)),
+        ],
+      );
+
+      expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+      expect(find.byIcon(Icons.favorite), findsNothing);
+    });
+
+    testWidgets("shows a filled heart when the place is already favorited", (
+      tester,
+    ) async {
+      final place = _place();
+      final fake = _FakeFavoriteRepository(
+        seed: [
+          Favorite(
+            id: "fav-1",
+            placeKind: place.placeKind,
+            placeId: place.id,
+            placeName: "Station Didouche",
+            distanceMeters: null,
+            notifyOnAvailable: false,
+          ),
+        ],
+      );
+      await _pumpSheet(
+        tester,
+        place,
+        overrides: [
+          favoriteRepositoryProvider.overrideWithValue(fake),
+          stationDetailProvider(
+            place.id,
+          ).overrideWith((ref) async => _stationDetail(place)),
+        ],
+      );
+
+      expect(find.byIcon(Icons.favorite), findsOneWidget);
+      expect(find.byIcon(Icons.favorite_border), findsNothing);
+    });
+
+    testWidgets("tapping the outline heart shows a saving indicator, calls "
+        "addFavorite, then refreshes to a filled heart", (tester) async {
+      final place = _place();
+      final delay = Completer<void>();
+      final fake = _FakeFavoriteRepository(delay: delay);
+      await _pumpSheet(
+        tester,
+        place,
+        overrides: [
+          favoriteRepositoryProvider.overrideWithValue(fake),
+          stationDetailProvider(
+            place.id,
+          ).overrideWith((ref) async => _stationDetail(place)),
+        ],
+      );
+
+      await tester.tap(find.byIcon(Icons.favorite_border));
+      await tester.pump();
+
+      expect(fake.addFavoriteCallCount, 1);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byIcon(Icons.favorite_border), findsNothing);
+      // Button disabled while saving.
+      expect(
+        tester
+            .widget<IconButton>(
+              find.ancestor(
+                of: find.byType(CircularProgressIndicator),
+                matching: find.byType(IconButton),
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+
+      delay.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.favorite), findsOneWidget);
+      expect(find.byIcon(Icons.favorite_border), findsNothing);
+    });
+
+    testWidgets(
+      "tapping the filled heart calls removeFavorite with the resolved "
+      "favorite id, then refreshes to an outline heart",
+      (tester) async {
+        final place = _place();
+        final fake = _FakeFavoriteRepository(
+          seed: [
+            Favorite(
+              id: "fav-1",
+              placeKind: place.placeKind,
+              placeId: place.id,
+              placeName: "Station Didouche",
+              distanceMeters: null,
+              notifyOnAvailable: false,
+            ),
+          ],
+        );
+        await _pumpSheet(
+          tester,
+          place,
+          overrides: [
+            favoriteRepositoryProvider.overrideWithValue(fake),
+            stationDetailProvider(
+              place.id,
+            ).overrideWith((ref) async => _stationDetail(place)),
+          ],
+        );
+
+        expect(find.byIcon(Icons.favorite), findsOneWidget);
+
+        await tester.tap(find.byIcon(Icons.favorite));
+        await tester.pumpAndSettle();
+
+        expect(fake.removeFavoriteCallCount, 1);
+        expect(fake.lastRemovedFavoriteId, "fav-1");
+        expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+        expect(find.byIcon(Icons.favorite), findsNothing);
+      },
+    );
+
+    testWidgets(
+      "a repository error on tap shows a snackbar and leaves the icon in "
+      "its prior (not-favorited) state, not a false 'success' state",
+      (tester) async {
+        final place = _place();
+        final fake = _FakeFavoriteRepository(
+          failure: const FavoriteRequestFailure("boom"),
+        );
+        await _pumpSheet(
+          tester,
+          place,
+          overrides: [
+            favoriteRepositoryProvider.overrideWithValue(fake),
+            stationDetailProvider(
+              place.id,
+            ).overrideWith((ref) async => _stationDetail(place)),
+          ],
+        );
+
+        await tester.tap(find.byIcon(Icons.favorite_border));
+        await tester.pumpAndSettle();
+
+        expect(fake.addFavoriteCallCount, 1);
+        expect(find.byIcon(Icons.favorite_border), findsOneWidget);
+        expect(find.byIcon(Icons.favorite), findsNothing);
+        expect(find.byType(SnackBar), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      "the favorite toggle has an accessible label describing the action, "
+      "not just 'favorite icon'",
+      (tester) async {
+        final place = _place();
+        final SemanticsHandle handle = tester.ensureSemantics();
+        await _pumpSheet(
+          tester,
+          place,
+          overrides: [
+            favoriteRepositoryProvider.overrideWithValue(
+              _FakeFavoriteRepository(),
+            ),
+            stationDetailProvider(
+              place.id,
+            ).overrideWith((ref) async => _stationDetail(place)),
+          ],
+        );
+
+        final SemanticsNode node = tester.getSemantics(
+          find.byIcon(Icons.favorite_border),
+        );
+        expect(node.label, "Ajouter aux favoris");
+        handle.dispose();
+      },
+    );
   });
 }

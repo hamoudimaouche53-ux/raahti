@@ -14,6 +14,8 @@ import "../../data/repositories/rest_place_detail_repository.dart";
 import "../../data/repositories/rest_review_repository.dart";
 import "../../data/repositories/supabase_cabin_realtime_repository.dart";
 import "../../domain/entities/cabin_occupancy_update.dart";
+import "../../domain/entities/favorite.dart";
+import "../../domain/entities/place.dart" show PlaceKind;
 import "../../domain/entities/station_detail.dart";
 import "../../domain/entities/third_party_place_detail.dart";
 import "../../domain/repositories/cabin_realtime_repository.dart";
@@ -174,4 +176,56 @@ final Provider<FavoriteRepository> favoriteRepositoryProvider =
         ref.watch(favoriteRemoteDataSourceProvider),
         ref.watch(placeDetailRepositoryProvider),
       );
+    });
+
+/// The current favorite state for one place — read by
+/// `_FavoriteToggleButton` (`place_detail_sheet.dart`, US-05.4) to decide
+/// which heart icon to show and, if already favorited, which
+/// [Favorite.id] to pass to [FavoriteRepository.removeFavorite].
+class FavoriteStatus {
+  const FavoriteStatus({required this.isFavorited, required this.favoriteId});
+
+  final bool isFavorited;
+
+  /// Non-null iff [isFavorited] — resolved from the matching [Favorite]
+  /// entry, `null` otherwise.
+  final String? favoriteId;
+}
+
+/// docs/api/openapi.yaml has no single-place "is this favorited"
+/// endpoint — only `GET /users/me/favorites` (list) and `POST` (create) —
+/// so, same as SCR-026 (favorites lists are documented there as "expected
+/// to stay small"), this fetches the full list via
+/// [FavoriteRepository.getFavorites] and searches it client-side rather
+/// than inventing a dedicated per-place check.
+///
+/// Keyed by `(placeKind, placeId)`, not a bare place id — matches
+/// [Favorite]'s own polymorphic-target vocabulary (that class's doc
+/// comment), since a favorite isn't uniquely identified by [Place.id]
+/// alone (a station and a third-party place could otherwise collide on
+/// id). No explicit `FutureProviderFamily<...>` annotation, same reason
+/// [stationDetailProvider] has none.
+///
+/// [FavoriteRepository.getFavorites] requires a `languageCode` to resolve
+/// each returned [Favorite.placeName] — irrelevant here (only
+/// [Favorite.id]/[Favorite.placeKind]/[Favorite.placeId] are read), so a
+/// fixed `"en"` is passed rather than threading the active locale into
+/// this family's key, which would otherwise force a redundant re-fetch on
+/// every locale change for a value this provider never uses.
+final favoriteStatusProvider =
+    FutureProvider.family<
+      FavoriteStatus,
+      ({PlaceKind placeKind, String placeId})
+    >((ref, key) async {
+      final List<Favorite> favorites = await ref
+          .watch(favoriteRepositoryProvider)
+          .getFavorites(languageCode: "en");
+      final Favorite? match = favorites
+          .where(
+            (favorite) =>
+                favorite.placeKind == key.placeKind &&
+                favorite.placeId == key.placeId,
+          )
+          .firstOrNull;
+      return FavoriteStatus(isFavorited: match != null, favoriteId: match?.id);
     });

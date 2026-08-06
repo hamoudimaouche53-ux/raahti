@@ -79,6 +79,18 @@
   "@placeDetailFavoriteError": {
     "description": "SCR-005/SCR-006 Place Detail Sheet (US-05.4) — error snackbar shown when add/removeFavorite fails."
   },
+  "placeDetailAddToFavorites": "Ajouter aux favoris",
+  "@placeDetailAddToFavorites": {
+    "description": "SCR-005/SCR-006 Place Detail Sheet (US-05.4) — accessible label for the favorite-toggle button when the place isn't yet favorited."
+  },
+  "placeDetailRemoveFromFavorites": "Retirer des favoris",
+  "@placeDetailRemoveFromFavorites": {
+    "description": "SCR-005/SCR-006 Place Detail Sheet (US-05.4) — accessible label for the favorite-toggle button when the place is already favorited."
+  },
+  "placeDetailFavoriteError": "Impossible de mettre à jour vos favoris. Réessayez.",
+  "@placeDetailFavoriteError": {
+    "description": "SCR-005/SCR-006 Place Detail Sheet (US-05.4) — error snackbar shown when add/removeFavorite fails."
+  },
   "tagWomenConfirmed": "Femmes ✓",
   "@tagWomenConfirmed": { "description": "Tag label per docs/erd/erd.md §3.5." },
   "tagWudu": "Wudu ✓",

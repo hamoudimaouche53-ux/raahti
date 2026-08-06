@@ -311,6 +311,7 @@ class PlaceDetailSheet extends ConsumerWidget {
                       style: textTheme.titleLarge,
                     ),
                   ),
+                  _FavoriteToggleButton(place: place),
                   IconButton(
                     icon: const Icon(Icons.close),
                     tooltip: l10n.placeDetailClose,
@@ -416,6 +417,100 @@ class PlaceDetailSheet extends ConsumerWidget {
       return "${(meters / 1000).toStringAsFixed(1)} km";
     }
     return "${meters.round()} m";
+  }
+}
+
+/// The favorite-toggle button (US-05.4, FR-USR-04) — placed in the title
+/// row beside the close button, not among the two full-width actions
+/// ("Route"/"Scanner le QR") at the sheet's bottom, since toggling a
+/// favorite is a lightweight, secondary action on the place itself.
+///
+/// [ConsumerStatefulWidget], not stateless — mirrors
+/// `SubmitReviewScreen`'s `_submitting` in-flight-state pattern: local
+/// [_saving] disables the button and blocks a second tap while
+/// add/removeFavorite is in flight. A failure shows an error snackbar and
+/// leaves the icon in its pre-tap state — no optimistic UI that could get
+/// stuck showing a false "success" state if the request fails.
+class _FavoriteToggleButton extends ConsumerStatefulWidget {
+  const _FavoriteToggleButton({required this.place});
+
+  final Place place;
+
+  @override
+  ConsumerState<_FavoriteToggleButton> createState() =>
+      _FavoriteToggleButtonState();
+}
+
+class _FavoriteToggleButtonState extends ConsumerState<_FavoriteToggleButton> {
+  bool _saving = false;
+
+  ({PlaceKind placeKind, String placeId}) get _statusKey =>
+      (placeKind: widget.place.placeKind, placeId: widget.place.id);
+
+  Future<void> _toggle(FavoriteStatus status, AppLocalizations l10n) async {
+    setState(() => _saving = true);
+    try {
+      if (status.isFavorited) {
+        await ref
+            .read(favoriteRepositoryProvider)
+            .removeFavorite(status.favoriteId!);
+      } else {
+        await ref
+            .read(favoriteRepositoryProvider)
+            .addFavorite(
+              placeKind: widget.place.placeKind,
+              placeId: widget.place.id,
+              notifyOnAvailable: false,
+              languageCode: Localizations.localeOf(context).languageCode,
+            );
+      }
+      if (!mounted) return;
+      ref.invalidate(favoriteStatusProvider(_statusKey));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.placeDetailFavoriteError)));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final AsyncValue<FavoriteStatus> statusAsync = ref.watch(
+      favoriteStatusProvider(_statusKey),
+    );
+    // Loading/error both fall back to the neutral, not-favorited outline
+    // heart rather than blocking the whole sheet on this one status fetch
+    // — `_PlaceDetailExtra` already owns this sheet's one loading/error
+    // presentation for the full station/third-party-place detail.
+    final FavoriteStatus? status = statusAsync.value;
+    final bool isFavorited = status?.isFavorited ?? false;
+    final String label = isFavorited
+        ? l10n.placeDetailRemoveFromFavorites
+        : l10n.placeDetailAddToFavorites;
+    // Disabled while saving, and while the initial status fetch hasn't
+    // resolved yet — tapping "add" before knowing the real state could
+    // create a duplicate favorite if it turns out to already be one.
+    final bool canToggle = !_saving && status != null;
+
+    return IconButton(
+      onPressed: canToggle ? () => _toggle(status, l10n) : null,
+      icon: Semantics(
+        label: label,
+        child: ExcludeSemantics(
+          child: _saving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Icon(isFavorited ? Icons.favorite : Icons.favorite_border),
+        ),
+      ),
+    );
   }
 }
 
