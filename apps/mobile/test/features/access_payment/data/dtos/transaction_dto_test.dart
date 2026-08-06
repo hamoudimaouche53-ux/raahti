@@ -23,7 +23,7 @@ void main() {
           "accessSession": _accessSessionJson(),
         });
 
-        final entity = dto.toEntity();
+        final entity = dto.toEntity()!;
         expect(entity.id, "txn-1");
         expect(entity.amount.amount, "50");
         expect(entity.amount.currency, "DZD");
@@ -43,7 +43,7 @@ void main() {
         "accessSession": _accessSessionJson(),
       });
 
-      expect(dto.toEntity().discountApplied?.percentage, 50);
+      expect(dto.toEntity()!.discountApplied?.percentage, 50);
     });
 
     test("maps every wire status to the correct enum value", () {
@@ -61,8 +61,21 @@ void main() {
           "status": entry.key,
           "accessSession": _accessSessionJson(),
         });
-        expect(dto.toEntity().status, entry.value);
+        expect(dto.toEntity()!.status, entry.value);
       }
+    });
+
+    test("toEntity returns null for the free-cabin response shape "
+        "(id/amount/status omitted, only accessSession present)", () {
+      final dto = TransactionDto.fromJson(<String, dynamic>{
+        "accessSession": _accessSessionJson(),
+      });
+
+      expect(dto.id, isNull);
+      expect(dto.amount, isNull);
+      expect(dto.status, isNull);
+      expect(dto.toEntity(), isNull);
+      expect(dto.accessSession.toEntity().id, "session-1");
     });
   });
 }

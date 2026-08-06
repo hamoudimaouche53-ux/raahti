@@ -23,35 +23,55 @@ class TransactionDto {
 
   factory TransactionDto.fromJson(Map<String, dynamic> json) {
     return TransactionDto(
-      id: json["id"] as String,
-      amount: MoneyDto.fromJson(json["amount"] as Map<String, dynamic>),
+      id: json["id"] as String?,
+      amount: json["amount"] == null
+          ? null
+          : MoneyDto.fromJson(json["amount"] as Map<String, dynamic>),
       discountApplied: json["discountApplied"] as String?,
-      status: json["status"] as String,
+      status: json["status"] as String?,
       accessSession: AccessSessionDto.fromJson(
         json["accessSession"] as Map<String, dynamic>,
       ),
     );
   }
 
-  final String id;
-  final MoneyDto amount;
+  /// `id`/`amount`/`status` are all `null` when the backend's response
+  /// carries no Transaction — the free-cabin path (ERD §"TRANSACTION":
+  /// "a free-access session produces no transaction row";
+  /// `TransactionResponseDto.fromDomain`, backend, leaves them
+  /// unset/`undefined` in that case rather than sending placeholder
+  /// values).
+  final String? id;
+  final MoneyDto? amount;
 
   /// Wire value is a decimal-percentage string (e.g. `"50"`), same
   /// string-not-double discipline as `Money.amount` — never set by any
   /// V1 flow (see `DiscountRate`'s doc comment), but parsed faithfully
   /// since the schema documents it.
   final String? discountApplied;
-  final String status;
+  final String? status;
   final AccessSessionDto accessSession;
 
-  Transaction toEntity() {
+  /// `null` when this response carried no Transaction (free-cabin path,
+  /// see [id]'s doc comment) — `AccessSession` owns an *optional*
+  /// `Transaction` (domain-model.md §6), so the nullability belongs here,
+  /// not as placeholder values inside a always-present `Transaction`.
+  Transaction? toEntity() {
+    final String? transactionId = id;
+    final MoneyDto? transactionAmount = amount;
+    final String? transactionStatus = status;
+    if (transactionId == null ||
+        transactionAmount == null ||
+        transactionStatus == null) {
+      return null;
+    }
     return Transaction(
-      id: id,
-      amount: amount.toEntity(),
+      id: transactionId,
+      amount: transactionAmount.toEntity(),
       discountApplied: discountApplied == null
           ? null
           : DiscountRate(double.parse(discountApplied!)),
-      status: switch (status) {
+      status: switch (transactionStatus) {
         "pending" => TransactionStatus.pending,
         "authorized" => TransactionStatus.authorized,
         "captured" => TransactionStatus.captured,
