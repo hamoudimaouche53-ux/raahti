@@ -56,4 +56,11 @@ abstract interface class AccessSessionRepository {
   /// Fallback channel only — the primary channel for status updates is the
   /// Realtime subscription (US-04.5).
   Future<AccessSession> getAccessSession(String accessSessionId);
+
+  /// `POST /access-sessions/{id}/complete` (SCR-019's "J'ai terminé"
+  /// manual-completion path, US-04.6/ADR-0026 Decision 2 — no invented
+  /// auto-close, this is the app's own explicit action). Doubles
+  /// server-side as the simulated door-sensor-close event until Phase 9
+  /// IoT ships real hardware (ADR-0030).
+  Future<AccessSession> completeAccessSession(String accessSessionId);
 }

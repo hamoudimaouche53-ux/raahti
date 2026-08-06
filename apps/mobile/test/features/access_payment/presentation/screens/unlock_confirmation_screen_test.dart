@@ -2,27 +2,76 @@ import "dart:async";
 
 import "package:flutter/material.dart";
 import "package:flutter/semantics.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:go_router/go_router.dart";
 import "package:rahati/core/router/app_router.dart";
 import "package:rahati/core/theme/app_theme.dart";
+import "package:rahati/features/access_payment/domain/entities/access_session.dart";
+import "package:rahati/features/access_payment/domain/entities/access_session_status.dart";
 import "package:rahati/features/access_payment/domain/entities/money.dart";
+import "package:rahati/features/access_payment/domain/entities/qr_code.dart";
+import "package:rahati/features/access_payment/domain/repositories/access_session_repository.dart";
+import "package:rahati/features/access_payment/presentation/providers/access_session_providers.dart";
 import "package:rahati/features/access_payment/presentation/screens/session_complete_screen.dart";
 import "package:rahati/features/access_payment/presentation/screens/unlock_confirmation_screen.dart";
 import "package:rahati/l10n/app_localizations.dart";
 
-Future<GoRouter> _pushViaGoRouter(
+/// Records `completeAccessSession` calls (SCR-019's "J'ai terminé"/
+/// door-sensor path, `_completeSession`'s new backend call) without
+/// exercising a real network — same fake-repository pattern as
+/// `cabin_availability_screen_test.dart`'s `_FakeAccessSessionRepository`.
+class _FakeAccessSessionRepository implements AccessSessionRepository {
+  _FakeAccessSessionRepository({this.completeFailure});
+
+  final AccessSessionRepositoryFailure? completeFailure;
+  final List<String> completedSessionIds = <String>[];
+
+  @override
+  Future<AccessSession> initiateAccessSession({
+    required QrCode qrCodeScanned,
+    required String idempotencyKey,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AccessSession> getAccessSession(String accessSessionId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AccessSession> completeAccessSession(String accessSessionId) async {
+    completedSessionIds.add(accessSessionId);
+    final AccessSessionRepositoryFailure? f = completeFailure;
+    if (f != null) throw f;
+    return AccessSession(
+      id: accessSessionId,
+      cabinId: "cabin-1",
+      status: AccessSessionStatus.completed,
+      startedAt: DateTime(2026),
+      unlockedAt: DateTime(2026),
+    );
+  }
+}
+
+Future<(GoRouter, _FakeAccessSessionRepository)> _pushViaGoRouter(
   WidgetTester tester, {
   Locale locale = const Locale("fr"),
   Stream<void>? cabinFreedStream,
   Money? amount,
+  AccessSessionRepositoryFailure? completeFailure,
 }) async {
+  final _FakeAccessSessionRepository repository = _FakeAccessSessionRepository(
+    completeFailure: completeFailure,
+  );
   final GoRouter router = GoRouter(
     initialLocation: AppRoutePaths.accessPaymentUnlock,
     routes: <RouteBase>[
       GoRoute(
         path: AppRoutePaths.accessPaymentUnlock,
         builder: (context, state) => UnlockConfirmationScreen(
+          accessSessionId: "session-1",
           cabinCode: "2",
           stationName: "Station Didouche",
           startedAt: DateTime(2026, 1, 1, 10),
@@ -52,16 +101,21 @@ Future<GoRouter> _pushViaGoRouter(
   );
 
   await tester.pumpWidget(
-    MaterialApp.router(
-      routerConfig: router,
-      theme: RahatiTheme.light,
-      locale: locale,
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+    ProviderScope(
+      overrides: [
+        accessSessionRepositoryProvider.overrideWithValue(repository),
+      ],
+      child: MaterialApp.router(
+        routerConfig: router,
+        theme: RahatiTheme.light,
+        locale: locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+      ),
     ),
   );
   await tester.pump();
-  return router;
+  return (router, repository);
 }
 
 void main() {
@@ -121,7 +175,10 @@ void main() {
   testWidgets("'J'ai terminé' navigates to SCR-019 (SessionCompleteScreen)", (
     tester,
   ) async {
-    final GoRouter router = await _pushViaGoRouter(
+    final (
+      GoRouter router,
+      _FakeAccessSessionRepository repository,
+    ) = await _pushViaGoRouter(
       tester,
       amount: const Money(amount: "50", currency: "DZD"),
     );
@@ -136,6 +193,8 @@ void main() {
       router.routerDelegate.currentConfiguration.uri.toString(),
       "/access-payment/session-complete",
     );
+    // POST /access-sessions/{id}/complete fires alongside the navigation.
+    expect(repository.completedSessionIds, ["session-1"]);
   });
 
   testWidgets("a cabinFreedStream event (door-sensor close) auto-navigates to "
@@ -143,7 +202,10 @@ void main() {
     final controller = StreamController<void>();
     addTearDown(controller.close);
 
-    await _pushViaGoRouter(tester, cabinFreedStream: controller.stream);
+    final (_, _FakeAccessSessionRepository repository) = await _pushViaGoRouter(
+      tester,
+      cabinFreedStream: controller.stream,
+    );
     await tester.pump(const Duration(milliseconds: 1700));
 
     expect(find.byType(SessionCompleteScreen), findsNothing);
@@ -154,6 +216,24 @@ void main() {
     expect(find.byType(SessionCompleteScreen), findsOneWidget);
     // Free cabin (no amount) — SCR-019 shows "Gratuit", not an amount.
     expect(find.text("Gratuit"), findsOneWidget);
+    expect(repository.completedSessionIds, ["session-1"]);
+  });
+
+  testWidgets("'J'ai terminé' still navigates to SCR-019 even when the backend "
+      "completion call fails — ADR-0026 Decision 2/this call's own doc "
+      "comment: never trap the user on a network failure at this point", (
+    tester,
+  ) async {
+    await _pushViaGoRouter(
+      tester,
+      completeFailure: const AccessSessionRequestFailure("boom"),
+    );
+    await tester.pump(const Duration(milliseconds: 1700));
+
+    await tester.tap(find.text("J'ai terminé"));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SessionCompleteScreen), findsOneWidget);
   });
 
   testWidgets("renders correctly under the Arabic (RTL) locale", (

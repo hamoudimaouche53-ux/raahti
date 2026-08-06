@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../../../core/router/app_router.dart";
@@ -8,6 +9,8 @@ import "../../../../core/theme/color_tokens.dart";
 import "../../../../core/theme/spacing_tokens.dart";
 import "../../../../l10n/app_localizations.dart";
 import "../../domain/entities/money.dart";
+import "../../domain/repositories/access_session_repository.dart";
+import "../providers/access_session_providers.dart";
 import "session_complete_screen.dart";
 
 /// SCR-017 — Unlock Confirmation / Access Active (US-04.4, FR-PAY-04).
@@ -55,6 +58,7 @@ import "session_complete_screen.dart";
 /// `PaymentProcessingArgs`.
 class UnlockConfirmationArgs {
   const UnlockConfirmationArgs({
+    required this.accessSessionId,
     required this.cabinCode,
     required this.stationName,
     required this.startedAt,
@@ -64,6 +68,9 @@ class UnlockConfirmationArgs {
     required this.placeName,
   });
 
+  /// Backs `POST /access-sessions/{id}/complete` (SCR-019's "J'ai terminé"
+  /// path) — see `_completeSession`'s doc comment.
+  final String accessSessionId;
   final String cabinCode;
   final String stationName;
   final DateTime startedAt;
@@ -82,8 +89,9 @@ class UnlockConfirmationArgs {
   final String placeName;
 }
 
-class UnlockConfirmationScreen extends StatefulWidget {
+class UnlockConfirmationScreen extends ConsumerStatefulWidget {
   const UnlockConfirmationScreen({
+    required this.accessSessionId,
     required this.cabinCode,
     required this.stationName,
     required this.startedAt,
@@ -94,6 +102,7 @@ class UnlockConfirmationScreen extends StatefulWidget {
     super.key,
   });
 
+  final String accessSessionId;
   final String cabinCode;
   final String stationName;
   final DateTime startedAt;
@@ -111,11 +120,12 @@ class UnlockConfirmationScreen extends StatefulWidget {
   static const Duration _unlockSequenceDuration = Duration(milliseconds: 1600);
 
   @override
-  State<UnlockConfirmationScreen> createState() =>
+  ConsumerState<UnlockConfirmationScreen> createState() =>
       _UnlockConfirmationScreenState();
 }
 
-class _UnlockConfirmationScreenState extends State<UnlockConfirmationScreen>
+class _UnlockConfirmationScreenState
+    extends ConsumerState<UnlockConfirmationScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _progressController = AnimationController(
     vsync: this,
@@ -157,8 +167,31 @@ class _UnlockConfirmationScreenState extends State<UnlockConfirmationScreen>
   /// Common exit for both the manual "J'ai terminé" action and the
   /// door-sensor-close broadcast — "visually identical either way," per
   /// SCR-019's own wireframe, so both paths land here.
+  ///
+  /// Also fires `POST /access-sessions/{id}/complete` — closes the
+  /// session and frees the cabin server-side (ADR-0030: this doubles as
+  /// the simulated door-sensor-close event until Phase 9 IoT ships real
+  /// hardware). Deliberately fire-and-forget: per ADR-0026 Decision 2,
+  /// this screen never blocks the user on a network call — SCR-019 is
+  /// navigated to immediately either way, matching the door-sensor path's
+  /// own existing behavior (which has never waited on anything either).
+  /// A failure here has no dedicated error UI; it's swallowed rather than
+  /// surfaced, since by this point the unlock has already succeeded and
+  /// there is nothing actionable the user could do about a completion
+  /// call failing after the fact.
   void _completeSession() {
     if (!mounted) return;
+    // Read the repository synchronously, before navigating away — `ref`
+    // becomes unusable once this State is disposed, which `context.go`
+    // below may trigger.
+    final AccessSessionRepository repository = ref.read(
+      accessSessionRepositoryProvider,
+    );
+    unawaited(
+      repository
+          .completeAccessSession(widget.accessSessionId)
+          .then((_) {}, onError: (Object _) {}),
+    );
     context.go(
       AppRoutePaths.sessionComplete,
       extra: SessionCompleteArgs(

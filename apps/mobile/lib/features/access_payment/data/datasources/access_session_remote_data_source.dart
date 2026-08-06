@@ -82,4 +82,31 @@ class AccessSessionRemoteDataSource {
       jsonDecode(response.body) as Map<String, dynamic>,
     );
   }
+
+  Future<AccessSessionDto> completeAccessSession(String accessSessionId) async {
+    final String? baseUrl = _baseUrl;
+    if (baseUrl == null || baseUrl.isEmpty) {
+      throw const AccessPaymentApiNotConfiguredFailure();
+    }
+
+    final Uri uri = Uri.parse(
+      "$baseUrl/v1/access-sessions/$accessSessionId/complete",
+    );
+    final http.Response response;
+    try {
+      response = await _client.post(uri).timeout(const Duration(seconds: 10));
+    } catch (e) {
+      throw AccessSessionRequestFailure("Could not reach the backend: $e");
+    }
+
+    if (response.statusCode != 200) {
+      throw AccessSessionRequestFailure(
+        "Backend returned HTTP ${response.statusCode} for $uri",
+      );
+    }
+
+    return AccessSessionDto.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
 }

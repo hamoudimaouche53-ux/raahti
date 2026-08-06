@@ -36,6 +36,11 @@ class _FakeAccessSessionRepository implements AccessSessionRepository {
   Future<AccessSession> getAccessSession(String accessSessionId) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<AccessSession> completeAccessSession(String accessSessionId) {
+    throw UnimplementedError();
+  }
 }
 
 void main() {

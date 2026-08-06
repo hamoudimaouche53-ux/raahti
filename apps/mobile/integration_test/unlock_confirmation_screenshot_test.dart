@@ -67,6 +67,17 @@ class _FreeAccessSessionRepository implements AccessSessionRepository {
   Future<AccessSession> getAccessSession(String accessSessionId) {
     return Completer<AccessSession>().future;
   }
+
+  @override
+  Future<AccessSession> completeAccessSession(String accessSessionId) async {
+    return AccessSession(
+      id: accessSessionId,
+      cabinId: "s1-cabin-1",
+      status: AccessSessionStatus.completed,
+      startedAt: DateTime.now(),
+      unlockedAt: DateTime.now(),
+    );
+  }
 }
 
 const _center = Coordinates(latitude: 36.7538, longitude: 3.0588);

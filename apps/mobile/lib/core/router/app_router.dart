@@ -142,6 +142,7 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((ref) {
           final UnlockConfirmationArgs args =
               state.extra! as UnlockConfirmationArgs;
           return UnlockConfirmationScreen(
+            accessSessionId: args.accessSessionId,
             cabinCode: args.cabinCode,
             stationName: args.stationName,
             startedAt: args.startedAt,

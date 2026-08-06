@@ -86,6 +86,7 @@ class PlaceDetailSheet extends ConsumerWidget {
       await _showUnlockConfirmation(
         context,
         ref,
+        accessSessionId: session.id,
         cabinId: session.cabinId,
         cabinCode: cabinCode,
         unlockedAt: session.unlockedAt ?? session.startedAt,
@@ -155,6 +156,7 @@ class PlaceDetailSheet extends ConsumerWidget {
         await _showUnlockConfirmation(
           context,
           ref,
+          accessSessionId: outcome.id,
           cabinId: cabinId,
           cabinCode: cabinCode,
           unlockedAt: outcome.unlockedAt ?? outcome.startedAt,
@@ -176,6 +178,7 @@ class PlaceDetailSheet extends ConsumerWidget {
   Future<void> _showUnlockConfirmation(
     BuildContext context,
     WidgetRef ref, {
+    required String accessSessionId,
     required String cabinId,
     required String cabinCode,
     required DateTime unlockedAt,
@@ -188,6 +191,7 @@ class PlaceDetailSheet extends ConsumerWidget {
     await context.push<void>(
       AppRoutePaths.accessPaymentUnlock,
       extra: UnlockConfirmationArgs(
+        accessSessionId: accessSessionId,
         cabinCode: cabinCode,
         stationName: stationName,
         startedAt: unlockedAt,

@@ -47,5 +47,28 @@ void main() {
       expect(result.id, "session-1");
       expect(result.unlockedAt, isNotNull);
     });
+
+    test(
+      "completeAccessSession delegates and maps the DTO to an entity",
+      () async {
+        final client = MockClient((request) async {
+          expect(request.method, "POST");
+          expect(request.url.path, "/v1/access-sessions/session-1/complete");
+          return http.Response(
+            '{"id":"session-1","cabinId":"cabin-1","status":"completed",'
+            '"startedAt":"2026-08-01T10:00:00.000Z",'
+            '"unlockedAt":"2026-08-01T10:00:05.000Z"}',
+            200,
+          );
+        });
+        final repository = RestAccessSessionRepository(
+          AccessSessionRemoteDataSource(client, baseUrl: "http://test.local"),
+        );
+
+        final result = await repository.completeAccessSession("session-1");
+
+        expect(result.id, "session-1");
+      },
+    );
   });
 }

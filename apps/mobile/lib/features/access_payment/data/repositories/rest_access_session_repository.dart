@@ -28,4 +28,10 @@ class RestAccessSessionRepository implements AccessSessionRepository {
     final dto = await _remote.fetchAccessSession(accessSessionId);
     return dto.toEntity();
   }
+
+  @override
+  Future<AccessSession> completeAccessSession(String accessSessionId) async {
+    final dto = await _remote.completeAccessSession(accessSessionId);
+    return dto.toEntity();
+  }
 }

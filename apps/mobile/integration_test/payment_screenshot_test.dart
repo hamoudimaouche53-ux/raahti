@@ -66,6 +66,11 @@ class _PaidAccessSessionRepository implements AccessSessionRepository {
   Future<AccessSession> getAccessSession(String accessSessionId) {
     return Completer<AccessSession>().future;
   }
+
+  @override
+  Future<AccessSession> completeAccessSession(String accessSessionId) {
+    return Completer<AccessSession>().future;
+  }
 }
 
 class _FakePaymentMethodRepository implements PaymentMethodRepository {

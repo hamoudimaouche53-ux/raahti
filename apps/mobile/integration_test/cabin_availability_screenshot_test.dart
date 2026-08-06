@@ -52,6 +52,11 @@ class _NeverResolvingAccessSessionRepository
   Future<AccessSession> getAccessSession(String accessSessionId) {
     return Completer<AccessSession>().future;
   }
+
+  @override
+  Future<AccessSession> completeAccessSession(String accessSessionId) {
+    return Completer<AccessSession>().future;
+  }
 }
 
 /// Always throws [CabinUnavailableFailure] — freezes SCR-014 in its
@@ -70,6 +75,11 @@ class _UnavailableAccessSessionRepository implements AccessSessionRepository {
 
   @override
   Future<AccessSession> getAccessSession(String accessSessionId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<AccessSession> completeAccessSession(String accessSessionId) {
     throw UnimplementedError();
   }
 }

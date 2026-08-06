@@ -48,6 +48,11 @@ class _FakeAccessSessionRepository implements AccessSessionRepository {
   Future<AccessSession> getAccessSession(String accessSessionId) {
     throw UnimplementedError();
   }
+
+  @override
+  Future<AccessSession> completeAccessSession(String accessSessionId) {
+    throw UnimplementedError();
+  }
 }
 
 /// Captures the eventual pop result of a pushed [CabinAvailabilityScreen]

@@ -139,4 +139,56 @@ void main() {
       );
     });
   });
+
+  group("AccessSessionRemoteDataSource.completeAccessSession", () {
+    test("POSTs {baseUrl}/v1/access-sessions/{id}/complete and parses a 200 "
+        "response", () async {
+      Uri? capturedUri;
+      String? capturedMethod;
+      final client = MockClient((request) async {
+        capturedUri = request.url;
+        capturedMethod = request.method;
+        return http.Response(jsonEncode(_accessSessionJson()), 200);
+      });
+      final source = AccessSessionRemoteDataSource(
+        client,
+        baseUrl: "http://test.local",
+      );
+
+      final dto = await source.completeAccessSession("session-1");
+
+      expect(capturedMethod, "POST");
+      expect(capturedUri?.path, "/v1/access-sessions/session-1/complete");
+      expect(dto.id, "session-1");
+    });
+
+    test("throws AccessSessionRequestFailure on a non-200 response", () {
+      final client = MockClient(
+        (request) async => http.Response("server error", 500),
+      );
+      final source = AccessSessionRemoteDataSource(
+        client,
+        baseUrl: "http://test.local",
+      );
+
+      expect(
+        () => source.completeAccessSession("session-1"),
+        throwsA(isA<AccessSessionRequestFailure>()),
+      );
+    });
+
+    test(
+      "throws AccessPaymentApiNotConfiguredFailure when baseUrl is null",
+      () {
+        final source = AccessSessionRemoteDataSource(
+          http.Client(),
+          baseUrl: null,
+        );
+        expect(
+          () => source.completeAccessSession("session-1"),
+          throwsA(isA<AccessPaymentApiNotConfiguredFailure>()),
+        );
+      },
+    );
+  });
 }
