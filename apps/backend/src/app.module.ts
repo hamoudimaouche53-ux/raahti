@@ -7,6 +7,7 @@ import { PlacesModule } from './composition/places/places.module';
 import { SlatokiModule } from './modules/slatoki/slatoki.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OperationsModule } from './modules/operations/operations.module';
+import { AccessPaymentModule } from './modules/access-payment/access-payment.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { OperationsModule } from './modules/operations/operations.module';
     SlatokiModule,
     NotificationsModule,
     OperationsModule,
+    AccessPaymentModule,
   ],
 })
 export class AppModule {}

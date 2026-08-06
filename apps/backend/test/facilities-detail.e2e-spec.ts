@@ -85,6 +85,12 @@ class FakeStationRepository implements StationRepository {
   async findAll(): Promise<Station[]> {
     return [];
   }
+
+  async findCabinById(): Promise<Cabin | null> {
+    return null;
+  }
+
+  async updateCabinOccupancy(): Promise<void> {}
 }
 
 class FakeThirdPartyPlaceRepository implements ThirdPartyPlaceRepository {

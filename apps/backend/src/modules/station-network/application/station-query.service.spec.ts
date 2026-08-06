@@ -24,7 +24,13 @@ function aStation(id = 's1'): Station {
 }
 
 function createRepoMock(): jest.Mocked<StationRepository> {
-  return { findById: jest.fn(), searchNearby: jest.fn(), findAll: jest.fn() };
+  return {
+    findById: jest.fn(),
+    searchNearby: jest.fn(),
+    findAll: jest.fn(),
+    findCabinById: jest.fn(),
+    updateCabinOccupancy: jest.fn(),
+  };
 }
 
 function createReviewRepoMock(): jest.Mocked<StationReviewRepository> {

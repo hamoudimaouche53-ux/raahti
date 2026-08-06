@@ -66,6 +66,10 @@ class FakeStationRepository implements StationRepository {
       nextCursor: null,
     };
   }
+  async findCabinById() {
+    return null;
+  }
+  async updateCabinOccupancy() {}
 }
 
 class FakeThirdPartyPlaceRepository implements ThirdPartyPlaceRepository {

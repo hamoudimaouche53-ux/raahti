@@ -12,7 +12,7 @@ import {
   StationSearchResult,
 } from '../domain/ports/station.repository';
 import { assertCabinType } from '../domain/value-objects/cabin-type.vo';
-import { assertOccupancyStatus } from '../domain/value-objects/occupancy-status.vo';
+import { assertOccupancyStatus, OccupancyStatus } from '../domain/value-objects/occupancy-status.vo';
 import { PlaceFilterType } from '../domain/value-objects/place-filter-type.vo';
 import { assertStationConfiguration } from '../domain/value-objects/station-configuration.vo';
 import { assertStationStatus } from '../domain/value-objects/station-status.vo';
@@ -244,6 +244,20 @@ export class PrismaStationRepository implements StationRepository {
         ? encodeSearchCursor({ distanceMeters: page[page.length - 1].distance_meters, id: page[page.length - 1].id })
         : null,
     };
+  }
+
+  /** Backs StationCommandService.checkCabinAvailability() — see the port doc comment. */
+  async findCabinById(cabinId: string): Promise<Cabin | null> {
+    const record = await this.prisma.cabin.findUnique({ where: { id: cabinId } });
+    return record ? this.cabinToDomain(record) : null;
+  }
+
+  /** Backs StationCommandService.setCabinOccupancy() — see the port doc comment. */
+  async updateCabinOccupancy(cabinId: string, status: OccupancyStatus): Promise<void> {
+    await this.prisma.cabin.update({
+      where: { id: cabinId },
+      data: { occupancyStatus: status, lastStatusChangeAt: new Date() },
+    });
   }
 
   private buildTypeFilterSql(types: PlaceFilterType[]): Prisma.Sql {

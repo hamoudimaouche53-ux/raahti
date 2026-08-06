@@ -64,6 +64,10 @@ model User {
   favorites                Favorite[]
   reviews                  Review[]
   notifications            Notification[]
+  /// Sanctioned Access & Payment read/write dependency — same treatment as
+  /// Notification.user (ERD §3.10).
+  accessSessions           AccessSession[]
+  transactions             Transaction[]
 
   @@map("user_account")
 }
@@ -114,7 +118,8 @@ model PaymentMethod {
   isDefault   Boolean  @default(false) @map("is_default")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
 
   @@map("payment_method")
 }
@@ -235,6 +240,9 @@ model Cabin {
 
   /// Sanctioned Operations read dependency, same as Station.telemetryReadings.
   telemetryReadings TelemetryReading[]
+  /// Sanctioned Access & Payment command dependency (module-dependency-diagram.md
+  /// §3: `AccessPay -> StationNet` plain ✔) — ERD §3.10.
+  accessSessions    AccessSession[]
 
   @@unique([stationId, code])
   /// ERD §5 "idx_cabin_occupancy_status" — FR-PLC-02 real-time availability lookups.
@@ -477,15 +485,15 @@ model MaintenanceIntervention {
 /// language — documented in prisma/README.md for the first real migration,
 /// same treatment as the GIST spatial indexes.
 model TelemetryReading {
-  id         String           @id @default(uuid()) @db.Uuid
-  stationId  String           @map("station_id") @db.Uuid
+  id         String          @id @default(uuid()) @db.Uuid
+  stationId  String          @map("station_id") @db.Uuid
   /// Nullable — ERD §3.13: "station-level readings have no cabin". The
   /// `occupancy` metric (FR-OPS-04 series) is always station-level (null) —
   /// see the port doc comment for why a per-cabin fan-out isn't modeled here.
-  cabinId    String?          @map("cabin_id") @db.Uuid
+  cabinId    String?         @map("cabin_id") @db.Uuid
   metric     TelemetryMetric
-  value      Decimal          @db.Decimal(10, 2)
-  recordedAt DateTime         @map("recorded_at")
+  value      Decimal         @db.Decimal(10, 2)
+  recordedAt DateTime        @map("recorded_at")
 
   station Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
   cabin   Cabin?  @relation(fields: [cabinId], references: [id], onDelete: Cascade)
@@ -536,4 +544,94 @@ enum TelemetryMetric {
   water_level
   door_sensor
   occupancy
+}
+
+// --- Access & Payment bounded context (docs/architecture/domain-model.md §6) ---
+
+/// ERD §3.10 — aggregate root of the Access & Payment bounded context (Domain
+/// Model §6): "models RAH-DOC-005 §2.5 steps 1-3 (scan -> availability check
+/// -> payment-or-direct-access) as a distinct lifecycle from Transaction,
+/// because a free-access session produces no transaction row". `onDelete:
+/// Restrict` on `cabin`/`user` — same "preserve audit trail" treatment as
+/// Alert/MaintenanceIntervention's Station relation (ERD §4).
+model AccessSession {
+  id            String              @id @default(uuid()) @db.Uuid
+  cabinId       String              @map("cabin_id") @db.Uuid
+  userId        String?             @map("user_id") @db.Uuid
+  status        AccessSessionStatus @default(initiated)
+  qrCodeScanned String              @map("qr_code_scanned")
+  startedAt     DateTime            @default(now()) @map("started_at")
+  unlockedAt    DateTime?           @map("unlocked_at")
+  closedAt      DateTime?           @map("closed_at")
+
+  cabin       Cabin        @relation(fields: [cabinId], references: [id], onDelete: Restrict)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  transaction Transaction?
+
+  /// ERD §3.10 "idx_access_session_cabin_status" — real-time cabin status queries (FR-PAY-05).
+  @@index([cabinId, status])
+  @@map("access_session")
+}
+
+/// ERD §3.10 — "Identifiant, utilisateur, cabine/lieu, montant, statut,
+/// horodatage" (§8). `discountApplied` persists the Mode Urgence 50%
+/// discount (FR-EMG-03). `onDelete: Restrict` on `user` — same audit-trail
+/// treatment as AccessSession; `paymentMethod` uses `SetNull` since a
+/// deleted payment method should not block deleting/retaining the
+/// transaction record itself.
+model Transaction {
+  id              String            @id @default(uuid()) @db.Uuid
+  userId          String            @map("user_id") @db.Uuid
+  accessSessionId String?           @unique @map("access_session_id") @db.Uuid
+  paymentMethodId String?           @map("payment_method_id") @db.Uuid
+  amount          Decimal           @db.Decimal(10, 2)
+  currency        String            @default("DZD")
+  discountApplied Decimal?          @map("discount_applied") @db.Decimal(5, 2)
+  status          TransactionStatus @default(pending)
+  providerRef     String?           @map("provider_ref")
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  accessSession AccessSession? @relation(fields: [accessSessionId], references: [id], onDelete: Restrict)
+  paymentMethod PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
+
+  /// ERD §3.10 "idx_transaction_user_id".
+  @@index([userId])
+  @@map("transaction")
+}
+
+/// Additive gap-fill (not in the ERD) — backs the `Idempotency-Key` header
+/// contract for `POST /access-sessions` and `POST /access-sessions/{id}/payments`
+/// (api-architecture.md §8, Risk Register R-11/R-12): deduplicates on
+/// `(user, key, endpoint)` so a client retry never double-charges or
+/// double-creates a session. Same treatment as Notification's `isRead`/`readAt`
+/// additive gap-fill — flagged here, not silently invented against the ERD.
+model IdempotencyKey {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  key            String
+  endpoint       String
+  responseStatus Int?     @map("response_status")
+  responseBody   Json?    @map("response_body")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, key, endpoint])
+  @@map("idempotency_key")
+}
+
+enum AccessSessionStatus {
+  initiated
+  payment_pending
+  unlocked
+  in_use
+  completed
+  cancelled
+}
+
+enum TransactionStatus {
+  pending
+  authorized
+  captured
+  failed
+  refunded
 }

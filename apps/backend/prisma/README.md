@@ -11,6 +11,11 @@ directory (`prisma migrate deploy`) against a real hosted project once ADR-0016 
 resolved needs no further authoring — this doc is now a record of what's already in
 `migrations/`, not a to-do list.
 
+A second migration (`migrations/20260806121959_access_payment/`) adds the Access &
+Payment bounded context (`AccessSession`, `Transaction`, `IdempotencyKey`) — see
+"## Access & Payment module" below for how it was generated and its current
+generated-but-not-yet-applied state.
+
 One real gap found in the process, fixed directly in `schema.prisma`: Supabase's own
 Postgres image installs five platform-default extensions into `public`
 (`pgcrypto`, `uuid-ossp`, `pg_stat_statements`, `pg_net`, `supabase_vault`) that
@@ -154,3 +159,54 @@ CREATE TABLE telemetry_reading_2026_08 PARTITION OF telemetry_reading
   Identity Pass 1's `Role`/`UserRole` entities and its globally-wired
   `RolesGuard`/`SiteScopeGuard` — same "needed no new work" treatment
   Slatoki's FR-SLK-05 got from the already-shipped Facilities module.
+
+## Access & Payment module (`migrations/20260806121959_access_payment/`)
+
+Adds `AccessSession`, `Transaction`, and `IdempotencyKey` (ERD §3.10 plus one
+additive gap-fill — see `IdempotencyKey`'s `schema.prisma` doc comment, same
+"confirmed with the user" treatment as Notification's `is_read`/`read_at`
+addition) and the `AccessSessionStatus`/`TransactionStatus` enums, backing
+`AccessPaymentModule`.
+
+**Generated during implementation without being applied live; applied and verified
+during the subsequent implementation review.** A local Supabase stack
+(`supabase start`, Docker) *is* running in this environment (unlike the
+situation the module's original build instructions anticipated), so a normal
+`prisma migrate dev` was attempted first. It failed with the same category of drift `schema.prisma`'s
+datasource doc comment already describes for the five platform-default
+extensions (`pg_stat_statements`, `pgcrypto`, `uuid-ossp` version/schema
+metadata drift) and additionally proposed `prisma migrate reset` to
+reconcile — a destructive, whole-database-dropping operation this pass was
+not authorized to run against a shared local dev database. Instead, the
+migration SQL was generated directly via:
+
+```
+npx prisma migrate diff --from-schema-datasource ./prisma/schema.prisma --to-schema-datamodel ./prisma/schema.prisma --script
+```
+
+(`--from-schema-datasource` introspects the *live* database directly rather
+than requiring a shadow database, unlike `--from-migrations`, which needs
+`--shadow-database-url`.) The generated script also proposed
+`DROP INDEX "idx_station_position"` / `DROP INDEX "idx_place_position"` — a
+false positive, not a real change: those two GIST indexes exist only because
+they were hand-added to the first migration (see "## Indexes" above) for the
+`Unsupported("geography(Point, 4326)")` columns Prisma's diff engine cannot
+see declared anywhere in `schema.prisma`, so it proposes dropping what it
+doesn't recognize. Both `DROP INDEX` statements were removed by hand from
+`migrations/20260806121959_access_payment/migration.sql` before it was
+saved — the same "hand-edit the generated SQL" precedent as the GIST
+indexes/CHECK constraints in the first migration, just in the opposite
+direction (protecting existing objects the diff engine doesn't know about,
+rather than adding new ones it can't express).
+
+The resulting `migration.sql` contains only additive `CREATE TYPE`/
+`CREATE TABLE`/`CREATE INDEX`/`ALTER TABLE ... ADD CONSTRAINT` statements.
+It was applied via `npx prisma migrate deploy` during the implementation
+review and independently verified: `prisma migrate status` reports "Database
+schema is up to date!", and `psql \d access_session` / `\d transaction` /
+`\d idempotency_key` confirm the expected columns, foreign keys, and indexes
+are live — including confirming both pre-existing GIST indexes
+(`idx_station_position`, `idx_place_position`) survived intact. `npx prisma
+generate` was also run successfully, so `@prisma/client`'s generated types
+include `AccessSession`/`Transaction`/`IdempotencyKey` and compile/test
+cleanly against the new repositories.

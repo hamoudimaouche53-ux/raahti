@@ -1,6 +1,8 @@
 import { GeoPosition } from '../../../../shared-kernel';
+import { Cabin } from '../entities/cabin.entity';
 import { CabinPricingMix } from '../entities/station.entity';
 import { Station } from '../entities/station.entity';
+import { OccupancyStatus } from '../value-objects/occupancy-status.vo';
 import { StationConfiguration } from '../value-objects/station-configuration.vo';
 import { StationStatus } from '../value-objects/station-status.vo';
 import { PlaceFilterType } from '../value-objects/place-filter-type.vo';
@@ -47,4 +49,23 @@ export interface StationRepository {
 
   /** Every station with its cabins, fleet-wide, no filter/pagination — backs Operations FR-OPS-01 via StationQueryService.listAllForFleetView(). */
   findAll(): Promise<Station[]>;
+
+  /**
+   * Single-cabin lookup, added for AccessPaymentModule's sanctioned
+   * `AccessPay -> StationNet` command dependency (module-dependency-diagram.md
+   * §3) — backs StationCommandService.checkCabinAvailability(). Returns the
+   * bare Cabin entity, not the full Station aggregate — the access-payment
+   * flow never needs the owning station's other cabins/tent.
+   */
+  findCabinById(cabinId: string): Promise<Cabin | null>;
+
+  /**
+   * Direct occupancy write, added for the same sanctioned command dependency
+   * — backs StationCommandService.setCabinOccupancy(), called synchronously
+   * around the unlock/complete flow (module-dependency-diagram.md §5 rule 4:
+   * "cabin availability must be checked synchronously before payment; station
+   * status must update synchronously when maintenance starts" — the same
+   * immediate-consistency rationale applies here).
+   */
+  updateCabinOccupancy(cabinId: string, status: OccupancyStatus): Promise<void>;
 }

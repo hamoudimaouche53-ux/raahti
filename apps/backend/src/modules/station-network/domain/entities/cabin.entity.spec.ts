@@ -35,4 +35,18 @@ describe('Cabin', () => {
       Cabin.restore(baseProps({ isPaid: false, price: Money.fromDecimalString('50.00', 'DZD') })),
     ).toThrow(InvalidCabinPriceException);
   });
+
+  describe('changeOccupancy', () => {
+    it('updates the occupancy status', () => {
+      const cabin = Cabin.restore(baseProps({ occupancyStatus: 'free' }));
+      cabin.changeOccupancy('occupied');
+      expect(cabin.occupancyStatus).toBe('occupied');
+    });
+
+    it('can transition back to free', () => {
+      const cabin = Cabin.restore(baseProps({ occupancyStatus: 'occupied' }));
+      cabin.changeOccupancy('free');
+      expect(cabin.occupancyStatus).toBe('free');
+    });
+  });
 });

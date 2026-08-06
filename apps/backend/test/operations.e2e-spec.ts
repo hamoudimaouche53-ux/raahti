@@ -58,6 +58,12 @@ class FakeStationRepository implements StationRepository {
     return { data: [], nextCursor: null };
   }
 
+  async findCabinById(): Promise<Cabin | null> {
+    return null;
+  }
+
+  async updateCabinOccupancy(): Promise<void> {}
+
   private station(id: string): Station {
     return Station.restore({
       id,

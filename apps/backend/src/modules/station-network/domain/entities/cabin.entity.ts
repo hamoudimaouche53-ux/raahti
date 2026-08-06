@@ -23,7 +23,7 @@ export interface CabinProps {
 
 /** ERD §3.2 — entity within the Station aggregate (Domain Model §3). A Cabin always belongs to exactly one Station (enforced by construction — always created with a stationId). */
 export class Cabin {
-  private constructor(private readonly props: CabinProps) {}
+  private constructor(private props: CabinProps) {}
 
   static restore(props: CabinProps): Cabin {
     if (props.isPaid && !props.price) {
@@ -33,6 +33,18 @@ export class Cabin {
       throw new InvalidCabinPriceException(`Cabin ${props.id} is free but has a price set.`);
     }
     return new Cabin(props);
+  }
+
+  /**
+   * Mutator added for AccessPaymentModule's sanctioned `AccessPay -> StationNet`
+   * command dependency (module-dependency-diagram.md §3) — StationCommandService
+   * calls this to flip occupancy synchronously around the payment/unlock flow
+   * (checkCabinAvailability / setCabinOccupancy). `props` was made mutable
+   * (readonly dropped) the same way Operations' `Alert` entity does for its
+   * own status mutators.
+   */
+  changeOccupancy(next: OccupancyStatus): void {
+    this.props = { ...this.props, occupancyStatus: next };
   }
 
   get id(): string {

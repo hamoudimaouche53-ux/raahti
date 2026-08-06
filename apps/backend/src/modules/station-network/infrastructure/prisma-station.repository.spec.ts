@@ -3,7 +3,7 @@ import { PrismaStationRepository } from './prisma-station.repository';
 function createPrismaMock() {
   return {
     $queryRaw: jest.fn(),
-    cabin: { findMany: jest.fn().mockResolvedValue([]) },
+    cabin: { findMany: jest.fn().mockResolvedValue([]), findUnique: jest.fn(), update: jest.fn() },
     slatokiTent: { findUnique: jest.fn().mockResolvedValue(null), findMany: jest.fn().mockResolvedValue([]) },
   } as any;
 }
@@ -122,6 +122,50 @@ describe('PrismaStationRepository', () => {
       expect(stationOne.hasSlatokiTent).toBe(false);
       expect(stationTwo.cabins).toHaveLength(0);
       expect(stationTwo.hasSlatokiTent).toBe(true);
+    });
+  });
+
+  describe('findCabinById', () => {
+    it('returns null when the cabin does not exist', async () => {
+      const prisma = createPrismaMock();
+      prisma.cabin.findUnique.mockResolvedValue(null);
+      const repo = new PrismaStationRepository(prisma);
+
+      expect(await repo.findCabinById('missing')).toBeNull();
+    });
+
+    it('maps a cabin row into the domain entity', async () => {
+      const prisma = createPrismaMock();
+      prisma.cabin.findUnique.mockResolvedValue({
+        id: 'c1',
+        stationId: 's1',
+        code: 'C-01',
+        type: 'H',
+        occupancyStatus: 'free',
+        isPaid: false,
+        priceAmount: null,
+        priceCurrency: null,
+      });
+      const repo = new PrismaStationRepository(prisma);
+
+      const cabin = await repo.findCabinById('c1');
+
+      expect(cabin?.id).toBe('c1');
+      expect(cabin?.occupancyStatus).toBe('free');
+    });
+  });
+
+  describe('updateCabinOccupancy', () => {
+    it('writes the new occupancy status and last-status-change timestamp', async () => {
+      const prisma = createPrismaMock();
+      const repo = new PrismaStationRepository(prisma);
+
+      await repo.updateCabinOccupancy('c1', 'occupied');
+
+      expect(prisma.cabin.update).toHaveBeenCalledWith({
+        where: { id: 'c1' },
+        data: { occupancyStatus: 'occupied', lastStatusChangeAt: expect.any(Date) },
+      });
     });
   });
 });

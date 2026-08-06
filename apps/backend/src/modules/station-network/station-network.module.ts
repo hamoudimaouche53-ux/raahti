@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ReviewService } from './application/review.service';
+import { StationCommandService } from './application/station-command.service';
 import { StationQueryService } from './application/station-query.service';
 import { STATION_REPOSITORY } from './domain/ports/station.repository';
 import { STATION_REVIEW_REPOSITORY } from './domain/ports/station-review.repository';
@@ -20,8 +21,9 @@ import { StationReviewsController } from './interface/controllers/station-review
     { provide: STATION_REPOSITORY, useClass: PrismaStationRepository },
     { provide: STATION_REVIEW_REPOSITORY, useClass: PrismaStationReviewRepository },
     StationQueryService,
+    StationCommandService,
     ReviewService,
   ],
-  exports: [STATION_REPOSITORY, StationQueryService],
+  exports: [STATION_REPOSITORY, StationQueryService, StationCommandService],
 })
 export class StationNetworkModule {}

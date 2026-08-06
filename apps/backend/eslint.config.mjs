@@ -165,6 +165,38 @@ export default [
                 'No module may depend on operations/ — its only sanctioned incoming edge (Analytics) is out of scope for this pass (module-dependency-diagram.md §3).',
             },
             {
+              // Access & Payment (module-dependency-diagram.md §3: `AccessPay -> StationNet`
+              // plain ✔, a COMMAND dependency) may depend only on Station Network's
+              // exported *Service (application/) — never its domain/infrastructure/
+              // interface layers.
+              target: './src/modules/access-payment',
+              from: [
+                './src/modules/station-network/domain',
+                './src/modules/station-network/infrastructure',
+                './src/modules/station-network/interface',
+              ],
+              message:
+                "Access & Payment may only depend on Station Network's exported *Service (application/) — see module-dependency-diagram.md §3.",
+            },
+            {
+              // The matrix grants Access & Payment exactly one incoming edge
+              // (`AP -.->|event: PaymentCaptured| NT`, event-based, not a
+              // direct code dependency) — no module may import access-payment/
+              // directly.
+              target: [
+                './src/modules/identity',
+                './src/modules/station-network',
+                './src/modules/third-party-places',
+                './src/modules/slatoki',
+                './src/modules/notifications',
+                './src/modules/operations',
+                './src/composition',
+              ],
+              from: ['./src/modules/access-payment'],
+              message:
+                'No module may depend on access-payment/ directly — its only sanctioned outgoing relationship to another module is the PaymentCaptured event (module-dependency-diagram.md §3).',
+            },
+            {
               // Places composition layer (ADR-0029) may depend ONLY on each Facilities
               // module's exported *QueryService (application/) — never their domain/,
               // infrastructure/, or interface/ layers directly.

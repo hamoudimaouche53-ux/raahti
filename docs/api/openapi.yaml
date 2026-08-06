@@ -400,6 +400,36 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "502":
+          description: Unlock order failed after payment capture — payment was refunded (Risk R-12, ADR-0014)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+
+  /access-sessions/{sessionId}/complete:
+    post:
+      tags: [AccessPayment]
+      summary: Manually complete an access session and free the cabin
+      description: >
+        Implements the "J'ai terminé" manual completion path (no automatic
+        door-sensor/IoT integration exists yet — see ADR-0030). Also usable
+        as a simulated door-close event until Phase 9 IoT ships.
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Access session completed, cabin freed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccessSession" }
+        "403":
+          description: Caller is not the session owner
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
 
   /ops/stations:
     get:
