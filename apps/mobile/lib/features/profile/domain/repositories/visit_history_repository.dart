@@ -15,17 +15,10 @@ class VisitHistoryApiNotConfiguredFailure
     : super("No backend API is configured for this build.");
 }
 
-/// **API contract gap** — docs/api/openapi.yaml has no endpoint for
-/// listing a user's past access sessions/visits (only
-/// `POST /access-sessions` and `GET /access-sessions/{id}` by a single
-/// known id exist). [RestVisitHistoryRepository] always throws this,
-/// distinct from [VisitHistoryApiNotConfiguredFailure] ("would work if a
-/// backend were deployed") — this failure means "would not work even
-/// against a deployed backend, because the endpoint isn't specified."
-/// Flagged in `docs/phase-3-implementation-log.md`'s API Contract Gaps
-/// section rather than invented (see Feature 19's Architecture Notes) —
-/// the natural shape would be `GET /users/me/access-sessions` or
-/// `GET /users/me/visits`, mirroring the `/users/me/favorites` pattern.
+/// **Historical** — `GET /users/me/visit-history` is now specified in
+/// docs/api/openapi.yaml and implemented by [RestVisitHistoryRepository].
+/// Kept only for any lingering references; no longer thrown by this
+/// codebase.
 class VisitHistoryEndpointNotSpecifiedFailure
     extends VisitHistoryRepositoryFailure {
   const VisitHistoryEndpointNotSpecifiedFailure()

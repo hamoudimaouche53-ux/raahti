@@ -1,6 +1,6 @@
 import "package:flutter_test/flutter_test.dart";
-import "package:rahati/features/map_discovery/domain/entities/place.dart";
 import "package:rahati/features/map_discovery/data/repositories/mock_review_repository.dart";
+import "package:rahati/features/map_discovery/domain/entities/place.dart";
 
 void main() {
   group("MockReviewRepository", () {
@@ -12,11 +12,13 @@ void main() {
         await repo.submitReview(
           placeKind: PlaceKind.station,
           placeId: "s1",
+          placeName: "Station Test",
           rating: 4,
           comment: "Bien.",
         );
         final after = await repo.getMyReviews();
         expect(after.length, before + 1);
+        expect(after.last.placeName.fr, "Station Test");
       },
     );
 
@@ -25,6 +27,9 @@ void main() {
       final first = (await repo.getMyReviews()).first;
       final updated = await repo.updateReview(
         reviewId: first.id,
+        placeKind: first.placeKind,
+        placeId: first.placeId,
+        placeName: "Station Test",
         rating: 1,
         comment: "Changé d'avis.",
       );
@@ -37,7 +42,11 @@ void main() {
       () async {
         final repo = MockReviewRepository();
         final first = (await repo.getMyReviews()).first;
-        await repo.deleteReview(first.id);
+        await repo.deleteReview(
+          reviewId: first.id,
+          placeKind: first.placeKind,
+          placeId: first.placeId,
+        );
         final after = await repo.getMyReviews();
         expect(after.any((r) => r.id == first.id), isFalse);
       },

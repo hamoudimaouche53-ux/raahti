@@ -176,4 +176,108 @@ void main() {
       );
     });
   });
+
+  group("FavoriteRemoteDataSource.removeFavorite", () {
+    test("throws FavoriteApiNotConfiguredFailure when baseUrl is null", () {
+      final source = FavoriteRemoteDataSource(http.Client(), baseUrl: null);
+      expect(
+        () => source.removeFavorite("fav-1"),
+        throwsA(isA<FavoriteApiNotConfiguredFailure>()),
+      );
+    });
+
+    test("DELETEs {baseUrl}/v1/users/me/favorites/{favoriteId}", () async {
+      Uri? capturedUri;
+      String? capturedMethod;
+      final client = MockClient((request) async {
+        capturedUri = request.url;
+        capturedMethod = request.method;
+        return http.Response("", 204);
+      });
+      final source = FavoriteRemoteDataSource(
+        client,
+        baseUrl: "https://api.raahti.dz",
+      );
+
+      await source.removeFavorite("fav-1");
+
+      expect(
+        capturedUri,
+        Uri.parse("https://api.raahti.dz/v1/users/me/favorites/fav-1"),
+      );
+      expect(capturedMethod, "DELETE");
+    });
+
+    test("throws FavoriteRequestFailure on a non-204 response", () async {
+      final client = MockClient((request) async => http.Response("", 403));
+      final source = FavoriteRemoteDataSource(
+        client,
+        baseUrl: "https://api.raahti.dz",
+      );
+
+      expect(
+        () => source.removeFavorite("fav-1"),
+        throwsA(isA<FavoriteRequestFailure>()),
+      );
+    });
+  });
+
+  group("FavoriteRemoteDataSource.setNotifyOnAvailable", () {
+    test("throws FavoriteApiNotConfiguredFailure when baseUrl is null", () {
+      final source = FavoriteRemoteDataSource(http.Client(), baseUrl: null);
+      expect(
+        () => source.setNotifyOnAvailable(
+          favoriteId: "fav-1",
+          notifyOnAvailable: true,
+        ),
+        throwsA(isA<FavoriteApiNotConfiguredFailure>()),
+      );
+    });
+
+    test("PATCHes {baseUrl}/v1/users/me/favorites/{favoriteId} with the "
+        "notifyOnAvailable body and parses a 200 response", () async {
+      Uri? capturedUri;
+      Map<String, dynamic>? capturedBody;
+      final client = MockClient((request) async {
+        capturedUri = request.url;
+        capturedBody = jsonDecode(request.body) as Map<String, dynamic>;
+        return http.Response(
+          jsonEncode(_favoriteJson("fav-1", stationId: "s1")),
+          200,
+        );
+      });
+      final source = FavoriteRemoteDataSource(
+        client,
+        baseUrl: "https://api.raahti.dz",
+      );
+
+      final dto = await source.setNotifyOnAvailable(
+        favoriteId: "fav-1",
+        notifyOnAvailable: true,
+      );
+
+      expect(
+        capturedUri,
+        Uri.parse("https://api.raahti.dz/v1/users/me/favorites/fav-1"),
+      );
+      expect(capturedBody, <String, dynamic>{"notifyOnAvailable": true});
+      expect(dto.id, "fav-1");
+    });
+
+    test("throws FavoriteRequestFailure on a non-200 response", () async {
+      final client = MockClient((request) async => http.Response("", 403));
+      final source = FavoriteRemoteDataSource(
+        client,
+        baseUrl: "https://api.raahti.dz",
+      );
+
+      expect(
+        () => source.setNotifyOnAvailable(
+          favoriteId: "fav-1",
+          notifyOnAvailable: true,
+        ),
+        throwsA(isA<FavoriteRequestFailure>()),
+      );
+    });
+  });
 }

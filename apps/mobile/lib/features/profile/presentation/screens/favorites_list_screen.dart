@@ -40,6 +40,29 @@ class _FavoritesListScreenState extends ConsumerState<FavoritesListScreen> {
     });
   }
 
+  Future<void> _remove(Favorite favorite) async {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.favoritesRemoveConfirmTitle),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.genericCancelButton),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.genericDeleteButton),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await ref.read(favoriteRepositoryProvider).removeFavorite(favorite.id);
+    _reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
@@ -77,26 +100,37 @@ class _FavoritesListScreenState extends ConsumerState<FavoritesListScreen> {
                     subtitle: favorite.distanceMeters == null
                         ? null
                         : Text("${favorite.distanceMeters!.round()} m"),
-                    trailing: Semantics(
-                      // The Switch's own semantics node exposes its
-                      // `toggled` state automatically; merging this label
-                      // onto it (rather than excluding/replacing it) is
-                      // what makes a screen reader read state and label
-                      // together ("Me notifier si disponible, activé"),
-                      // per the wireframe's own accessibility requirement.
-                      label: l10n.favoritesNotifySwitchLabel,
-                      child: Switch(
-                        value: favorite.notifyOnAvailable,
-                        onChanged: (value) async {
-                          await ref
-                              .read(favoriteRepositoryProvider)
-                              .setNotifyOnAvailable(
-                                favoriteId: favorite.id,
-                                notifyOnAvailable: value,
-                              );
-                          _reload();
-                        },
-                      ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Semantics(
+                          // The Switch's own semantics node exposes its
+                          // `toggled` state automatically; merging this
+                          // label onto it (rather than excluding/replacing
+                          // it) is what makes a screen reader read state
+                          // and label together ("Me notifier si
+                          // disponible, activé"), per the wireframe's own
+                          // accessibility requirement.
+                          label: l10n.favoritesNotifySwitchLabel,
+                          child: Switch(
+                            value: favorite.notifyOnAvailable,
+                            onChanged: (value) async {
+                              await ref
+                                  .read(favoriteRepositoryProvider)
+                                  .setNotifyOnAvailable(
+                                    favoriteId: favorite.id,
+                                    notifyOnAvailable: value,
+                                  );
+                              _reload();
+                            },
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          tooltip: l10n.genericDeleteButton,
+                          onPressed: () => _remove(favorite),
+                        ),
+                      ],
                     ),
                   ),
               ],

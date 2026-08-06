@@ -6,10 +6,7 @@ import "../../domain/repositories/favorite_repository.dart";
 /// **Explicitly-opt-in mock adapter** for [FavoriteRepository] — gated by
 /// `AppEnv.useMockAuth`. Stateful, like `MockPaymentMethodRepository` —
 /// add/remove/toggle must be reflected in a subsequent [getFavorites]
-/// call for SCR-026 to be coherently demoable, including the two
-/// operations [RestFavoriteRepository] can't actually perform
-/// (delete/toggle) — the whole point of this mock is letting SCR-026
-/// be fully interactive today, ahead of the endpoints existing.
+/// call for SCR-026 to be coherently demoable without a deployed backend.
 class MockFavoriteRepository implements FavoriteRepository {
   MockFavoriteRepository({List<Favorite>? seed})
     : _favorites = seed ?? _defaultSeed();

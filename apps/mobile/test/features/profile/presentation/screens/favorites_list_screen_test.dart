@@ -33,7 +33,9 @@ class _FakeFavoriteRepository implements FavoriteRepository {
   }) => throw UnimplementedError();
 
   @override
-  Future<void> removeFavorite(String favoriteId) => throw UnimplementedError();
+  Future<void> removeFavorite(String favoriteId) async {
+    _favorites.removeWhere((f) => f.id == favoriteId);
+  }
 
   @override
   Future<Favorite> setNotifyOnAvailable({
@@ -155,6 +157,36 @@ void main() {
 
     final Switch toggle = tester.widget(find.byType(Switch));
     expect(toggle.value, isTrue);
+  });
+
+  testWidgets("removing a favorite (after confirming) removes it from the "
+      "list", (tester) async {
+    await _pushViaGoRouter(
+      tester,
+      favorites: [
+        const Favorite(
+          id: "fav-1",
+          placeKind: PlaceKind.station,
+          placeId: "s1",
+          placeName: "Station Didouche",
+          distanceMeters: 180,
+          notifyOnAvailable: false,
+        ),
+      ],
+    );
+
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    expect(find.text("Retirer ce favori ?"), findsOneWidget);
+
+    await tester.tap(find.text("Supprimer"));
+    await tester.pumpAndSettle();
+
+    expect(find.text("Station Didouche"), findsNothing);
+    expect(
+      find.text("Aucun favori — ajoutez-en depuis la fiche lieu"),
+      findsOneWidget,
+    );
   });
 
   testWidgets("the settings AppBar action navigates to SCR-027 "

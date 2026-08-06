@@ -6,11 +6,8 @@ import "../../domain/repositories/place_detail_repository.dart";
 import "../datasources/favorite_remote_data_source.dart";
 import "../dtos/favorite_dto.dart";
 
-/// [FavoriteRepository] implementation backed by the REST API.
-/// [getFavorites]/[addFavorite] call the real, specified endpoints;
-/// [removeFavorite]/[setNotifyOnAvailable] always throw
-/// [FavoriteEndpointNotSpecifiedFailure] (see that failure's own doc
-/// comment).
+/// [FavoriteRepository] implementation backed by the REST API — every
+/// operation calls a real, specified endpoint (docs/api/openapi.yaml).
 ///
 /// [_placeDetailRepository] resolves each favorite's
 /// [Favorite.placeName]/position for [Favorite.distanceMeters] — the wire
@@ -93,7 +90,7 @@ class RestFavoriteRepository implements FavoriteRepository {
 
   @override
   Future<void> removeFavorite(String favoriteId) async {
-    throw const FavoriteEndpointNotSpecifiedFailure();
+    await _remote.removeFavorite(favoriteId);
   }
 
   @override
@@ -101,6 +98,16 @@ class RestFavoriteRepository implements FavoriteRepository {
     required String favoriteId,
     required bool notifyOnAvailable,
   }) async {
-    throw const FavoriteEndpointNotSpecifiedFailure();
+    final dto = await _remote.setNotifyOnAvailable(
+      favoriteId: favoriteId,
+      notifyOnAvailable: notifyOnAvailable,
+    );
+    // placeName isn't resolvable here — this method's signature (unlike
+    // getFavorites/addFavorite) carries no languageCode. Inert
+    // placeholder, same "defaulting is inert, not a displayed value"
+    // pattern `PlaceDto`'s own `distanceMeters` fallback already
+    // established: `FavoritesListScreen` never reads this return value,
+    // it always reloads via `getFavorites` right after.
+    return dto.toEntity(placeName: dto.placeId);
   }
 }

@@ -1,23 +1,33 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../core/constants/env.dart";
+import "../../../map_discovery/presentation/providers/place_providers.dart";
+import "../../data/datasources/visit_history_remote_data_source.dart";
 import "../../data/repositories/mock_visit_history_repository.dart";
 import "../../data/repositories/rest_visit_history_repository.dart";
 import "../../domain/entities/visit.dart";
 import "../../domain/repositories/visit_history_repository.dart";
 
-/// The swap point for SCR-021's data (US-05.2). Always resolves to
-/// [MockVisitHistoryRepository] when mocking is on, and always to
-/// [RestVisitHistoryRepository] (which always throws
-/// `VisitHistoryEndpointNotSpecifiedFailure`) otherwise — there is no
-/// real endpoint to fall back to even once a backend exists, see that
-/// failure's own doc comment.
+final Provider<VisitHistoryRemoteDataSource>
+visitHistoryRemoteDataSourceProvider = Provider<VisitHistoryRemoteDataSource>(
+  (ref) => VisitHistoryRemoteDataSource(
+    ref.watch(httpClientProvider),
+    baseUrl: AppEnv.apiBaseUrl,
+  ),
+);
+
+/// The swap point for SCR-021's data (US-05.2). Resolves to
+/// [MockVisitHistoryRepository] when mocking is on, and to
+/// [RestVisitHistoryRepository] (backed by the real
+/// `GET /users/me/visit-history` endpoint) otherwise.
 final Provider<VisitHistoryRepository> visitHistoryRepositoryProvider =
     Provider<VisitHistoryRepository>((ref) {
       if (AppEnv.useMockAuth) {
         return const MockVisitHistoryRepository();
       }
-      return const RestVisitHistoryRepository();
+      return RestVisitHistoryRepository(
+        ref.watch(visitHistoryRemoteDataSourceProvider),
+      );
     });
 
 /// SCR-021's data — `.autoDispose`, same reasoning `currentUserProvider`

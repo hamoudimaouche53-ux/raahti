@@ -3,22 +3,19 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 import "package:intl/intl.dart";
 
+import "../../../../core/router/app_router.dart";
 import "../../../../l10n/app_localizations.dart";
 import "../../../map_discovery/domain/entities/review.dart";
 import "../../../map_discovery/presentation/providers/place_detail_providers.dart";
+import "../../../map_discovery/presentation/screens/submit_review_screen.dart";
 
 /// SCR-023 — My Reviews (US-05.2).
 ///
-/// [Review] carries no place reference (neither the wire `Review` schema
-/// nor this entity — a review is always fetched/created scoped to one
-/// already-known place, see `Review`'s own doc comment) — so unlike the
-/// wireframe's "place name + star rating" row, each row here shows the
-/// rating, comment, and submission date instead. Flagged as a deviation
-/// from the wireframe in the implementation log, not silently
-/// approximated. `getMyReviews`/`updateReview`/`deleteReview` all throw
-/// [ReviewEndpointNotSpecifiedFailure] against the real REST repository
-/// (API Contract Gap) — this screen is only genuinely usable against
-/// [MockReviewRepository] until that endpoint exists.
+/// Each row shows the resolved [Review.placeName], the star rating, the
+/// comment, and the submission date, plus edit/delete actions — edit
+/// pushes [SubmitReviewScreen] in its edit mode (see
+/// [ExistingReviewArgs]'s own doc comment) rather than a second
+/// near-duplicate screen.
 class MyReviewsScreen extends ConsumerStatefulWidget {
   const MyReviewsScreen({super.key});
 
@@ -41,6 +38,24 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen> {
     });
   }
 
+  Future<void> _edit(Review review, String languageCode) async {
+    await context.push<void>(
+      AppRoutePaths.submitReview,
+      extra: SubmitReviewArgs(
+        placeKind: review.placeKind,
+        placeId: review.placeId,
+        placeName: review.placeName.forLanguageCode(languageCode),
+        existingReview: ExistingReviewArgs(
+          reviewId: review.id,
+          rating: review.rating,
+          comment: review.comment,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    _reload();
+  }
+
   Future<void> _delete(Review review) async {
     final AppLocalizations l10n = AppLocalizations.of(context);
     final bool? confirmed = await showDialog<bool>(
@@ -60,7 +75,13 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await ref.read(reviewRepositoryProvider).deleteReview(review.id);
+    await ref
+        .read(reviewRepositoryProvider)
+        .deleteReview(
+          reviewId: review.id,
+          placeKind: review.placeKind,
+          placeId: review.placeId,
+        );
     _reload();
   }
 
@@ -89,34 +110,52 @@ class _MyReviewsScreenState extends ConsumerState<MyReviewsScreen> {
               children: <Widget>[
                 for (final Review review in reviews)
                   ListTile(
-                    title: Semantics(
-                      label: l10n.submitReviewStarSemanticLabel(review.rating),
-                      child: ExcludeSemantics(
-                        child: Row(
-                          children: List<Widget>.generate(
-                            5,
-                            (index) => Icon(
-                              index < review.rating
-                                  ? Icons.star
-                                  : Icons.star_border,
-                              size: 18,
-                              color: Theme.of(context).colorScheme.primary,
+                    title: Text(review.placeName.forLanguageCode(languageCode)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Semantics(
+                          label: l10n.submitReviewStarSemanticLabel(
+                            review.rating,
+                          ),
+                          child: ExcludeSemantics(
+                            child: Row(
+                              children: List<Widget>.generate(
+                                5,
+                                (index) => Icon(
+                                  index < review.rating
+                                      ? Icons.star
+                                      : Icons.star_border,
+                                  size: 18,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                        Text(
+                          review.comment?.isNotEmpty == true
+                              ? "${review.comment} — ${DateFormat.yMd(languageCode).format(review.createdAt)}"
+                              : DateFormat.yMd(
+                                  languageCode,
+                                ).format(review.createdAt),
+                        ),
+                      ],
                     ),
-                    subtitle: Text(
-                      review.comment?.isNotEmpty == true
-                          ? "${review.comment} — ${DateFormat.yMd(languageCode).format(review.createdAt)}"
-                          : DateFormat.yMd(
-                              languageCode,
-                            ).format(review.createdAt),
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      tooltip: l10n.genericDeleteButton,
-                      onPressed: () => _delete(review),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          tooltip: l10n.genericEditButton,
+                          onPressed: () => _edit(review, languageCode),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          tooltip: l10n.genericDeleteButton,
+                          onPressed: () => _delete(review),
+                        ),
+                      ],
                     ),
                   ),
               ],

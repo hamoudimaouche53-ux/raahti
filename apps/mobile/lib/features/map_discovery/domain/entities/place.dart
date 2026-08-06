@@ -34,6 +34,16 @@ class LocalizedText {
         return fr;
     }
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is LocalizedText &&
+      other.fr == fr &&
+      other.ar == ar &&
+      other.en == en;
+
+  @override
+  int get hashCode => Object.hash(fr, ar, en);
 }
 
 /// The unified map/list read model — a RAHETI station or a third-party

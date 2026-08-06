@@ -99,4 +99,61 @@ class FavoriteRemoteDataSource {
       jsonDecode(response.body) as Map<String, dynamic>,
     );
   }
+
+  Future<void> removeFavorite(String favoriteId) async {
+    final String? baseUrl = _baseUrl;
+    if (baseUrl == null || baseUrl.isEmpty) {
+      throw const FavoriteApiNotConfiguredFailure();
+    }
+
+    final Uri uri = Uri.parse("$baseUrl/v1/users/me/favorites/$favoriteId");
+    final http.Response response;
+    try {
+      response = await _client.delete(uri).timeout(const Duration(seconds: 10));
+    } catch (e) {
+      throw FavoriteRequestFailure("Could not reach the backend: $e");
+    }
+
+    if (response.statusCode != 204) {
+      throw FavoriteRequestFailure(
+        "Backend returned HTTP ${response.statusCode} for $uri",
+      );
+    }
+  }
+
+  Future<FavoriteDto> setNotifyOnAvailable({
+    required String favoriteId,
+    required bool notifyOnAvailable,
+  }) async {
+    final String? baseUrl = _baseUrl;
+    if (baseUrl == null || baseUrl.isEmpty) {
+      throw const FavoriteApiNotConfiguredFailure();
+    }
+
+    final Uri uri = Uri.parse("$baseUrl/v1/users/me/favorites/$favoriteId");
+    final http.Response response;
+    try {
+      response = await _client
+          .patch(
+            uri,
+            headers: <String, String>{"Content-Type": "application/json"},
+            body: jsonEncode(<String, dynamic>{
+              "notifyOnAvailable": notifyOnAvailable,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+    } catch (e) {
+      throw FavoriteRequestFailure("Could not reach the backend: $e");
+    }
+
+    if (response.statusCode != 200) {
+      throw FavoriteRequestFailure(
+        "Backend returned HTTP ${response.statusCode} for $uri",
+      );
+    }
+
+    return FavoriteDto.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
 }

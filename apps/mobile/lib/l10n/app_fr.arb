@@ -67,6 +67,18 @@
   "@placeDetailRouteUnavailable": {
     "description": "SCR-005 Place Detail Sheet — shown when the device has no app that can handle a navigation/geo link."
   },
+  "placeDetailAddToFavorites": "Ajouter aux favoris",
+  "@placeDetailAddToFavorites": {
+    "description": "SCR-005/SCR-006 Place Detail Sheet (US-05.4) — accessible label for the favorite-toggle button when the place isn't yet favorited."
+  },
+  "placeDetailRemoveFromFavorites": "Retirer des favoris",
+  "@placeDetailRemoveFromFavorites": {
+    "description": "SCR-005/SCR-006 Place Detail Sheet (US-05.4) — accessible label for the favorite-toggle button when the place is already favorited."
+  },
+  "placeDetailFavoriteError": "Impossible de mettre à jour vos favoris. Réessayez.",
+  "@placeDetailFavoriteError": {
+    "description": "SCR-005/SCR-006 Place Detail Sheet (US-05.4) — error snackbar shown when add/removeFavorite fails."
+  },
   "tagWomenConfirmed": "Femmes ✓",
   "@tagWomenConfirmed": { "description": "Tag label per docs/erd/erd.md §3.5." },
   "tagWudu": "Wudu ✓",
@@ -647,9 +659,17 @@
   "@genericCancelButton": {
     "description": "Shared Basic Dialog cancel action."
   },
+  "genericEditButton": "Modifier",
+  "@genericEditButton": {
+    "description": "Shared icon-button tooltip — SCR-023's edit-review entry point, same reuse pattern as genericDeleteButton."
+  },
   "submitReviewTitle": "Ajouter un avis",
   "@submitReviewTitle": {
     "description": "SCR-007 — Top App Bar title."
+  },
+  "submitReviewEditTitle": "Modifier l'avis",
+  "@submitReviewEditTitle": {
+    "description": "SCR-007 — Top App Bar title when SubmitReviewScreen is reused in edit mode from SCR-023 (EPIC-05 US-05.2)."
   },
   "submitReviewCommentLabel": "Votre commentaire",
   "@submitReviewCommentLabel": {
@@ -659,6 +679,10 @@
   "@submitReviewPublishButton": {
     "description": "SCR-007 — Filled Button, disabled until a rating is selected."
   },
+  "submitReviewUpdateButton": "Enregistrer",
+  "@submitReviewUpdateButton": {
+    "description": "SCR-007 — Filled Button label when SubmitReviewScreen is reused in edit mode from SCR-023 (EPIC-05 US-05.2), replacing submitReviewPublishButton."
+  },
   "submitReviewStarSemanticLabel": "{count, plural, one{1 étoile sur 5} other{{count} étoiles sur 5}}",
   "@submitReviewStarSemanticLabel": {
     "description": "SCR-007 — each star's individually-focusable accessible name, per the wireframe's own example (\"3 étoiles sur 5\").",
@@ -667,6 +691,10 @@
   "submitReviewSuccessSnackbar": "Avis publié",
   "@submitReviewSuccessSnackbar": {
     "description": "SCR-007 — Snackbar shown on the screen it returns to after a successful submit, per the wireframe."
+  },
+  "submitReviewUpdateSuccessSnackbar": "Avis mis à jour",
+  "@submitReviewUpdateSuccessSnackbar": {
+    "description": "SCR-007 — Snackbar shown on the screen it returns to after a successful edit-mode submit (EPIC-05 US-05.2), replacing submitReviewSuccessSnackbar."
   },
   "submitReviewErrorSnackbar": "Impossible d'envoyer votre avis. Réessayez.",
   "@submitReviewErrorSnackbar": {
@@ -735,6 +763,10 @@
   "favoritesSettingsAction": "Paramètres de notification",
   "@favoritesSettingsAction": {
     "description": "SCR-026 — AppBar action routing to SCR-027, per user-flows.md §5 (\"Toggle availability-follow\" → SCR-027)."
+  },
+  "favoritesRemoveConfirmTitle": "Retirer ce favori ?",
+  "@favoritesRemoveConfirmTitle": {
+    "description": "SCR-026 — Basic Dialog title for the per-item remove-favorite confirmation (FR-USR-04), same confirm-then-call pattern as myReviewsDeleteConfirmTitle."
   },
   "notificationSettingsTitle": "Paramètres de notification",
   "@notificationSettingsTitle": {

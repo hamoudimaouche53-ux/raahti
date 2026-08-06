@@ -11,10 +11,6 @@ import "../providers/profile_providers.dart";
 /// SCR-021 — Visit History (US-05.2).
 ///
 /// Grouped by month with `titleSmall` section headers, per the wireframe.
-/// [VisitHistoryRepository] has no real REST implementation (API
-/// Contract Gap, see `VisitHistoryEndpointNotSpecifiedFailure`'s own doc
-/// comment) — this screen's error state doubles as that gap's user-facing
-/// surface until a real endpoint exists.
 class VisitHistoryScreen extends ConsumerWidget {
   const VisitHistoryScreen({super.key});
 

@@ -15,15 +15,11 @@ class ReviewApiNotConfiguredFailure extends ReviewRepositoryFailure {
     : super("No backend API is configured for this build.");
 }
 
-/// **API contract gap** — docs/api/openapi.yaml only specifies `POST
-/// /places/{placeType}/{placeId}/reviews` (submit). There is no endpoint
-/// to list a caller's own reviews (SCR-023), nor to update/delete one.
-/// [RestReviewRepository.getMyReviews]/`updateReview`/`deleteReview` all
-/// always throw this — distinct from [ReviewApiNotConfiguredFailure]
-/// ("would work once deployed"), this means "wouldn't work even against
-/// a deployed backend." Flagged in the implementation log's API Contract
-/// Gaps section; natural shapes would be `GET /users/me/reviews` and
-/// `PATCH`/`DELETE /reviews/{id}`.
+/// **Historical** — every `ReviewRepository` operation now has a real,
+/// specified endpoint in docs/api/openapi.yaml (`GET /users/me/reviews`,
+/// `PATCH`/`DELETE /places/{placeType}/{placeId}/reviews/{reviewId}`).
+/// Kept only for any lingering references; no longer thrown by this
+/// codebase.
 class ReviewEndpointNotSpecifiedFailure extends ReviewRepositoryFailure {
   const ReviewEndpointNotSpecifiedFailure()
     : super(
@@ -39,26 +35,45 @@ class ReviewRequestFailure extends ReviewRepositoryFailure {
 /// Repository port for SCR-007 (Submit Review, reached from the place
 /// detail sheet) and SCR-023 (My Reviews, US-05.2).
 abstract interface class ReviewRepository {
+  /// [placeName] is the caller's already-known display name for
+  /// [placeId] (e.g. `SubmitReviewArgs.placeName`) — the wire `Review`
+  /// response carries no place fields at all, so this repository wraps it
+  /// into a same-value [Review.placeName] at the DTO→entity boundary
+  /// rather than performing a second lookup purely to populate a value
+  /// this call site never displays.
   Future<Review> submitReview({
     required PlaceKind placeKind,
     required String placeId,
+    required String placeName,
     required int rating,
     required String? comment,
   });
 
-  /// Always throws [ReviewEndpointNotSpecifiedFailure] in
-  /// [RestReviewRepository] — see that failure's own doc comment.
+  /// Every returned [Review] carries a real, server-resolved
+  /// [Review.placeName] — see `MyReviewListItem`'s own doc comment in
+  /// docs/api/openapi.yaml.
   Future<List<Review>> getMyReviews();
 
-  /// Always throws [ReviewEndpointNotSpecifiedFailure] in
-  /// [RestReviewRepository] — see that failure's own doc comment.
+  /// The backend route is nested under the place (`PATCH
+  /// /places/{placeType}/{placeId}/reviews/{reviewId}`), hence
+  /// [placeKind]/[placeId] alongside [reviewId]. [placeName] is handled
+  /// the same "pass the already-known display name through" way
+  /// [submitReview] handles it.
   Future<Review> updateReview({
     required String reviewId,
+    required PlaceKind placeKind,
+    required String placeId,
+    required String placeName,
     required int rating,
     required String? comment,
   });
 
-  /// Always throws [ReviewEndpointNotSpecifiedFailure] in
-  /// [RestReviewRepository] — see that failure's own doc comment.
-  Future<void> deleteReview(String reviewId);
+  /// The backend route is nested under the place (`DELETE
+  /// /places/{placeType}/{placeId}/reviews/{reviewId}`), hence
+  /// [placeKind]/[placeId] alongside [reviewId].
+  Future<void> deleteReview({
+    required String reviewId,
+    required PlaceKind placeKind,
+    required String placeId,
+  });
 }

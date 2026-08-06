@@ -16,16 +16,10 @@ class FavoriteApiNotConfiguredFailure extends FavoriteRepositoryFailure {
     : super("No backend API is configured for this build.");
 }
 
-/// **API contract gap** — docs/api/openapi.yaml specifies `GET`/`POST
-/// /users/me/favorites` but no `DELETE`/`PATCH` for an individual
-/// favorite. [RestFavoriteRepository.removeFavorite] and
-/// [RestFavoriteRepository.setNotifyOnAvailable] both always throw this —
-/// unlike [FavoriteApiNotConfiguredFailure] ("would work once deployed"),
-/// this means "wouldn't work even against a deployed backend, the
-/// endpoint isn't specified." Flagged in the implementation log's API
-/// Contract Gaps section; natural shapes would be
-/// `DELETE /users/me/favorites/{id}` and
-/// `PATCH /users/me/favorites/{id}`.
+/// **Historical** — `DELETE`/`PATCH /users/me/favorites/{id}` are now
+/// specified in docs/api/openapi.yaml and implemented by
+/// [RestFavoriteRepository.removeFavorite]/`setNotifyOnAvailable`. Kept
+/// only for any lingering references; no longer thrown by this codebase.
 class FavoriteEndpointNotSpecifiedFailure extends FavoriteRepositoryFailure {
   const FavoriteEndpointNotSpecifiedFailure()
     : super(
@@ -58,12 +52,8 @@ abstract interface class FavoriteRepository {
     required String languageCode,
   });
 
-  /// Always throws [FavoriteEndpointNotSpecifiedFailure] in
-  /// [RestFavoriteRepository] — see that failure's own doc comment.
   Future<void> removeFavorite(String favoriteId);
 
-  /// Always throws [FavoriteEndpointNotSpecifiedFailure] in
-  /// [RestFavoriteRepository] — see that failure's own doc comment.
   Future<Favorite> setNotifyOnAvailable({
     required String favoriteId,
     required bool notifyOnAvailable,

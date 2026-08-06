@@ -9,7 +9,6 @@ import "package:rahati/features/map_discovery/domain/entities/coordinates.dart";
 import "package:rahati/features/map_discovery/domain/entities/place.dart";
 import "package:rahati/features/map_discovery/domain/entities/station_detail.dart";
 import "package:rahati/features/map_discovery/domain/entities/third_party_place_detail.dart";
-import "package:rahati/features/map_discovery/domain/repositories/favorite_repository.dart";
 import "package:rahati/features/map_discovery/domain/repositories/place_detail_repository.dart";
 
 class _UnusedPlaceDetailRepository implements PlaceDetailRepository {
@@ -64,28 +63,53 @@ class _FakePlaceDetailRepository implements PlaceDetailRepository {
 
 void main() {
   group("RestFavoriteRepository", () {
-    final repo = RestFavoriteRepository(
-      FavoriteRemoteDataSource(http.Client(), baseUrl: ""),
-      const _UnusedPlaceDetailRepository(),
+    test(
+      "removeFavorite DELETEs the favorite via the remote data source",
+      () async {
+        Uri? capturedUri;
+        final client = MockClient((request) async {
+          capturedUri = request.url;
+          return http.Response("", 204);
+        });
+        final repoWithClient = RestFavoriteRepository(
+          FavoriteRemoteDataSource(client, baseUrl: "https://api.raahti.dz"),
+          const _UnusedPlaceDetailRepository(),
+        );
+
+        await repoWithClient.removeFavorite("fav-1");
+
+        expect(
+          capturedUri,
+          Uri.parse("https://api.raahti.dz/v1/users/me/favorites/fav-1"),
+        );
+      },
     );
 
-    test("removeFavorite always throws FavoriteEndpointNotSpecifiedFailure "
-        "(no delete endpoint exists)", () {
-      expect(
-        () => repo.removeFavorite("fav-1"),
-        throwsA(isA<FavoriteEndpointNotSpecifiedFailure>()),
+    test("setNotifyOnAvailable PATCHes via the remote data source and returns "
+        "the updated Favorite", () async {
+      final client = MockClient((request) async {
+        return http.Response(
+          jsonEncode(<String, dynamic>{
+            "id": "fav-1",
+            "stationId": "s1",
+            "thirdPartyPlaceId": null,
+            "notifyOnAvailable": true,
+          }),
+          200,
+        );
+      });
+      final repoWithClient = RestFavoriteRepository(
+        FavoriteRemoteDataSource(client, baseUrl: "https://api.raahti.dz"),
+        const _UnusedPlaceDetailRepository(),
       );
-    });
 
-    test("setNotifyOnAvailable always throws "
-        "FavoriteEndpointNotSpecifiedFailure (no update endpoint exists)", () {
-      expect(
-        () => repo.setNotifyOnAvailable(
-          favoriteId: "fav-1",
-          notifyOnAvailable: true,
-        ),
-        throwsA(isA<FavoriteEndpointNotSpecifiedFailure>()),
+      final favorite = await repoWithClient.setNotifyOnAvailable(
+        favoriteId: "fav-1",
+        notifyOnAvailable: true,
       );
+
+      expect(favorite.id, "fav-1");
+      expect(favorite.notifyOnAvailable, isTrue);
     });
 
     test(

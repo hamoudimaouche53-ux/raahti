@@ -22,6 +22,7 @@ class _PendingReviewRepository implements ReviewRepository {
   Future<Review> submitReview({
     required PlaceKind placeKind,
     required String placeId,
+    required String placeName,
     required int rating,
     required String? comment,
   }) => Completer<Review>().future;
@@ -32,12 +33,19 @@ class _PendingReviewRepository implements ReviewRepository {
   @override
   Future<Review> updateReview({
     required String reviewId,
+    required PlaceKind placeKind,
+    required String placeId,
+    required String placeName,
     required int rating,
     required String? comment,
-  }) => throw UnimplementedError();
+  }) => Completer<Review>().future;
 
   @override
-  Future<void> deleteReview(String reviewId) => throw UnimplementedError();
+  Future<void> deleteReview({
+    required String reviewId,
+    required PlaceKind placeKind,
+    required String placeId,
+  }) => throw UnimplementedError();
 }
 
 class _FakeReviewRepository implements ReviewRepository {
@@ -45,11 +53,14 @@ class _FakeReviewRepository implements ReviewRepository {
   final bool throwOnSubmit;
   int? capturedRating;
   String? capturedComment;
+  int? capturedUpdateRating;
+  String? capturedUpdateReviewId;
 
   @override
   Future<Review> submitReview({
     required PlaceKind placeKind,
     required String placeId,
+    required String placeName,
     required int rating,
     required String? comment,
   }) async {
@@ -58,6 +69,9 @@ class _FakeReviewRepository implements ReviewRepository {
     capturedComment = comment;
     return Review(
       id: "r1",
+      placeKind: placeKind,
+      placeId: placeId,
+      placeName: LocalizedText(fr: placeName, ar: placeName, en: placeName),
       rating: rating,
       comment: comment,
       createdAt: DateTime(2026, 1, 1),
@@ -70,12 +84,32 @@ class _FakeReviewRepository implements ReviewRepository {
   @override
   Future<Review> updateReview({
     required String reviewId,
+    required PlaceKind placeKind,
+    required String placeId,
+    required String placeName,
     required int rating,
     required String? comment,
-  }) => throw UnimplementedError();
+  }) async {
+    if (throwOnSubmit) throw const ReviewRequestFailure("boom");
+    capturedUpdateRating = rating;
+    capturedUpdateReviewId = reviewId;
+    return Review(
+      id: reviewId,
+      placeKind: placeKind,
+      placeId: placeId,
+      placeName: LocalizedText(fr: placeName, ar: placeName, en: placeName),
+      rating: rating,
+      comment: comment,
+      createdAt: DateTime(2026, 1, 1),
+    );
+  }
 
   @override
-  Future<void> deleteReview(String reviewId) => throw UnimplementedError();
+  Future<void> deleteReview({
+    required String reviewId,
+    required PlaceKind placeKind,
+    required String placeId,
+  }) => throw UnimplementedError();
 }
 
 Future<GoRouter> _pushViaGoRouter(
@@ -126,6 +160,60 @@ Future<GoRouter> _pushViaGoRouter(
   );
   await tester.pumpAndSettle();
   return router;
+}
+
+Future<(GoRouter, _FakeReviewRepository)> _pushEditViaGoRouter(
+  WidgetTester tester, {
+  Locale locale = const Locale("fr"),
+}) async {
+  final repo = _FakeReviewRepository();
+  final GoRouter router = GoRouter(
+    initialLocation: AppRoutePaths.map,
+    routes: <RouteBase>[
+      GoRoute(
+        path: AppRoutePaths.map,
+        builder: (context, state) => const Scaffold(body: Text("MAP STUB")),
+      ),
+      GoRoute(
+        path: AppRoutePaths.submitReview,
+        builder: (context, state) {
+          final SubmitReviewArgs args = state.extra! as SubmitReviewArgs;
+          return SubmitReviewScreen(args: args);
+        },
+      ),
+    ],
+  );
+
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [reviewRepositoryProvider.overrideWithValue(repo)],
+      child: MaterialApp.router(
+        routerConfig: router,
+        theme: RahatiTheme.light,
+        locale: locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  unawaited(
+    router.push(
+      AppRoutePaths.submitReview,
+      extra: const SubmitReviewArgs(
+        placeKind: PlaceKind.station,
+        placeId: "s1",
+        placeName: "Station Didouche",
+        existingReview: ExistingReviewArgs(
+          reviewId: "r1",
+          rating: 2,
+          comment: "Moyen",
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return (router, repo);
 }
 
 void main() {
@@ -264,4 +352,41 @@ void main() {
       handle.dispose();
     },
   );
+
+  group("edit mode (SCR-023's edit-review entry point)", () {
+    testWidgets(
+      "pre-fills the rating/comment and shows the edit title/button",
+      (tester) async {
+        await _pushEditViaGoRouter(tester);
+
+        expect(find.text("Modifier l'avis"), findsOneWidget);
+        expect(find.byIcon(Icons.star), findsNWidgets(2));
+        expect(find.text("Moyen"), findsOneWidget);
+        expect(find.text("Enregistrer"), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      "saving calls updateReview with the existing reviewId and pops with "
+      "the update Snackbar",
+      (tester) async {
+        final (GoRouter router, _FakeReviewRepository repo) =
+            await _pushEditViaGoRouter(tester);
+
+        await tester.tap(find.byIcon(Icons.star_border).first);
+        await tester.pump();
+        await tester.tap(find.text("Enregistrer"));
+        await tester.pumpAndSettle();
+
+        expect(repo.capturedUpdateReviewId, "r1");
+        expect(repo.capturedUpdateRating, 3);
+        expect(find.text("MAP STUB"), findsOneWidget);
+        expect(find.text("Avis mis à jour"), findsOneWidget);
+        expect(
+          router.routerDelegate.currentConfiguration.uri.toString(),
+          "/map",
+        );
+      },
+    );
+  });
 }

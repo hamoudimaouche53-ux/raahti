@@ -3,12 +3,10 @@ import "../../domain/entities/visit.dart";
 import "../../domain/repositories/visit_history_repository.dart";
 
 /// **Explicitly-opt-in mock adapter** for [VisitHistoryRepository] —
-/// gated by `AppEnv.useMockAuth`. Unlike [RestVisitHistoryRepository],
-/// this one is genuinely usable — SCR-021 has no real endpoint to swap
-/// in even once a backend exists (see the API Contract Gaps note), so
-/// this mock is the only way to demonstrate the screen at all right now.
-/// Returns a fixed, clearly-fabricated list spanning two months, so
-/// SCR-021's month-grouped section-header layout has something to group.
+/// gated by `AppEnv.useMockAuth`, for demoing SCR-021 without a deployed
+/// backend. Returns a fixed, clearly-fabricated list spanning two months,
+/// so SCR-021's month-grouped section-header layout has something to
+/// group.
 class MockVisitHistoryRepository implements VisitHistoryRepository {
   const MockVisitHistoryRepository();
 

@@ -7,29 +7,50 @@ import "../../../../l10n/app_localizations.dart";
 import "../../domain/entities/place.dart" show PlaceKind;
 import "../providers/place_detail_providers.dart";
 
+/// Carries an already-submitted review's own fields into
+/// [SubmitReviewScreen]'s edit mode (SCR-023's "edit" entry point,
+/// EPIC-05 US-05.2) — when non-null on [SubmitReviewArgs], the screen
+/// pre-fills the rating/comment from these and calls
+/// `ReviewRepository.updateReview` instead of `submitReview` on save.
+class ExistingReviewArgs {
+  const ExistingReviewArgs({
+    required this.reviewId,
+    required this.rating,
+    required this.comment,
+  });
+
+  final String reviewId;
+  final int rating;
+  final String? comment;
+}
+
 /// `state.extra` payload for [AppRoutePaths.submitReview] — a small typed
 /// carrier, same precedent as every other route's `*Args` class.
 ///
-/// Reached today only from SCR-019's "Laisser un avis" (always a
-/// station — see `UnlockConfirmationArgs`'s own doc comment for why
-/// [placeKind] doesn't need to be threaded there). [placeKind] is still a
-/// real, honored field here (not hard-coded inside this screen) so a
-/// future entry point from SCR-005/006 (a third-party place's own detail
-/// sheet, per this screen's wireframe) needs no change to this screen
-/// itself.
+/// Reached both from SCR-019's "Laisser un avis" (a new review — see
+/// `UnlockConfirmationArgs`'s own doc comment for why [placeKind] doesn't
+/// need to be threaded there) and from SCR-023's per-row edit action (an
+/// existing review, [existingReview] non-null).
 class SubmitReviewArgs {
   const SubmitReviewArgs({
     required this.placeKind,
     required this.placeId,
     required this.placeName,
+    this.existingReview,
   });
 
   final PlaceKind placeKind;
   final String placeId;
   final String placeName;
+
+  /// Non-null switches this screen into edit mode — see
+  /// [ExistingReviewArgs]'s own doc comment.
+  final ExistingReviewArgs? existingReview;
 }
 
-/// SCR-007 — Submit Review (US-05.2, FR-PLC-01).
+/// SCR-007 — Submit Review (US-05.2, FR-PLC-01). Doubles as SCR-023's
+/// edit-review screen when [SubmitReviewScreen.args].existingReview is
+/// non-null, rather than a second near-duplicate screen.
 class SubmitReviewScreen extends ConsumerStatefulWidget {
   const SubmitReviewScreen({required this.args, super.key});
 
@@ -40,9 +61,13 @@ class SubmitReviewScreen extends ConsumerStatefulWidget {
 }
 
 class _SubmitReviewScreenState extends ConsumerState<SubmitReviewScreen> {
-  final TextEditingController _commentController = TextEditingController();
-  int _rating = 0;
+  late final TextEditingController _commentController = TextEditingController(
+    text: widget.args.existingReview?.comment ?? "",
+  );
+  late int _rating = widget.args.existingReview?.rating ?? 0;
   bool _submitting = false;
+
+  bool get _isEditing => widget.args.existingReview != null;
 
   @override
   void dispose() {
@@ -54,21 +79,43 @@ class _SubmitReviewScreenState extends ConsumerState<SubmitReviewScreen> {
     final AppLocalizations l10n = AppLocalizations.of(context);
     setState(() => _submitting = true);
     try {
-      await ref
-          .read(reviewRepositoryProvider)
-          .submitReview(
-            placeKind: widget.args.placeKind,
-            placeId: widget.args.placeId,
-            rating: _rating,
-            comment: _commentController.text.trim().isEmpty
-                ? null
-                : _commentController.text.trim(),
-          );
+      final String? comment = _commentController.text.trim().isEmpty
+          ? null
+          : _commentController.text.trim();
+      final ExistingReviewArgs? existingReview = widget.args.existingReview;
+      if (existingReview == null) {
+        await ref
+            .read(reviewRepositoryProvider)
+            .submitReview(
+              placeKind: widget.args.placeKind,
+              placeId: widget.args.placeId,
+              placeName: widget.args.placeName,
+              rating: _rating,
+              comment: comment,
+            );
+      } else {
+        await ref
+            .read(reviewRepositoryProvider)
+            .updateReview(
+              reviewId: existingReview.reviewId,
+              placeKind: widget.args.placeKind,
+              placeId: widget.args.placeId,
+              placeName: widget.args.placeName,
+              rating: _rating,
+              comment: comment,
+            );
+      }
       if (!mounted) return;
       context.pop();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.submitReviewSuccessSnackbar)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _isEditing
+                ? l10n.submitReviewUpdateSuccessSnackbar
+                : l10n.submitReviewSuccessSnackbar,
+          ),
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _submitting = false);
@@ -81,10 +128,15 @@ class _SubmitReviewScreenState extends ConsumerState<SubmitReviewScreen> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
+    final String publishButtonLabel = _isEditing
+        ? l10n.submitReviewUpdateButton
+        : l10n.submitReviewPublishButton;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.submitReviewTitle),
+        title: Text(
+          _isEditing ? l10n.submitReviewEditTitle : l10n.submitReviewTitle,
+        ),
         leading: CloseButton(onPressed: () => context.pop()),
       ),
       body: SafeArea(
@@ -144,14 +196,14 @@ class _SubmitReviewScreenState extends ConsumerState<SubmitReviewScreen> {
                 // button-role/enabled semantics.
                 child: _submitting
                     ? Semantics(
-                        label: l10n.submitReviewPublishButton,
+                        label: publishButtonLabel,
                         child: const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                       )
-                    : Text(l10n.submitReviewPublishButton),
+                    : Text(publishButtonLabel),
               ),
             ],
           ),
