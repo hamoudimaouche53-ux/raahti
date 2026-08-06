@@ -210,3 +210,19 @@ Migration: `migrations/20260806121959_access_payment/` was initially **generated
 Tests: 392 unit tests (up from 277) + 76 e2e tests (up from 61), independently re-run during review. `tsc`/build clean; lint 0 errors (23 warnings, up from the prior 20-warning baseline — the 3 new ones are `no-explicit-any` in the new Prisma-repo `.spec.ts` files, the same pattern every other Prisma-repo spec file in this codebase already has).
 
 **Access & Payment module: code/design complete, independently reviewed, migration applied and verified live. Committed following review approval.**
+
+## 18. Status Update — Emergency (EPIC-03, Mode Urgence) (2026-08-06)
+
+Second out-of-original-scope module built after §16's "Phase 4 Complete" milestone — `EmergencyModule` (Domain Model §7, EPIC-03, V1.1), implementing `GET /emergency/nearest-facility` (FR-EMG-01/02/03). No owned aggregate, no Prisma models — pure orchestration, same category as Slatoki, depending only on Identity's and Station Network's exported query services (the matrix's `Emergency -.->|read| Identity`/`Emergency -.->|read| StationNetwork` edges).
+
+Extended `StationNetworkModule` with `StationQueryService.findNearestAccessible()` (new Prisma query: nearest `active`-status station within a flagged 20km judgment-call radius, `EMERGENCY_SEARCH_RADIUS_METERS`; a flagged cabin-tiebreak rule — prefer `free`, else any non-`out_of_service`, else `null` — neither specified anywhere in FR-EMG-02/ERD/OpenAPI).
+
+Closed a gap Access & Payment's own code had already flagged: `AuthorizeAndCapturePaymentService`'s `applyEmergencyDiscount` was a documented V1 no-op pending Emergency Mode's existence. **ADR-0031** grants `AccessPaymentModule` a new `AccessPay -.->|read| Identity` edge (mirroring the pre-existing `Notif -.->|read| Identity` edge) so the discount is independently re-verified server-side against `diabeticVerificationStatus`, never trusted from the client's boolean alone — deliberately hardening beyond the literal sequence-diagram, since this gates a real monetary amount. `AccessPaymentModule` does **not** get an edge to `EmergencyModule` — the matrix still grants Emergency no incoming edges from any module (enforced by a new eslint zone); the two modules independently apply the same FR-EMG-03 invariant rather than one depending on the other. New `Money.applyDiscountPercentage()` (shared-kernel, bigint-safe) backs the actual amount reduction, applied consistently through authorize/capture/refund.
+
+**Inherited, accepted, out-of-scope limitation, not addressed by this pass** (mirrors R-02/ADR-0014's precedent before Access & Payment exactly): Risk R-01 (diabetic-verification mechanism undefined, score 16, still open) means no real user can currently reach `diabeticVerificationStatus = verified` — `VerificationDocumentService` only implements document submission, with no admin-approval workflow (explicitly deferred by ADR-0010 to an unscheduled health-partner workshop). Emergency Mode is built completely and correctly against the already-existing enum; its discount-eligible branch is only reachable via seeded dev/test data until that separate, unscoped workflow exists.
+
+No Prisma migration — Emergency owns no data, confirmed before implementation began.
+
+Tests: 423 unit tests (up from 392) + 83 e2e tests (up from 76), independently re-run during review. `tsc`/build clean; lint 0 errors (27 warnings, up from 23 — the 4 new ones are `no-explicit-any` in new test files, same pre-existing pattern).
+
+**Emergency module: code/design complete, independently reviewed. Committed following review approval.**

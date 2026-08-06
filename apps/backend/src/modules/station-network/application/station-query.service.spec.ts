@@ -30,6 +30,7 @@ function createRepoMock(): jest.Mocked<StationRepository> {
     findAll: jest.fn(),
     findCabinById: jest.fn(),
     updateCabinOccupancy: jest.fn(),
+    findNearestAccessible: jest.fn(),
   };
 }
 
@@ -112,6 +113,92 @@ describe('StationQueryService', () => {
         },
       ]);
       expect(page.nextCursor).toBe('cursor-1');
+    });
+  });
+
+  describe('findNearestAccessible', () => {
+    it('returns null when no station is within the emergency search radius', async () => {
+      const repo = createRepoMock();
+      repo.findNearestAccessible.mockResolvedValue(null);
+      const service = new StationQueryService(repo, createReviewRepoMock());
+
+      const result = await service.findNearestAccessible(GeoPosition.of(36.75, 3.05));
+
+      expect(result).toBeNull();
+    });
+
+    it('maps the winning station into a place-summary-shaped item and passes through the picked cabin id', async () => {
+      const repo = createRepoMock();
+      repo.findNearestAccessible.mockResolvedValue({
+        station: {
+          id: 's1',
+          code: 'ST-001',
+          configuration: 'fixe',
+          status: 'active',
+          position: GeoPosition.of(36.75, 3.05),
+          distanceMeters: 500,
+          hasSlatokiTent: false,
+          cabinPricingMix: 'all_paid',
+          averageRating: null,
+          reviewCount: 0,
+        },
+        nearestCabinId: 'c1',
+      });
+      const service = new StationQueryService(repo, createReviewRepoMock());
+
+      const result = await service.findNearestAccessible(GeoPosition.of(36.75, 3.05));
+
+      expect(result).toEqual({
+        place: {
+          id: 's1',
+          placeKind: 'station',
+          name: { fr: 'ST-001', ar: 'ST-001', en: 'ST-001' },
+          position: { lat: 36.75, lng: 3.05 },
+          pinColor: 'blue',
+          distanceMeters: 500,
+          isFree: false,
+          averageRating: null,
+          reviewCount: 0,
+          tags: [],
+          hasSlatokiTent: false,
+        },
+        nearestCabinId: 'c1',
+      });
+    });
+
+    it('calls the repository with the fixed 20km emergency search radius', async () => {
+      const repo = createRepoMock();
+      repo.findNearestAccessible.mockResolvedValue(null);
+      const service = new StationQueryService(repo, createReviewRepoMock());
+      const position = GeoPosition.of(36.75, 3.05);
+
+      await service.findNearestAccessible(position);
+
+      expect(repo.findNearestAccessible).toHaveBeenCalledWith(position, 20_000);
+    });
+
+    it('returns nearestCabinId null when the station has no accessible cabin', async () => {
+      const repo = createRepoMock();
+      repo.findNearestAccessible.mockResolvedValue({
+        station: {
+          id: 's1',
+          code: 'ST-001',
+          configuration: 'fixe',
+          status: 'active',
+          position: GeoPosition.of(36.75, 3.05),
+          distanceMeters: 500,
+          hasSlatokiTent: false,
+          cabinPricingMix: 'no_cabins',
+          averageRating: null,
+          reviewCount: 0,
+        },
+        nearestCabinId: null,
+      });
+      const service = new StationQueryService(repo, createReviewRepoMock());
+
+      const result = await service.findNearestAccessible(GeoPosition.of(36.75, 3.05));
+
+      expect(result?.nearestCabinId).toBeNull();
     });
   });
 

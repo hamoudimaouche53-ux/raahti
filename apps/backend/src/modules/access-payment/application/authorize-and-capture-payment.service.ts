@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { DOMAIN_EVENT_BUS, DomainEventBus, Money } from '../../../shared-kernel';
+import { UserQueryService } from '../../identity/application/user-query.service';
 import { CabinNotFoundException as StationCabinNotFoundException } from '../../station-network/application/cabin-not-found.exception';
 import { CabinUnavailableException as StationCabinUnavailableException } from '../../station-network/application/cabin-unavailable.exception';
 import { StationCommandService } from '../../station-network/application/station-command.service';
@@ -20,6 +21,19 @@ import { UnlockFailedRefundedException } from './unlock-failed-refunded.exceptio
 
 const ENDPOINT = 'POST /access-sessions/:id/payments';
 
+/**
+ * FR-EMG-03 — Mode Urgence 50% discount. Duplicated here rather than
+ * importing `EmergencyModule`'s `EmergencyDiscountPolicy` (ADR-0031): the
+ * module-dependency-diagram.md §3 matrix grants `EmergencyModule` no
+ * sanctioned incoming edge from any module (enforced by an eslint
+ * `import/no-restricted-paths` zone — "no module may depend on emergency/"),
+ * so AccessPaymentModule independently re-implements the same one-line
+ * `diabeticVerificationStatus === 'verified'` check against Identity's data
+ * instead. See ADR-0031 for why this is a deliberate two-independent-checks
+ * design, not an oversight.
+ */
+const EMERGENCY_DISCOUNT_PERCENTAGE = 50;
+
 export interface AuthorizeAndCapturePaymentParams {
   accessSessionId: string;
   callerId: string;
@@ -38,16 +52,17 @@ export interface AuthorizeAndCapturePaymentResult {
  * Sequence Diagrams §1 "QR Scan -> Payment -> Unlock" flow, including its
  * failure/refund branch (Risk R-11/R-12, ADR-0014).
  *
- * `applyEmergencyDiscount` is accepted (`PaymentRequest.applyEmergencyDiscount`
- * per openapi.yaml) but is a **documented V1 no-op**: Mode Urgence
- * eligibility (FR-EMG-03) requires reading the caller's
- * `diabeticVerificationStatus`, which lives on Identity's `User` aggregate —
- * Identity is not a sanctioned read dependency for AccessPaymentModule
- * (module-dependency-diagram.md §3 grants `AccessPay` no edge to `Identity`
- * at all, unlike e.g. `Emergency -.->|read| Identity`). The flag is accepted
- * and silently ignored (never rejected) so a client sending it doesn't get
- * an error, but no discount is ever computed or persisted this pass —
- * flagged here explicitly, not silently dropped.
+ * `applyEmergencyDiscount` (`PaymentRequest.applyEmergencyDiscount` per
+ * openapi.yaml) is implemented (ADR-0031) — previously a documented V1
+ * no-op because Identity was not a sanctioned read dependency for this
+ * module; that gap is now closed by a dedicated `AccessPay -.->|read|
+ * Identity` edge (module-dependency-diagram.md §3). The caller's
+ * `diabeticVerificationStatus` is re-verified server-side against Identity's
+ * data — the client's boolean flag alone is never trusted for a real
+ * monetary discount (Risk R-01). An ineligible caller who still sends
+ * `applyEmergencyDiscount: true` is silently charged full price, never
+ * rejected — this endpoint's contract is "apply the discount if eligible,"
+ * not "validate eligibility as a precondition."
  */
 @Injectable()
 export class AuthorizeAndCapturePaymentService {
@@ -59,6 +74,7 @@ export class AuthorizeAndCapturePaymentService {
     @Inject(DOMAIN_EVENT_BUS) private readonly eventBus: DomainEventBus,
     private readonly stationCommandService: StationCommandService,
     private readonly idempotencyService: IdempotencyService,
+    private readonly userQueryService: UserQueryService,
   ) {}
 
   async execute(params: AuthorizeAndCapturePaymentParams): Promise<AuthorizeAndCapturePaymentResult> {
@@ -110,6 +126,29 @@ export class AuthorizeAndCapturePaymentService {
     return this.handlePaidCabin(session, cabin.price, params);
   }
 
+  /**
+   * FR-EMG-03 — re-verifies the caller's `diabeticVerificationStatus`
+   * server-side (never trusts `applyEmergencyDiscount` alone, Risk R-01).
+   * Ineligible/missing-user is a silent full-price fallback, not an error —
+   * see class doc comment.
+   */
+  private async resolveEmergencyDiscount(
+    price: Money,
+    params: AuthorizeAndCapturePaymentParams,
+  ): Promise<{ finalPrice: Money; discountApplied: number | null }> {
+    if (!params.applyEmergencyDiscount) {
+      return { finalPrice: price, discountApplied: null };
+    }
+    const user = await this.userQueryService.findById(params.callerId);
+    if (!user || user.diabeticVerificationStatus !== 'verified') {
+      return { finalPrice: price, discountApplied: null };
+    }
+    return {
+      finalPrice: price.applyDiscountPercentage(EMERGENCY_DISCOUNT_PERCENTAGE),
+      discountApplied: EMERGENCY_DISCOUNT_PERCENTAGE,
+    };
+  }
+
   private async handleFreeCabin(session: AccessSession): Promise<AuthorizeAndCapturePaymentResult> {
     const unlock = await this.lockControlGateway.issueUnlockOrder({ cabinId: session.cabinId, accessSessionId: session.id });
     if (unlock.result !== 'unlocked') {
@@ -130,19 +169,21 @@ export class AuthorizeAndCapturePaymentService {
     session.markPaymentPending();
     await this.accessSessionRepository.save(session);
 
-    // applyEmergencyDiscount is intentionally not applied here — see class doc comment.
+    const { finalPrice, discountApplied } = await this.resolveEmergencyDiscount(price, params);
+
     let transaction = Transaction.pending({
       id: randomUUID(),
       userId: params.callerId,
       accessSessionId: session.id,
       paymentMethodId: params.paymentMethodId ?? null,
-      amount: price,
+      amount: finalPrice,
+      discountApplied,
     });
 
     const paymentMethodRef = params.paymentMethodId ?? '';
     let authorization;
     try {
-      authorization = await this.paymentGateway.authorize(price, paymentMethodRef, params.idempotencyKey);
+      authorization = await this.paymentGateway.authorize(finalPrice, paymentMethodRef, params.idempotencyKey);
     } catch {
       transaction.fail();
       await this.transactionRepository.save(transaction);
@@ -163,7 +204,7 @@ export class AuthorizeAndCapturePaymentService {
 
     const unlock = await this.lockControlGateway.issueUnlockOrder({ cabinId: session.cabinId, accessSessionId: session.id });
     if (unlock.result !== 'unlocked') {
-      await this.paymentGateway.refund(capture.captureId, price);
+      await this.paymentGateway.refund(capture.captureId, finalPrice);
       transaction.refund();
       await this.transactionRepository.save(transaction);
       throw new UnlockFailedRefundedException(session.id);

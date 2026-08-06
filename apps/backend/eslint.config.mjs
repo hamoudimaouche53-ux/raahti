@@ -166,17 +166,22 @@ export default [
             },
             {
               // Access & Payment (module-dependency-diagram.md §3: `AccessPay -> StationNet`
-              // plain ✔, a COMMAND dependency) may depend only on Station Network's
-              // exported *Service (application/) — never its domain/infrastructure/
-              // interface layers.
+              // plain ✔, a COMMAND dependency; `AccessPay -.->|read| Identity`,
+              // added by ADR-0031 for FR-EMG-03 server-side discount re-verification)
+              // may depend only on Station Network's/Identity's exported
+              // *Service/*QueryService (application/) — never their domain/
+              // infrastructure/interface layers.
               target: './src/modules/access-payment',
               from: [
                 './src/modules/station-network/domain',
                 './src/modules/station-network/infrastructure',
                 './src/modules/station-network/interface',
+                './src/modules/identity/domain',
+                './src/modules/identity/infrastructure',
+                './src/modules/identity/interface',
               ],
               message:
-                "Access & Payment may only depend on Station Network's exported *Service (application/) — see module-dependency-diagram.md §3.",
+                "Access & Payment may only depend on Station Network's/Identity's exported *Service (application/) — see module-dependency-diagram.md §3.",
             },
             {
               // The matrix grants Access & Payment exactly one incoming edge
@@ -195,6 +200,50 @@ export default [
               from: ['./src/modules/access-payment'],
               message:
                 'No module may depend on access-payment/ directly — its only sanctioned outgoing relationship to another module is the PaymentCaptured event (module-dependency-diagram.md §3).',
+            },
+            {
+              // Emergency (module-dependency-diagram.md §3: `Emergency -.->|read| Identity`,
+              // `Emergency -.->|read| StationNetwork`) may depend only on their
+              // exported *QueryService (application/) — never their domain/
+              // infrastructure/interface layers. Scoped to application/ and
+              // interface/ only (not domain/): emergency/domain's
+              // EmergencyDiscountPolicy takes one type-only import of Identity's
+              // DiabeticVerificationStatus union type — a plain value-object
+              // shape, not a repository/service call — see ADR-0031 and the
+              // policy's own doc comment for why that single reference is
+              // exempted rather than duplicating the type a third time.
+              target: ['./src/modules/emergency/application', './src/modules/emergency/interface'],
+              from: [
+                './src/modules/identity/domain',
+                './src/modules/identity/infrastructure',
+                './src/modules/identity/interface',
+                './src/modules/station-network/domain',
+                './src/modules/station-network/infrastructure',
+                './src/modules/station-network/interface',
+              ],
+              message:
+                "Emergency may only depend on Identity's/Station Network's exported *QueryService (application/) — see module-dependency-diagram.md §3.",
+            },
+            {
+              // The matrix grants Emergency no incoming edges from any module —
+              // it is read-only orchestration, never itself a sanctioned
+              // dependency (module-dependency-diagram.md §3), same "nothing may
+              // depend on X" precedent as Slatoki/Notifications/Operations above.
+              // In particular: AccessPaymentModule independently re-verifies
+              // FR-EMG-03 eligibility rather than importing EmergencyDiscountPolicy
+              // (ADR-0031) — this zone is what makes that the only legal choice.
+              target: [
+                './src/modules/identity',
+                './src/modules/station-network',
+                './src/modules/third-party-places',
+                './src/modules/slatoki',
+                './src/modules/notifications',
+                './src/modules/operations',
+                './src/modules/access-payment',
+                './src/composition',
+              ],
+              from: ['./src/modules/emergency'],
+              message: 'No module may depend on emergency/ — it has no sanctioned incoming edges (module-dependency-diagram.md §3).',
             },
             {
               // Places composition layer (ADR-0029) may depend ONLY on each Facilities

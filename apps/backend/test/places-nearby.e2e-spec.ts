@@ -70,6 +70,9 @@ class FakeStationRepository implements StationRepository {
     return null;
   }
   async updateCabinOccupancy() {}
+  async findNearestAccessible() {
+    return null;
+  }
 }
 
 class FakeThirdPartyPlaceRepository implements ThirdPartyPlaceRepository {

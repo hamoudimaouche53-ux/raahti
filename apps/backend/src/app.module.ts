@@ -8,6 +8,7 @@ import { SlatokiModule } from './modules/slatoki/slatoki.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OperationsModule } from './modules/operations/operations.module';
 import { AccessPaymentModule } from './modules/access-payment/access-payment.module';
+import { EmergencyModule } from './modules/emergency/emergency.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AccessPaymentModule } from './modules/access-payment/access-payment.mod
     NotificationsModule,
     OperationsModule,
     AccessPaymentModule,
+    EmergencyModule,
   ],
 })
 export class AppModule {}

@@ -62,6 +62,10 @@ class FakeStationRepository implements StationRepository {
     return null;
   }
 
+  async findNearestAccessible() {
+    return null;
+  }
+
   async updateCabinOccupancy(): Promise<void> {}
 
   private station(id: string): Station {

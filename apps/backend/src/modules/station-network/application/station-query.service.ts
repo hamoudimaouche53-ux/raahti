@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { GeoPosition, Money } from '../../../shared-kernel';
 import { Station } from '../domain/entities/station.entity';
-import { STATION_REPOSITORY, StationRepository } from '../domain/ports/station.repository';
+import { STATION_REPOSITORY, StationRepository, StationSearchResult } from '../domain/ports/station.repository';
 import { STATION_REVIEW_REPOSITORY, StationRatingAggregate, StationReviewRepository } from '../domain/ports/station-review.repository';
 import { PlaceFilterType } from '../domain/value-objects/place-filter-type.vo';
 import { deriveStationPinColorFromSearchResult, PinColor } from './pin-color';
@@ -58,6 +58,20 @@ export interface StationFleetSummary {
   cabins: StationFleetCabinSummary[];
 }
 
+export interface NearestAccessibleFacility {
+  place: StationPlaceSearchItem;
+  nearestCabinId: string | null;
+}
+
+/**
+ * Judgment call — FR-EMG-02 does not specify a search radius for Mode
+ * Urgence's "nearest accessible facility" flow (unlike /places/nearby, this
+ * endpoint takes no client-configurable radius param at all). 20km chosen as
+ * a generous emergency-flow default; mirrors Slatoki's own SEARCH_RADIUS_METERS
+ * flagged-judgment-call pattern.
+ */
+const EMERGENCY_SEARCH_RADIUS_METERS = 20_000;
+
 /**
  * Exported application-layer query surface for this module — the only thing
  * another module (or the Places composition layer, ADR-0029) may depend on.
@@ -88,20 +102,42 @@ export class StationQueryService {
   async searchNearby(criteria: StationNearbySearchCriteria): Promise<StationPlaceSearchPage> {
     const page = await this.stationRepository.searchNearby(criteria);
     return {
-      data: page.data.map((result) => ({
-        id: result.id,
-        placeKind: 'station' as const,
-        name: { fr: result.code, ar: result.code, en: result.code },
-        position: { lat: result.position.lat, lng: result.position.lng },
-        pinColor: deriveStationPinColorFromSearchResult(result),
-        distanceMeters: result.distanceMeters,
-        isFree: result.cabinPricingMix === 'all_free',
-        averageRating: result.averageRating,
-        reviewCount: result.reviewCount,
-        tags: [],
-        hasSlatokiTent: result.hasSlatokiTent,
-      })),
+      data: page.data.map((result) => this.toPlaceSearchItem(result)),
       nextCursor: page.nextCursor,
+    };
+  }
+
+  /**
+   * Backing GET /emergency/nearest-facility (EmergencyModule's sanctioned
+   * `Emergency -.->|read| StationNetwork` edge, module-dependency-diagram.md
+   * §3; FR-EMG-01/02). Returns the same `StationPlaceSearchItem` shape
+   * `searchNearby` returns, so EmergencyQueryService/EmergencyController never
+   * need to know about this module's raw `StationSearchResult` projection.
+   */
+  async findNearestAccessible(position: GeoPosition): Promise<NearestAccessibleFacility | null> {
+    const result = await this.stationRepository.findNearestAccessible(position, EMERGENCY_SEARCH_RADIUS_METERS);
+    if (!result) {
+      return null;
+    }
+    return {
+      place: this.toPlaceSearchItem(result.station),
+      nearestCabinId: result.nearestCabinId,
+    };
+  }
+
+  private toPlaceSearchItem(result: StationSearchResult): StationPlaceSearchItem {
+    return {
+      id: result.id,
+      placeKind: 'station' as const,
+      name: { fr: result.code, ar: result.code, en: result.code },
+      position: { lat: result.position.lat, lng: result.position.lng },
+      pinColor: deriveStationPinColorFromSearchResult(result),
+      distanceMeters: result.distanceMeters,
+      isFree: result.cabinPricingMix === 'all_free',
+      averageRating: result.averageRating,
+      reviewCount: result.reviewCount,
+      tags: [],
+      hasSlatokiTent: result.hasSlatokiTent,
     };
   }
 

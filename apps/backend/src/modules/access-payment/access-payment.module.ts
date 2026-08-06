@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { IdentityModule } from '../identity/identity.module';
 import { StationNetworkModule } from '../station-network/station-network.module';
 import { AccessSessionQueryService } from './application/access-session-query.service';
 import { AuthorizeAndCapturePaymentService } from './application/authorize-and-capture-payment.service';
@@ -30,10 +31,14 @@ import { AccessSessionsController } from './interface/controllers/access-session
  * mock adapters — no real payment provider or IoT ingestion service exists
  * yet; swapping either for a real adapter later touches only this module's
  * provider list, never the application/domain layers (both ADRs' explicit
- * intent).
+ * intent). Also imports IdentityModule to reach its exported UserQueryService
+ * — the `AccessPay -.->|read| Identity` edge added by ADR-0031 so
+ * AuthorizeAndCapturePaymentService can independently re-verify the caller's
+ * `diabeticVerificationStatus` server-side (FR-EMG-03) rather than trusting
+ * `applyEmergencyDiscount` unchecked.
  */
 @Module({
-  imports: [StationNetworkModule],
+  imports: [StationNetworkModule, IdentityModule],
   controllers: [AccessSessionsController],
   providers: [
     { provide: ACCESS_SESSION_REPOSITORY, useClass: PrismaAccessSessionRepository },

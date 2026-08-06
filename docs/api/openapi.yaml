@@ -332,6 +332,8 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/EmergencyFacilityResult" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /access-sessions:
     post:

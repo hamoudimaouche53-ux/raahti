@@ -37,7 +37,7 @@ Rows may depend on columns marked `✔`. All other cells are **forbidden** and e
 | **StationNet** | | — | | | | | | | | | ✔ |
 | **3rdParty** | | | — | | | | | | | | ✔ |
 | **Slatoki** | | ✔(read) | ✔(read) | — | | | | | | | ✔ |
-| **AccessPay** | | ✔ | | | — | | ✔(publish) | | | | ✔ |
+| **AccessPay** | ✔(read) | ✔ | | | — | | ✔(publish) | | | | ✔ |
 | **Emergency** | ✔(read) | ✔(read) | | | | — | | | | | ✔ |
 | **Notif** | ✔(read) | | | | | | — | | | | ✔ |
 | **Sponsor** | | | | | | | | — | | ✔(read) | ✔ |
@@ -46,6 +46,8 @@ Rows may depend on columns marked `✔`. All other cells are **forbidden** and e
 | **SharedKernel** | | | | | | | | | | | — |
 
 **Reading**: `AccessPay → StationNet` (plain ✔) means Access & Payment calls Station Network's **application service interface** (e.g. `checkCabinAvailability()`), never its repository or database table directly. `✔(read)` denotes a read-only query-service dependency (CQRS-style query, no commands). `✔(publish)` denotes eventing only — `AccessPaymentModule` publishes `PaymentCaptured`; it does not call `NotificationsModule` synchronously, `NotificationsModule` subscribes instead (see [Domain Model §8](./domain-model.md#8-bounded-context-notifications)).
+
+**`AccessPay -.->|read| Identity`** (added by [ADR-0031](../adr/0031-access-payment-identity-discount-verification.md)): `AuthorizeAndCapturePaymentService` reads `IdentityModule`'s exported `UserQueryService` to independently re-verify `diabeticVerificationStatus` server-side before applying the FR-EMG-03 Mode Urgence discount, rather than trusting the client's `applyEmergencyDiscount` flag unchecked. Note this is a *separate* edge from `Emergency -.->|read| Identity` — the matrix still grants no `AccessPay ↔ Emergency` edge in either direction; see ADR-0031 for why the two modules apply the same invariant independently instead of one depending on the other.
 
 ## 4. Diagram
 
@@ -79,6 +81,7 @@ graph TD
     SLK -.->|read| SN
     SLK -.->|read| TPP
     AP -->|command| SN
+    AP -.->|read| ID
     AP -.->|event: PaymentCaptured| NT
     EM -.->|read| ID
     EM -.->|read| SN

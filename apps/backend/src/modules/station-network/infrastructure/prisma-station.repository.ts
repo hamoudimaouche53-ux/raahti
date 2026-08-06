@@ -6,6 +6,7 @@ import { Cabin } from '../domain/entities/cabin.entity';
 import { SlatokiTent } from '../domain/entities/slatoki-tent.entity';
 import { CabinPricingMix, Station } from '../domain/entities/station.entity';
 import {
+  NearestAccessibleStationResult,
   StationRepository,
   StationSearchCriteria,
   StationSearchPage,
@@ -244,6 +245,73 @@ export class PrismaStationRepository implements StationRepository {
         ? encodeSearchCursor({ distanceMeters: page[page.length - 1].distance_meters, id: page[page.length - 1].id })
         : null,
     };
+  }
+
+  /** Backs StationQueryService.findNearestAccessible() — see the port doc comment for the radius/cabin-tiebreak judgment calls. */
+  async findNearestAccessible(position: GeoPosition, radiusMeters: number): Promise<NearestAccessibleStationResult | null> {
+    const point = Prisma.sql`ST_SetSRID(ST_MakePoint(${position.lng}, ${position.lat}), 4326)::geography`;
+
+    // Same pre-aggregated-CTE + distance-query shape as searchNearby above (avoids
+    // the cabin/review fan-out join bug that method's own doc comment explains),
+    // just narrowed to `LIMIT 1` and no cursor/type-filter/query params.
+    const rows = await this.prisma.$queryRaw<StationSearchRow[]>`
+      WITH cabin_agg AS (
+        SELECT station_id,
+               COUNT(*)::int AS cabin_count,
+               BOOL_AND(NOT is_paid) AS all_free,
+               BOOL_AND(is_paid) AS all_paid
+        FROM cabin
+        GROUP BY station_id
+      ),
+      review_agg AS (
+        SELECT station_id, AVG(rating)::float AS average_rating, COUNT(*)::int AS review_count
+        FROM review
+        WHERE station_id IS NOT NULL
+        GROUP BY station_id
+      )
+      SELECT s.id, s.code, s.configuration, s.status,
+             ST_Y(s.position::geometry) AS lat, ST_X(s.position::geometry) AS lng,
+             ST_Distance(s.position, ${point}) AS distance_meters,
+             EXISTS(SELECT 1 FROM slatoki_tent st WHERE st.station_id = s.id) AS has_slatoki_tent,
+             COALESCE(ca.cabin_count, 0) AS cabin_count,
+             COALESCE(ca.all_free, false) AS all_free,
+             COALESCE(ca.all_paid, false) AS all_paid,
+             ra.average_rating AS average_rating,
+             COALESCE(ra.review_count, 0) AS review_count
+      FROM station s
+      LEFT JOIN cabin_agg ca ON ca.station_id = s.id
+      LEFT JOIN review_agg ra ON ra.station_id = s.id
+      WHERE ST_DWithin(s.position, ${point}, ${radiusMeters})
+        AND s.status = 'active'
+      ORDER BY distance_meters ASC
+      LIMIT 1
+    `;
+
+    const row = rows[0];
+    if (!row) {
+      return null;
+    }
+
+    const cabins = await this.prisma.cabin.findMany({ where: { stationId: row.id } });
+
+    return {
+      station: this.searchRowToResult(row),
+      nearestCabinId: this.pickAccessibleCabinId(cabins),
+    };
+  }
+
+  /**
+   * Judgment call (FR-EMG-02 specifies no tiebreak rule): prefer a free
+   * cabin; otherwise fall back to any cabin that isn't out_of_service; `null`
+   * only when the station has no cabins at all.
+   */
+  private pickAccessibleCabinId(cabins: Array<{ id: string; occupancyStatus: string }>): string | null {
+    const free = cabins.find((cabin) => cabin.occupancyStatus === 'free');
+    if (free) {
+      return free.id;
+    }
+    const usable = cabins.find((cabin) => cabin.occupancyStatus !== 'out_of_service');
+    return usable ? usable.id : null;
   }
 
   /** Backs StationCommandService.checkCabinAvailability() — see the port doc comment. */

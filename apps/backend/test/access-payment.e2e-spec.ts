@@ -22,6 +22,9 @@ import {
 } from '../src/modules/access-payment/domain/ports/payment-gateway';
 import { TRANSACTION_REPOSITORY, TransactionRepository } from '../src/modules/access-payment/domain/ports/transaction.repository';
 import { AccessSessionsController } from '../src/modules/access-payment/interface/controllers/access-sessions.controller';
+import { UserQueryService } from '../src/modules/identity/application/user-query.service';
+import { User } from '../src/modules/identity/domain/entities/user.entity';
+import { USER_REPOSITORY, UserRepository } from '../src/modules/identity/domain/ports/user.repository';
 import { StationCommandService } from '../src/modules/station-network/application/station-command.service';
 import { Cabin } from '../src/modules/station-network/domain/entities/cabin.entity';
 import { Station } from '../src/modules/station-network/domain/entities/station.entity';
@@ -112,8 +115,38 @@ class FakeStationRepository implements StationRepository {
     this.occupancy.set(cabinId, status);
   }
 
+  async findNearestAccessible() {
+    return null;
+  }
+
   getOccupancy(cabinId: string): OccupancyStatus | undefined {
     return this.occupancy.get(cabinId);
+  }
+}
+
+class FakeUserRepository implements UserRepository {
+  private readonly items = new Map<string, User>();
+
+  seed(user: User): void {
+    this.items.set(user.id, user);
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return this.items.get(id) ?? null;
+  }
+
+  async save(): Promise<void> {}
+
+  async findByEmail(): Promise<User | null> {
+    return null;
+  }
+
+  async findByPhone(): Promise<User | null> {
+    return null;
+  }
+
+  async findOrCreate(candidate: User): Promise<User> {
+    return candidate;
   }
 }
 
@@ -236,6 +269,7 @@ describe('Access & Payment endpoints (e2e)', () => {
         CompleteAccessSessionService,
         IdempotencyService,
         StationCommandService,
+        UserQueryService,
         { provide: STATION_REPOSITORY, useValue: stationRepository },
         { provide: ACCESS_SESSION_REPOSITORY, useValue: accessSessionRepository },
         { provide: TRANSACTION_REPOSITORY, useValue: transactionRepository },
@@ -243,6 +277,10 @@ describe('Access & Payment endpoints (e2e)', () => {
         { provide: PAYMENT_GATEWAY, useValue: paymentGateway },
         { provide: LOCK_CONTROL_GATEWAY, useValue: lockControlGateway },
         { provide: DOMAIN_EVENT_BUS, useClass: NoopEventBus },
+        // Emergency-discount scenarios get their own dedicated describe block below
+        // (with seeded verified/unverified users) — this block never sends
+        // applyEmergencyDiscount: true, so an empty FakeUserRepository is enough.
+        { provide: USER_REPOSITORY, useClass: FakeUserRepository },
         // This describe block exercises functional behavior, not rate limiting (that has
         // its own dedicated describe block below with the real RateLimitGuard) — stubbed
         // permissive so the many setup calls each functional test makes don't trip the
@@ -470,6 +508,108 @@ describe('Access & Payment endpoints (e2e)', () => {
   });
 });
 
+/**
+ * FR-EMG-03 / ADR-0031 — server-side re-verification of applyEmergencyDiscount.
+ * Its own describe block (own app instance, own FakeStationRepository/FakeUserRepository)
+ * so the caller identity can vary per test via a `x-caller-id` header read by the
+ * auth-stub middleware, independent of the fixed CALLER_ID used everywhere above.
+ */
+describe('POST /access-sessions/{sessionId}/payments — applyEmergencyDiscount (e2e)', () => {
+  let app: INestApplication;
+  let accessSessionRepository: InMemoryAccessSessionRepository;
+  let stationRepository: FakeStationRepository;
+
+  const VERIFIED_CALLER_ID = 'discount-verified-caller';
+  const UNVERIFIED_CALLER_ID = 'discount-unverified-caller';
+
+  function authHeaderFor(callerId: string) {
+    return { Authorization: 'Bearer test', 'x-caller-id': callerId };
+  }
+
+  beforeAll(async () => {
+    stationRepository = new FakeStationRepository();
+    accessSessionRepository = new InMemoryAccessSessionRepository();
+    const transactionRepository = new InMemoryTransactionRepository();
+    const paymentGateway = new ConfigurablePaymentGateway();
+    const lockControlGateway = new ConfigurableLockControlGateway();
+    const userRepository = new FakeUserRepository();
+    userRepository.seed(User.create({ id: VERIFIED_CALLER_ID, email: 'verified@example.com', diabeticVerificationStatus: 'verified' }));
+    userRepository.seed(User.create({ id: UNVERIFIED_CALLER_ID, email: 'unverified@example.com', diabeticVerificationStatus: 'none' }));
+
+    const moduleRef = await Test.createTestingModule({
+      controllers: [AccessSessionsController],
+      providers: [
+        InitiateAccessSessionService,
+        AuthorizeAndCapturePaymentService,
+        AccessSessionQueryService,
+        CompleteAccessSessionService,
+        IdempotencyService,
+        StationCommandService,
+        UserQueryService,
+        { provide: STATION_REPOSITORY, useValue: stationRepository },
+        { provide: ACCESS_SESSION_REPOSITORY, useValue: accessSessionRepository },
+        { provide: TRANSACTION_REPOSITORY, useValue: transactionRepository },
+        { provide: IDEMPOTENCY_KEY_REPOSITORY, useClass: InMemoryIdempotencyKeyRepository },
+        { provide: PAYMENT_GATEWAY, useValue: paymentGateway },
+        { provide: LOCK_CONTROL_GATEWAY, useValue: lockControlGateway },
+        { provide: DOMAIN_EVENT_BUS, useClass: NoopEventBus },
+        { provide: USER_REPOSITORY, useValue: userRepository },
+        { provide: RateLimitGuard, useValue: { canActivate: () => true } },
+      ],
+    }).compile();
+
+    app = moduleRef.createNestApplication();
+    app.use((req: { user?: unknown; headers: Record<string, string | undefined> }, _res: unknown, next: () => void) => {
+      const callerId = req.headers['x-caller-id'] ?? VERIFIED_CALLER_ID;
+      req.user = { sub: callerId, role: 'usager', aal: 'aal1', exp: 0, iat: 0 };
+      next();
+    });
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalFilters(new HttpExceptionFilter());
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  function seedInitiatedSession(cabinId: string, userId: string): AccessSession {
+    const session = AccessSession.initiate({ id: randomUUID(), cabinId, userId, qrCodeScanned: cabinId });
+    accessSessionRepository.seed(session);
+    return session;
+  }
+
+  it('verified caller: halves the captured amount and sets transaction.discountApplied to 50', async () => {
+    const session = seedInitiatedSession(CABIN_PAID_SUCCESS, VERIFIED_CALLER_ID);
+
+    const res = await request(app.getHttpServer())
+      .post(`/access-sessions/${session.id}/payments`)
+      .set(authHeaderFor(VERIFIED_CALLER_ID))
+      .set('Idempotency-Key', `discount-verified-${Math.random()}`)
+      .send({ paymentMethodId: '550e8400-e29b-41d4-a716-446655440010', applyEmergencyDiscount: true })
+      .expect(200);
+
+    expect(res.body.status).toBe('captured');
+    expect(res.body.amount).toEqual({ amount: '25.00', currency: 'DZD' });
+    expect(res.body.discountApplied).toBe('50');
+  });
+
+  it('unverified caller: charges full price, no discountApplied, no error', async () => {
+    const session = seedInitiatedSession(CABIN_PAID_DECLINE, UNVERIFIED_CALLER_ID);
+
+    const res = await request(app.getHttpServer())
+      .post(`/access-sessions/${session.id}/payments`)
+      .set(authHeaderFor(UNVERIFIED_CALLER_ID))
+      .set('Idempotency-Key', `discount-unverified-${Math.random()}`)
+      .send({ paymentMethodId: '550e8400-e29b-41d4-a716-446655440010', applyEmergencyDiscount: true })
+      .expect(200);
+
+    expect(res.body.status).toBe('captured');
+    expect(res.body.amount).toEqual({ amount: '50.00', currency: 'DZD' });
+    expect(res.body.discountApplied).toBeNull();
+  });
+});
+
 describe('Access & Payment rate limiting (e2e)', () => {
   let app: INestApplication;
 
@@ -485,6 +625,7 @@ describe('Access & Payment rate limiting (e2e)', () => {
         CompleteAccessSessionService,
         IdempotencyService,
         StationCommandService,
+        UserQueryService,
         RateLimitGuard,
         { provide: STATION_REPOSITORY, useValue: stationRepository },
         { provide: ACCESS_SESSION_REPOSITORY, useClass: InMemoryAccessSessionRepository },
@@ -493,6 +634,7 @@ describe('Access & Payment rate limiting (e2e)', () => {
         { provide: PAYMENT_GATEWAY, useClass: ConfigurablePaymentGateway },
         { provide: LOCK_CONTROL_GATEWAY, useClass: ConfigurableLockControlGateway },
         { provide: DOMAIN_EVENT_BUS, useClass: NoopEventBus },
+        { provide: USER_REPOSITORY, useClass: FakeUserRepository },
       ],
     }).compile();
 

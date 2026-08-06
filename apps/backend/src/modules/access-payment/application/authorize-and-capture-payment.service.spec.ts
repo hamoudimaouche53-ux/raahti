@@ -1,4 +1,5 @@
 import { DomainEventBus, Money } from '../../../shared-kernel';
+import { UserQueryService } from '../../identity/application/user-query.service';
 import { Cabin } from '../../station-network/domain/entities/cabin.entity';
 import { CabinUnavailableException as StationCabinUnavailableException } from '../../station-network/application/cabin-unavailable.exception';
 import { StationCommandService } from '../../station-network/application/station-command.service';
@@ -97,6 +98,7 @@ describe('AuthorizeAndCapturePaymentService', () => {
   let eventBus: jest.Mocked<DomainEventBus>;
   let stationCommandService: jest.Mocked<StationCommandService>;
   let idempotencyService: IdempotencyService;
+  let userQueryService: jest.Mocked<UserQueryService>;
   let service: AuthorizeAndCapturePaymentService;
 
   beforeEach(() => {
@@ -117,6 +119,7 @@ describe('AuthorizeAndCapturePaymentService', () => {
       setCabinOccupancy: jest.fn(),
     } as unknown as jest.Mocked<StationCommandService>;
     idempotencyService = new IdempotencyService(new InMemoryIdempotencyKeyRepository());
+    userQueryService = { findById: jest.fn().mockResolvedValue(null) } as unknown as jest.Mocked<UserQueryService>;
     service = new AuthorizeAndCapturePaymentService(
       accessSessionRepository,
       transactionRepository,
@@ -125,6 +128,7 @@ describe('AuthorizeAndCapturePaymentService', () => {
       eventBus,
       stationCommandService,
       idempotencyService,
+      userQueryService,
     );
   });
 
@@ -169,22 +173,98 @@ describe('AuthorizeAndCapturePaymentService', () => {
     );
   });
 
-  it('accepts applyEmergencyDiscount but applies no discount (documented V1 no-op)', async () => {
-    seedSession();
-    const price = Money.fromDecimalString('50.00', 'DZD');
-    stationCommandService.checkCabinAvailability.mockResolvedValue(cabin({ isPaid: true, price }));
+  describe('applyEmergencyDiscount (FR-EMG-03, ADR-0031)', () => {
+    it('verified caller + applyEmergencyDiscount: true halves the charged/refunded amount and sets discountApplied: 50', async () => {
+      seedSession();
+      const price = Money.fromDecimalString('50.00', 'DZD');
+      stationCommandService.checkCabinAvailability.mockResolvedValue(cabin({ isPaid: true, price }));
+      userQueryService.findById.mockResolvedValue({ diabeticVerificationStatus: 'verified' } as any);
 
-    const result = await service.execute({
-      accessSessionId: 'as1',
-      callerId: CALLER_ID,
-      paymentMethodId: 'pm1',
-      applyEmergencyDiscount: true,
-      idempotencyKey: 'k1',
+      const result = await service.execute({
+        accessSessionId: 'as1',
+        callerId: CALLER_ID,
+        paymentMethodId: 'pm1',
+        applyEmergencyDiscount: true,
+        idempotencyKey: 'k1',
+      });
+
+      expect(result.transaction?.amount.toDecimalString()).toBe('25.00');
+      expect(result.transaction?.discountApplied).toBe(50);
+      const authorizedAmount = paymentGateway.authorize.mock.calls[0][0] as Money;
+      expect(authorizedAmount.toDecimalString()).toBe('25.00');
+      expect(userQueryService.findById).toHaveBeenCalledWith(CALLER_ID);
     });
 
-    expect(result.transaction?.amount.toDecimalString()).toBe('50.00');
-    expect(result.transaction?.discountApplied).toBeNull();
-    expect(paymentGateway.authorize).toHaveBeenCalledWith(price, 'pm1', 'k1');
+    it('unverified (none) caller + applyEmergencyDiscount: true charges full price, discountApplied: null, no error thrown', async () => {
+      seedSession();
+      const price = Money.fromDecimalString('50.00', 'DZD');
+      stationCommandService.checkCabinAvailability.mockResolvedValue(cabin({ isPaid: true, price }));
+      userQueryService.findById.mockResolvedValue({ diabeticVerificationStatus: 'none' } as any);
+
+      const result = await service.execute({
+        accessSessionId: 'as1',
+        callerId: CALLER_ID,
+        paymentMethodId: 'pm1',
+        applyEmergencyDiscount: true,
+        idempotencyKey: 'k1',
+      });
+
+      expect(result.transaction?.amount.toDecimalString()).toBe('50.00');
+      expect(result.transaction?.discountApplied).toBeNull();
+      expect(paymentGateway.authorize).toHaveBeenCalledWith(price, 'pm1', 'k1');
+    });
+
+    it('missing user + applyEmergencyDiscount: true charges full price, discountApplied: null, no error thrown', async () => {
+      seedSession();
+      const price = Money.fromDecimalString('50.00', 'DZD');
+      stationCommandService.checkCabinAvailability.mockResolvedValue(cabin({ isPaid: true, price }));
+      userQueryService.findById.mockResolvedValue(null);
+
+      const result = await service.execute({
+        accessSessionId: 'as1',
+        callerId: CALLER_ID,
+        paymentMethodId: 'pm1',
+        applyEmergencyDiscount: true,
+        idempotencyKey: 'k1',
+      });
+
+      expect(result.transaction?.amount.toDecimalString()).toBe('50.00');
+      expect(result.transaction?.discountApplied).toBeNull();
+    });
+
+    it('flag omitted: behaves exactly as before, no discount, userQueryService not consulted', async () => {
+      seedSession();
+      const price = Money.fromDecimalString('50.00', 'DZD');
+      stationCommandService.checkCabinAvailability.mockResolvedValue(cabin({ isPaid: true, price }));
+
+      const result = await service.execute({
+        accessSessionId: 'as1',
+        callerId: CALLER_ID,
+        paymentMethodId: 'pm1',
+        idempotencyKey: 'k1',
+      });
+
+      expect(result.transaction?.amount.toDecimalString()).toBe('50.00');
+      expect(result.transaction?.discountApplied).toBeNull();
+      expect(userQueryService.findById).not.toHaveBeenCalled();
+    });
+
+    it('flag explicitly false: behaves exactly as before, no discount', async () => {
+      seedSession();
+      const price = Money.fromDecimalString('50.00', 'DZD');
+      stationCommandService.checkCabinAvailability.mockResolvedValue(cabin({ isPaid: true, price }));
+
+      const result = await service.execute({
+        accessSessionId: 'as1',
+        callerId: CALLER_ID,
+        paymentMethodId: 'pm1',
+        applyEmergencyDiscount: false,
+        idempotencyKey: 'k1',
+      });
+
+      expect(result.transaction?.amount.toDecimalString()).toBe('50.00');
+      expect(result.transaction?.discountApplied).toBeNull();
+    });
   });
 
   it('throws AccessSessionNotFoundException when the session does not exist', async () => {

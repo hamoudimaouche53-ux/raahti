@@ -40,4 +40,37 @@ describe('Money', () => {
     const b = Money.fromDecimalString('10.00', 'dzd');
     expect(a.equals(b)).toBe(true);
   });
+
+  describe('applyDiscountPercentage', () => {
+    it('halves the amount at 50%', () => {
+      const money = Money.fromDecimalString('50.00', 'DZD');
+      expect(money.applyDiscountPercentage(50).toDecimalString()).toBe('25.00');
+    });
+
+    it('is a no-op at 0%', () => {
+      const money = Money.fromDecimalString('50.00', 'DZD');
+      expect(money.applyDiscountPercentage(0).toDecimalString()).toBe('50.00');
+    });
+
+    it('zeroes the amount at 100%', () => {
+      const money = Money.fromDecimalString('50.00', 'DZD');
+      expect(money.applyDiscountPercentage(100).toDecimalString()).toBe('0.00');
+    });
+
+    it('truncates toward zero on integer-division rounding (odd minor units)', () => {
+      const money = Money.fromDecimalString('0.01', 'DZD');
+      expect(money.applyDiscountPercentage(50).toDecimalString()).toBe('0.00');
+    });
+
+    it('preserves currency', () => {
+      const money = Money.fromDecimalString('50.00', 'EUR');
+      expect(money.applyDiscountPercentage(50).currency).toBe('EUR');
+    });
+
+    it('rejects an out-of-range percentage', () => {
+      const money = Money.fromDecimalString('50.00', 'DZD');
+      expect(() => money.applyDiscountPercentage(101)).toThrow(InvalidMoneyException);
+      expect(() => money.applyDiscountPercentage(-1)).toThrow(InvalidMoneyException);
+    });
+  });
 });

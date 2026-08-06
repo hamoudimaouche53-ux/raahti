@@ -62,6 +62,22 @@ export class Money {
     return new Money(this.minorUnits + other.minorUnits, this.currency);
   }
 
+  /**
+   * Discounts this amount by `percent` (0-100) — added for FR-EMG-03's Mode
+   * Urgence 50% discount (ADR-0031). Integer-division on minor units, same
+   * rounding-safe representation `fromDecimalString`/`toDecimalString` already
+   * rely on to avoid floating-point drift; truncates toward zero (e.g. 1
+   * minor unit at 33% off truncates rather than rounds — no documented
+   * requirement dictates the rounding direction, flagged as a judgment call).
+   */
+  applyDiscountPercentage(percent: number): Money {
+    if (!Number.isInteger(percent) || percent < 0 || percent > 100) {
+      throw new InvalidMoneyException(`"${percent}" is not a valid discount percentage (expected an integer 0-100).`);
+    }
+    const discounted = (this.minorUnits * BigInt(100 - percent)) / 100n;
+    return new Money(discounted, this.currency);
+  }
+
   equals(other: Money): boolean {
     return this.currency === other.currency && this.minorUnits === other.minorUnits;
   }

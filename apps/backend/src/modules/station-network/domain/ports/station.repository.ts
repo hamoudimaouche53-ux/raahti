@@ -40,6 +40,12 @@ export interface StationSearchPage {
   nextCursor: string | null;
 }
 
+export interface NearestAccessibleStationResult {
+  /** Same projection shape `searchNearby` returns — the application layer maps it into `StationPlaceSearchItem` the same way. */
+  station: StationSearchResult;
+  nearestCabinId: string | null;
+}
+
 export interface StationRepository {
   /** Full aggregate (cabins + slatokiTent) for the /stations/{id} detail view. */
   findById(id: string): Promise<Station | null>;
@@ -68,4 +74,16 @@ export interface StationRepository {
    * immediate-consistency rationale applies here).
    */
   updateCabinOccupancy(cabinId: string, status: OccupancyStatus): Promise<void>;
+
+  /**
+   * Nearest `active` station within `radiusMeters` (FR-EMG-02), backing
+   * EmergencyModule's one-tap "nearest accessible facility" flow
+   * (module-dependency-diagram.md §3: `Emergency -.->|read| StationNetwork`).
+   * Also picks one cabin on the winning station: prefer `occupancyStatus =
+   * 'free'`, else any cabin that isn't `out_of_service`, else `null` if the
+   * station has no cabins at all — the exact tiebreak rule isn't specified by
+   * any doc, flagged here as a judgment call, same as the radius itself
+   * (EMERGENCY_SEARCH_RADIUS_METERS, station-query.service.ts).
+   */
+  findNearestAccessible(position: GeoPosition, radiusMeters: number): Promise<NearestAccessibleStationResult | null>;
 }
