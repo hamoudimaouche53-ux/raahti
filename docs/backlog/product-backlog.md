@@ -103,6 +103,8 @@
 | US-05.3 | As an usager, I can submit a supporting document to request "verified diabetic" status. | FR-USR-03 | 8 |
 | US-05.4 | As a registered usager, I can manage favorites and receive availability-follow notifications. | FR-USR-04 | 5 |
 
+**Implementation status: ✅ Complete** (2026-08-06). US-05.1 (already done), payment methods (already done), and the four remaining gaps all closed this pass: visit history (`GET /users/me/visit-history`, `c6d2c29` — unblocked only once EPIC-04's `AccessSession`/`Transaction` data existed), reviews management (`GET /users/me/reviews` + `PATCH`/`DELETE` per review, `4f40353`), favorites remove/notify-toggle (`ad942d7`), and the favorites-add UI (`a0b843b`, after relocating `Favorite` into `map_discovery` in `5b3c83f` to mirror `Review`'s precedent). US-05.3's document-*submission* was already done; the admin-*approval* workflow remains an accepted, out-of-scope limitation (Risk Register R-01, ADR-0010 — not a gap this pass could close). **This completes V1** — every V1-scoped epic (01, 02, 04, 05, 06) is now implemented.
+
 ---
 
 ## EPIC-06: Bilingual FR/AR & Material 3 Design System
