@@ -26,4 +26,25 @@ describe('Favorite', () => {
     const fav = Favorite.create({ id: 'f1', userId: 'u1', stationId: 's1' });
     expect(fav.notifyOnAvailable).toBe(false);
   });
+
+  it('setNotifyOnAvailable flips the flag in place', () => {
+    const fav = Favorite.create({ id: 'f1', userId: 'u1', stationId: 's1' });
+
+    fav.setNotifyOnAvailable(true);
+    expect(fav.notifyOnAvailable).toBe(true);
+
+    fav.setNotifyOnAvailable(false);
+    expect(fav.notifyOnAvailable).toBe(false);
+  });
+
+  it('setNotifyOnAvailable does not affect other properties', () => {
+    const fav = Favorite.create({ id: 'f1', userId: 'u1', stationId: 's1' });
+
+    fav.setNotifyOnAvailable(true);
+
+    expect(fav.id).toBe('f1');
+    expect(fav.userId).toBe('u1');
+    expect(fav.stationId).toBe('s1');
+    expect(fav.thirdPartyPlaceId).toBeNull();
+  });
 });

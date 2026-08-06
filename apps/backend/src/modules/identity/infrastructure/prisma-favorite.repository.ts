@@ -10,16 +10,30 @@ const DEFAULT_LIMIT = 20;
 export class PrismaFavoriteRepository implements FavoriteRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Upsert-by-id — also serves as the update path for PATCH /users/me/favorites/{favoriteId} (mirrors PrismaAccessSessionRepository.save). */
   async save(favorite: Favorite): Promise<void> {
-    await this.prisma.favorite.create({
-      data: {
+    await this.prisma.favorite.upsert({
+      where: { id: favorite.id },
+      create: {
         id: favorite.id,
         userId: favorite.userId,
         stationId: favorite.stationId,
         thirdPartyPlaceId: favorite.thirdPartyPlaceId,
         notifyOnAvailable: favorite.notifyOnAvailable,
       },
+      update: {
+        notifyOnAvailable: favorite.notifyOnAvailable,
+      },
     });
+  }
+
+  async findById(id: string): Promise<Favorite | null> {
+    const record = await this.prisma.favorite.findUnique({ where: { id } });
+    return record ? this.toDomain(record) : null;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.favorite.delete({ where: { id } });
   }
 
   async listByUserId(userId: string, cursor: string | null, limit: number = DEFAULT_LIMIT): Promise<FavoritePage> {

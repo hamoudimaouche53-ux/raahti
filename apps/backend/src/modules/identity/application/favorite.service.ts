@@ -2,6 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Favorite } from '../domain/entities/favorite.entity';
 import { FAVORITE_REPOSITORY, FavoritePage, FavoriteRepository } from '../domain/ports/favorite.repository';
+import { FavoriteForbiddenException } from './favorite-forbidden.exception';
+import { FavoriteNotFoundException } from './favorite-not-found.exception';
 
 @Injectable()
 export class FavoriteService {
@@ -24,6 +26,32 @@ export class FavoriteService {
       thirdPartyPlaceId: params.thirdPartyPlaceId,
       notifyOnAvailable: params.notifyOnAvailable,
     });
+    await this.favoriteRepository.save(favorite);
+    return favorite;
+  }
+
+  /** DELETE /users/me/favorites/{favoriteId} (FR-USR-04). */
+  async remove(userId: string, favoriteId: string): Promise<void> {
+    const favorite = await this.favoriteRepository.findById(favoriteId);
+    if (!favorite) {
+      throw new FavoriteNotFoundException(favoriteId);
+    }
+    if (favorite.userId !== userId) {
+      throw new FavoriteForbiddenException(favoriteId);
+    }
+    await this.favoriteRepository.delete(favoriteId);
+  }
+
+  /** PATCH /users/me/favorites/{favoriteId} (FR-USR-04) — toggles the availability-follow notification. */
+  async updateNotify(userId: string, favoriteId: string, notifyOnAvailable: boolean): Promise<Favorite> {
+    const favorite = await this.favoriteRepository.findById(favoriteId);
+    if (!favorite) {
+      throw new FavoriteNotFoundException(favoriteId);
+    }
+    if (favorite.userId !== userId) {
+      throw new FavoriteForbiddenException(favoriteId);
+    }
+    favorite.setNotifyOnAvailable(notifyOnAvailable);
     await this.favoriteRepository.save(favorite);
     return favorite;
   }

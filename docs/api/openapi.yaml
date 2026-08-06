@@ -143,6 +143,51 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Favorite" }
 
+  /users/me/favorites/{favoriteId}:
+    patch:
+      tags: [Identity]
+      summary: Toggle availability-follow notification for a favorite
+      description: "Implements FR-USR-04."
+      parameters:
+        - name: favoriteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FavoriteUpdateRequest" }
+      responses:
+        "200":
+          description: Updated favorite
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Favorite" }
+        "403":
+          description: Caller is not the favorite owner
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Identity]
+      summary: Remove a favorite
+      description: "Implements FR-USR-04."
+      parameters:
+        - name: favoriteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Favorite removed
+        "403":
+          description: Caller is not the favorite owner
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
   /places/nearby:
     get:
       tags: [Places]
@@ -807,6 +852,12 @@ components:
         stationId: { type: string, format: uuid, nullable: true }
         thirdPartyPlaceId: { type: string, format: uuid, nullable: true }
         notifyOnAvailable: { type: boolean, default: false }
+
+    FavoriteUpdateRequest:
+      type: object
+      properties:
+        notifyOnAvailable: { type: boolean }
+      required: [notifyOnAvailable]
 
     PlaceSummary:
       type: object

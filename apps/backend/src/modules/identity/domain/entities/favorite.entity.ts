@@ -24,7 +24,7 @@ export interface FavoriteProps {
  * prisma/README.md) — this is the primary invariant guard until it is.
  */
 export class Favorite {
-  private constructor(private readonly props: FavoriteProps) {}
+  private constructor(private props: FavoriteProps) {}
 
   static create(params: {
     id: string;
@@ -71,5 +71,14 @@ export class Favorite {
 
   get notifyOnAvailable(): boolean {
     return this.props.notifyOnAvailable;
+  }
+
+  /**
+   * Mutator for PATCH /users/me/favorites/{favoriteId} (FR-USR-04) — `props`
+   * was made mutable (readonly dropped) the same way Station Network's
+   * `Cabin` entity does for its own `changeOccupancy` mutator.
+   */
+  setNotifyOnAvailable(value: boolean): void {
+    this.props = { ...this.props, notifyOnAvailable: value };
   }
 }

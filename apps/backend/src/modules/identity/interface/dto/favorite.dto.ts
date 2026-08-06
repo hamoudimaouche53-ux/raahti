@@ -22,6 +22,13 @@ export class FavoriteCreateRequestDto {
   notifyOnAvailable?: boolean;
 }
 
+/** Matches openapi.yaml components.schemas.FavoriteUpdateRequest exactly (FR-USR-04). */
+export class FavoriteUpdateRequestDto {
+  @ApiProperty()
+  @IsBoolean()
+  notifyOnAvailable!: boolean;
+}
+
 /** Matches openapi.yaml components.schemas.Favorite exactly. */
 export class FavoriteResponseDto {
   @ApiProperty({ format: 'uuid' })
