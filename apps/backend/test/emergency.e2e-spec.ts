@@ -76,10 +76,6 @@ class ConfigurableStationRepository implements StationRepository {
 
   async updateCabinOccupancy(): Promise<void> {}
 
-  async findStationCodesByCabinIds(): Promise<Map<string, string>> {
-    return new Map();
-  }
-
   async findNearestAccessible(): Promise<NearestAccessibleStationResult | null> {
     if (!this.hasFacility) {
       return null;
@@ -100,10 +96,21 @@ class ConfigurableStationRepository implements StationRepository {
       nearestCabinId: 'c1',
     };
   }
+
+  async findStationCodesByCabinIds(cabinIds: string[]): Promise<Map<string, string>> {
+    return new Map(cabinIds.map((id) => [id, 'ST-001']));
+  }
 }
 
 class FakeStationReviewRepository implements StationReviewRepository {
   async save() {}
+  async findById() {
+    return null;
+  }
+  async listByUserId() {
+    return { data: [], nextCursor: null };
+  }
+  async delete() {}
   async aggregateByStationId(): Promise<StationRatingAggregate> {
     return { averageRating: null, reviewCount: 0 };
   }

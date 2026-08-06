@@ -26,12 +26,16 @@ export interface StationReviewProps {
  * type across bounded contexts).
  */
 export class StationReview {
-  private constructor(private readonly props: StationReviewProps) {}
+  private constructor(private props: StationReviewProps) {}
+
+  private static assertValidRating(rating: number): void {
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw new InvalidReviewRatingException(rating);
+    }
+  }
 
   static submit(params: { id: string; userId: string; stationId: string; rating: number; comment?: string | null }): StationReview {
-    if (!Number.isInteger(params.rating) || params.rating < 1 || params.rating > 5) {
-      throw new InvalidReviewRatingException(params.rating);
-    }
+    StationReview.assertValidRating(params.rating);
     return new StationReview({
       id: params.id,
       userId: params.userId,
@@ -44,6 +48,16 @@ export class StationReview {
 
   static restore(props: StationReviewProps): StationReview {
     return new StationReview(props);
+  }
+
+  /**
+   * PATCH /places/station/{stationId}/reviews/{reviewId} (EPIC-05 US-05.2)
+   * mutator — `props` made mutable (readonly dropped), same pattern as
+   * `Cabin.changeOccupancy`. Reuses the same rating validation `submit()` uses.
+   */
+  update(rating: number, comment?: string | null): void {
+    StationReview.assertValidRating(rating);
+    this.props = { ...this.props, rating, comment: comment ?? null };
   }
 
   get id(): string {

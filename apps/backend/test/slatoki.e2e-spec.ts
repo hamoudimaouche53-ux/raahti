@@ -73,8 +73,8 @@ class FakeStationRepository implements StationRepository {
   async findNearestAccessible() {
     return null;
   }
-  async findStationCodesByCabinIds(): Promise<Map<string, string>> {
-    return new Map();
+  async findStationCodesByCabinIds(cabinIds: string[]): Promise<Map<string, string>> {
+    return new Map(cabinIds.map((id) => [id, 'ST-001']));
   }
 }
 
@@ -135,6 +135,13 @@ class FakeThirdPartyPlaceRepository implements ThirdPartyPlaceRepository {
 
 class FakeStationReviewRepository implements StationReviewRepository {
   async save() {}
+  async findById() {
+    return null;
+  }
+  async listByUserId() {
+    return { data: [], nextCursor: null };
+  }
+  async delete() {}
   async aggregateByStationId(): Promise<StationRatingAggregate> {
     return { averageRating: null, reviewCount: 0 };
   }
@@ -142,6 +149,13 @@ class FakeStationReviewRepository implements StationReviewRepository {
 
 class FakeThirdPartyPlaceReviewRepository implements ThirdPartyPlaceReviewRepository {
   async save() {}
+  async findById() {
+    return null;
+  }
+  async listByUserId() {
+    return { data: [], nextCursor: null };
+  }
+  async delete() {}
   async aggregateByThirdPartyPlaceId(): Promise<ThirdPartyPlaceRatingAggregate> {
     return { averageRating: null, reviewCount: 0 };
   }

@@ -63,6 +63,20 @@ export interface NearestAccessibleFacility {
   nearestCabinId: string | null;
 }
 
+export interface StationReviewListItem {
+  id: string;
+  placeId: string;
+  placeName: { fr: string; ar: string; en: string };
+  rating: number;
+  comment: string | null;
+  createdAt: Date;
+}
+
+export interface StationReviewListPage {
+  data: StationReviewListItem[];
+  nextCursor: string | null;
+}
+
 /**
  * Judgment call — FR-EMG-02 does not specify a search radius for Mode
  * Urgence's "nearest accessible facility" flow (unlike /places/nearby, this
@@ -125,6 +139,46 @@ export class StationQueryService {
     };
   }
 
+  /**
+   * Backing GET /users/me/reviews (via the Reviews composition layer,
+   * mirrors ADR-0029's GET /places/nearby pattern) — read surface only;
+   * writes stay in ReviewService (the existing write/read service split this
+   * module already has for reviews: submit/update/delete live in
+   * application/review.service.ts, this read projection lives here
+   * alongside searchNearby/findNearestAccessible).
+   */
+  async listReviewsByUserId(userId: string, cursor: string | null, limit: number): Promise<StationReviewListPage> {
+    const page = await this.stationReviewRepository.listByUserId(userId, cursor, limit);
+    const uniqueStationIds = [...new Set(page.data.map((review) => review.stationId))];
+    const stations = await Promise.all(uniqueStationIds.map((id) => this.stationRepository.findById(id)));
+    const codeByStationId = new Map(stations.filter((station): station is Station => station !== null).map((station) => [station.id, station.code]));
+
+    return {
+      data: page.data.map((review) => {
+        const code = codeByStationId.get(review.stationId) ?? '';
+        return {
+          id: review.id,
+          placeId: review.stationId,
+          placeName: { fr: code, ar: code, en: code },
+          rating: review.rating,
+          comment: review.comment,
+          createdAt: review.createdAt,
+        };
+      }),
+      nextCursor: page.nextCursor,
+    };
+  }
+
+  /**
+   * Backing EmergencyQueryService/VisitHistoryQueryService's placeName
+   * resolution — the sanctioned exported surface those modules call
+   * (never `stationRepository` directly). Batched to avoid N+1 across a
+   * page of results.
+   */
+  async getStationCodesForCabinIds(cabinIds: string[]): Promise<Map<string, string>> {
+    return this.stationRepository.findStationCodesByCabinIds(cabinIds);
+  }
+
   private toPlaceSearchItem(result: StationSearchResult): StationPlaceSearchItem {
     return {
       id: result.id,
@@ -162,16 +216,5 @@ export class StationQueryService {
         price: cabin.price,
       })),
     }));
-  }
-
-  /**
-   * Batched cabinId -> station.code lookup, the sanctioned exported surface
-   * AccessPaymentModule calls to resolve `VisitHistoryItem.placeName` for a
-   * page of visit-history results (GET /users/me/visit-history, EPIC-05
-   * US-05.2) — never the repository directly (module-dependency-diagram.md
-   * §5 rule 1).
-   */
-  async getStationCodesForCabinIds(cabinIds: string[]): Promise<Map<string, string>> {
-    return this.stationRepository.findStationCodesByCabinIds(cabinIds);
   }
 }

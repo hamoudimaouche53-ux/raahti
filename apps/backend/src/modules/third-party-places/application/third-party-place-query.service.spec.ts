@@ -27,7 +27,7 @@ function createRepoMock(): jest.Mocked<ThirdPartyPlaceRepository> {
 }
 
 function createReviewRepoMock(): jest.Mocked<ThirdPartyPlaceReviewRepository> {
-  return { save: jest.fn(), aggregateByThirdPartyPlaceId: jest.fn() };
+  return { save: jest.fn(), findById: jest.fn(), listByUserId: jest.fn(), delete: jest.fn(), aggregateByThirdPartyPlaceId: jest.fn() };
 }
 
 describe('ThirdPartyPlaceQueryService', () => {

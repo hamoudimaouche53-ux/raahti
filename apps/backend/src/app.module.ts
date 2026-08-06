@@ -4,6 +4,7 @@ import { IdentityModule } from './modules/identity/identity.module';
 import { StationNetworkModule } from './modules/station-network/station-network.module';
 import { ThirdPartyPlacesModule } from './modules/third-party-places/third-party-places.module';
 import { PlacesModule } from './composition/places/places.module';
+import { ReviewsModule } from './composition/reviews/reviews.module';
 import { SlatokiModule } from './modules/slatoki/slatoki.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OperationsModule } from './modules/operations/operations.module';
@@ -17,6 +18,7 @@ import { EmergencyModule } from './modules/emergency/emergency.module';
     StationNetworkModule,
     ThirdPartyPlacesModule,
     PlacesModule,
+    ReviewsModule,
     SlatokiModule,
     NotificationsModule,
     OperationsModule,

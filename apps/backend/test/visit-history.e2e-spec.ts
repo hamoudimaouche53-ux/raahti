@@ -134,6 +134,16 @@ class FakeStationReviewRepository implements StationReviewRepository {
   async aggregateByStationId(): Promise<StationRatingAggregate> {
     return { averageRating: null, reviewCount: 0 };
   }
+
+  async findById() {
+    return null;
+  }
+
+  async listByUserId() {
+    return { data: [], nextCursor: null };
+  }
+
+  async delete(): Promise<void> {}
 }
 
 /** Token format `valid-<userId>` — lets each test use its own isolated caller without a shared user store. */

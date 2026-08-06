@@ -66,11 +66,11 @@ class FakeStationRepository implements StationRepository {
     return null;
   }
 
-  async updateCabinOccupancy(): Promise<void> {}
-
-  async findStationCodesByCabinIds(): Promise<Map<string, string>> {
-    return new Map();
+  async findStationCodesByCabinIds(cabinIds: string[]): Promise<Map<string, string>> {
+    return new Map(cabinIds.map((id) => [id, 'ST-001']));
   }
+
+  async updateCabinOccupancy(): Promise<void> {}
 
   private station(id: string): Station {
     return Station.restore({
@@ -105,6 +105,13 @@ class FakeStationRepository implements StationRepository {
 
 class FakeStationReviewRepository implements StationReviewRepository {
   async save(): Promise<void> {}
+  async findById() {
+    return null;
+  }
+  async listByUserId() {
+    return { data: [], nextCursor: null };
+  }
+  async delete() {}
   async aggregateByStationId(): Promise<StationRatingAggregate> {
     return { averageRating: null, reviewCount: 0 };
   }

@@ -16,6 +16,9 @@ export class ReviewCreateRequestDto {
   comment?: string | null;
 }
 
+/** Matches openapi.yaml components.schemas.ReviewUpdateRequest exactly — same required shape as ReviewCreateRequest (FR-PLC-01 / EPIC-05 US-05.2). */
+export class ReviewUpdateRequestDto extends ReviewCreateRequestDto {}
+
 /** Matches openapi.yaml components.schemas.Review exactly. */
 export class ReviewResponseDto {
   @ApiProperty({ format: 'uuid' })

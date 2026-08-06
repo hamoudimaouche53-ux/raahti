@@ -36,7 +36,7 @@ function createRepoMock(): jest.Mocked<StationRepository> {
 }
 
 function createReviewRepoMock(): jest.Mocked<StationReviewRepository> {
-  return { save: jest.fn(), aggregateByStationId: jest.fn() };
+  return { save: jest.fn(), findById: jest.fn(), listByUserId: jest.fn(), delete: jest.fn(), aggregateByStationId: jest.fn() };
 }
 
 describe('StationQueryService', () => {
@@ -256,7 +256,7 @@ describe('StationQueryService', () => {
   });
 
   describe('getStationCodesForCabinIds', () => {
-    it('delegates to the repository and returns its Map unchanged', async () => {
+    it('delegates to the repository', async () => {
       const repo = createRepoMock();
       const codesByCabin = new Map([['c1', 'ST-001']]);
       repo.findStationCodesByCabinIds.mockResolvedValue(codesByCabin);

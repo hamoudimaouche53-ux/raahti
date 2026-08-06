@@ -41,6 +41,20 @@ export interface ThirdPartyPlaceNearbySearchCriteria {
   limit: number;
 }
 
+export interface ThirdPartyPlaceReviewListItem {
+  id: string;
+  placeId: string;
+  placeName: { fr: string; ar: string; en: string };
+  rating: number;
+  comment: string | null;
+  createdAt: Date;
+}
+
+export interface ThirdPartyPlaceReviewListPage {
+  data: ThirdPartyPlaceReviewListItem[];
+  nextCursor: string | null;
+}
+
 /** Exported application-layer query surface for this module (module-dependency-diagram.md §5 rule 1). */
 @Injectable()
 export class ThirdPartyPlaceQueryService {
@@ -79,6 +93,38 @@ export class ThirdPartyPlaceQueryService {
         reviewCount: result.reviewCount,
         tags: result.tags,
       })),
+      nextCursor: page.nextCursor,
+    };
+  }
+
+  /**
+   * Backing GET /users/me/reviews (via the Reviews composition layer,
+   * mirrors ADR-0029's GET /places/nearby pattern) — read surface only;
+   * writes stay in ReviewService (the existing write/read service split this
+   * module already has for reviews: submit/update/delete live in
+   * application/review.service.ts, this read projection lives here
+   * alongside searchNearby).
+   */
+  async listReviewsByUserId(userId: string, cursor: string | null, limit: number): Promise<ThirdPartyPlaceReviewListPage> {
+    const page = await this.thirdPartyPlaceReviewRepository.listByUserId(userId, cursor, limit);
+    const uniquePlaceIds = [...new Set(page.data.map((review) => review.thirdPartyPlaceId))];
+    const places = await Promise.all(uniquePlaceIds.map((id) => this.thirdPartyPlaceRepository.findById(id)));
+    const placeById = new Map(
+      places.filter((place): place is ThirdPartyPlace => place !== null).map((place) => [place.id, place]),
+    );
+
+    return {
+      data: page.data.map((review) => {
+        const place = placeById.get(review.thirdPartyPlaceId);
+        return {
+          id: review.id,
+          placeId: review.thirdPartyPlaceId,
+          placeName: { fr: place?.nameFr ?? '', ar: place?.nameAr ?? '', en: place?.nameFr ?? '' },
+          rating: review.rating,
+          comment: review.comment,
+          createdAt: review.createdAt,
+        };
+      }),
       nextCursor: page.nextCursor,
     };
   }

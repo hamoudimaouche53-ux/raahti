@@ -210,3 +210,42 @@ are live — including confirming both pre-existing GIST indexes
 generate` was also run successfully, so `@prisma/client`'s generated types
 include `AccessSession`/`Transaction`/`IdempotencyKey` and compile/test
 cleanly against the new repositories.
+
+## Reviews management module (`migrations/20260806160431_reviews_management/`)
+
+Adds `Review.updatedAt` (nullable, `@updatedAt`) — an additive gap-fill for
+EPIC-05 US-05.2 ("manage my reviews": `PATCH`/`DELETE` on a review, plus
+`GET /users/me/reviews`), confirmed with the user 2026-08-06. Not in the
+original ERD §3.15 — same "flagged, not silently added" treatment as
+`IdempotencyKey` / Notification's `is_read`/`read_at`.
+
+Generated and applied in the same session, following the exact process the
+Access & Payment migration's own README section above documents (docs
+consulted before authoring this one). A local Supabase stack (`docker ps`
+confirmed reachable — `supabase_db_supabase-local` on `127.0.0.1:54322`) was
+already running. A normal `prisma migrate dev --name reviews_updated_at` was
+attempted first; it failed with the same drift category already documented
+above (`pg_stat_statements`/`pgcrypto`/`uuid-ossp` metadata drift) and
+proposed `prisma migrate reset` to reconcile — not authorized, so it was not
+run. Instead, the migration SQL was generated directly via:
+
+```
+npx prisma migrate diff --from-schema-datasource ./prisma/schema.prisma --to-schema-datamodel ./prisma/schema.prisma --script
+```
+
+This again proposed the same two false-positive `DROP INDEX
+"idx_station_position"` / `DROP INDEX "idx_place_position"` statements
+explained above (the diff engine still can't see the hand-added GIST
+indexes anywhere in `schema.prisma`) — removed by hand before saving
+`migrations/20260806160431_reviews_management/migration.sql`, which then
+contains only `ALTER TABLE "review" ADD COLUMN "updated_at" TIMESTAMP(3);`.
+
+Applied via `npx prisma migrate deploy` and independently verified:
+`prisma migrate status` reports "Database schema is up to date!", and
+`docker exec supabase_db_supabase-local psql -U postgres -d postgres -c '\d review'`
+confirms the new nullable `updated_at` column alongside every pre-existing
+column/index/constraint, and a follow-up query against `pg_indexes` confirms
+both GIST indexes (`idx_station_position`, `idx_place_position`) survived
+intact. `npx prisma generate` was also run successfully, so
+`@prisma/client`'s generated `Review` type includes `updatedAt` and the full
+test suite (unit + e2e) passes against it.

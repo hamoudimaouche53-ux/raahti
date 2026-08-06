@@ -20,7 +20,13 @@ export interface ThirdPartyPlaceReviewProps {
 
 /** ERD §3.15 — this module's own independent copy of the polymorphic Review concept, scoped to ThirdPartyPlace (see station-network's copy for the ADR-0029 rationale). */
 export class ThirdPartyPlaceReview {
-  private constructor(private readonly props: ThirdPartyPlaceReviewProps) {}
+  private constructor(private props: ThirdPartyPlaceReviewProps) {}
+
+  private static assertValidRating(rating: number): void {
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw new InvalidReviewRatingException(rating);
+    }
+  }
 
   static submit(params: {
     id: string;
@@ -29,9 +35,7 @@ export class ThirdPartyPlaceReview {
     rating: number;
     comment?: string | null;
   }): ThirdPartyPlaceReview {
-    if (!Number.isInteger(params.rating) || params.rating < 1 || params.rating > 5) {
-      throw new InvalidReviewRatingException(params.rating);
-    }
+    ThirdPartyPlaceReview.assertValidRating(params.rating);
     return new ThirdPartyPlaceReview({
       id: params.id,
       userId: params.userId,
@@ -44,6 +48,17 @@ export class ThirdPartyPlaceReview {
 
   static restore(props: ThirdPartyPlaceReviewProps): ThirdPartyPlaceReview {
     return new ThirdPartyPlaceReview(props);
+  }
+
+  /**
+   * PATCH /places/third-party-place/{placeId}/reviews/{reviewId} (EPIC-05
+   * US-05.2) mutator — `props` made mutable (readonly dropped), same pattern
+   * as station-network's `Cabin.changeOccupancy`. Reuses the same rating
+   * validation `submit()` uses.
+   */
+  update(rating: number, comment?: string | null): void {
+    ThirdPartyPlaceReview.assertValidRating(rating);
+    this.props = { ...this.props, rating, comment: comment ?? null };
   }
 
   get id(): string {

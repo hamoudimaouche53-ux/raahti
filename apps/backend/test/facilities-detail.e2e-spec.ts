@@ -96,8 +96,8 @@ class FakeStationRepository implements StationRepository {
     return null;
   }
 
-  async findStationCodesByCabinIds(): Promise<Map<string, string>> {
-    return new Map();
+  async findStationCodesByCabinIds(cabinIds: string[]): Promise<Map<string, string>> {
+    return new Map(cabinIds.map((id) => [id, 'ST-001']));
   }
 }
 
@@ -129,7 +129,30 @@ class InMemoryStationReviewRepository implements StationReviewRepository {
   private readonly items: StationReview[] = [];
 
   async save(review: StationReview): Promise<void> {
-    this.items.push(review);
+    const index = this.items.findIndex((item) => item.id === review.id);
+    if (index === -1) {
+      this.items.push(review);
+    } else {
+      this.items[index] = review;
+    }
+  }
+
+  async findById(id: string): Promise<StationReview | null> {
+    return this.items.find((item) => item.id === id) ?? null;
+  }
+
+  async listByUserId(userId: string) {
+    const data = this.items
+      .filter((item) => item.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return { data, nextCursor: null };
+  }
+
+  async delete(id: string): Promise<void> {
+    const index = this.items.findIndex((item) => item.id === id);
+    if (index !== -1) {
+      this.items.splice(index, 1);
+    }
   }
 
   async aggregateByStationId(stationId: string): Promise<StationRatingAggregate> {
@@ -146,7 +169,30 @@ class InMemoryThirdPartyPlaceReviewRepository implements ThirdPartyPlaceReviewRe
   private readonly items: ThirdPartyPlaceReview[] = [];
 
   async save(review: ThirdPartyPlaceReview): Promise<void> {
-    this.items.push(review);
+    const index = this.items.findIndex((item) => item.id === review.id);
+    if (index === -1) {
+      this.items.push(review);
+    } else {
+      this.items[index] = review;
+    }
+  }
+
+  async findById(id: string): Promise<ThirdPartyPlaceReview | null> {
+    return this.items.find((item) => item.id === id) ?? null;
+  }
+
+  async listByUserId(userId: string) {
+    const data = this.items
+      .filter((item) => item.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return { data, nextCursor: null };
+  }
+
+  async delete(id: string): Promise<void> {
+    const index = this.items.findIndex((item) => item.id === id);
+    if (index !== -1) {
+      this.items.splice(index, 1);
+    }
   }
 
   async aggregateByThirdPartyPlaceId(thirdPartyPlaceId: string): Promise<ThirdPartyPlaceRatingAggregate> {
