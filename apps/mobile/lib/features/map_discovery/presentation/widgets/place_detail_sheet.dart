@@ -6,7 +6,6 @@ import "../../../../core/constants/env.dart";
 import "../../../../core/router/app_router.dart";
 import "../../../../core/theme/shape_tokens.dart";
 import "../../../../core/theme/spacing_tokens.dart";
-import "../../../../core/utils/external_navigation_launcher.dart";
 import "../../../../l10n/app_localizations.dart";
 import "../../../access_payment/domain/entities/access_session.dart";
 import "../../../access_payment/domain/entities/access_session_status.dart";
@@ -21,6 +20,7 @@ import "../../domain/entities/place.dart";
 import "../../domain/entities/station_detail.dart";
 import "../../domain/entities/third_party_place_detail.dart";
 import "../providers/place_detail_providers.dart";
+import "../screens/navigation_screen.dart";
 import "cabin_status_indicator.dart";
 
 /// SCR-005/SCR-006 — Place Detail Sheet (US-01.1.3, US-01.2.1…05,
@@ -226,26 +226,21 @@ class PlaceDetailSheet extends ConsumerWidget {
         );
   }
 
-  /// Delegates to the shared [launchExternalNavigation] helper (also used
-  /// by the Emergency Mode result screen, SCR-011) — this method now only
-  /// owns the "show a fallback SnackBar if nothing launched" decision,
-  /// unchanged from before the extraction.
-  Future<void> _openRoute(BuildContext context, AppLocalizations l10n) async {
-    final bool launched = await launchExternalNavigation(
-      lat: place.position.latitude,
-      lng: place.position.longitude,
-      label: place.name.forLanguageCode(
-        Localizations.localeOf(context).languageCode,
+  /// Opens in-app navigation (`NavigationScreen`) instead of handing off to
+  /// an external maps app — replaces the former `launchExternalNavigation`
+  /// call. The only behavioral change from before: "Route" now opens a
+  /// full-screen in-app map with a live walking route, rather than leaving
+  /// the app.
+  void _openRoute(BuildContext context) {
+    context.push<void>(
+      AppRoutePaths.navigation,
+      extra: NavigationScreenArgs(
+        destination: place.position,
+        destinationLabel: place.name.forLanguageCode(
+          Localizations.localeOf(context).languageCode,
+        ),
       ),
-      context: context,
-      l10n: l10n,
     );
-
-    if (!launched && context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.placeDetailRouteUnavailable)));
-    }
   }
 
   String _tagLabel(AppLocalizations l10n, String tag) {
@@ -400,7 +395,7 @@ class PlaceDetailSheet extends ConsumerWidget {
                       orElse: () => const SizedBox.shrink(),
                     ),
               FilledButton.icon(
-                onPressed: () => _openRoute(context, l10n),
+                onPressed: () => _openRoute(context),
                 icon: const Icon(Icons.directions),
                 label: Text(l10n.placeDetailRoute),
               ),

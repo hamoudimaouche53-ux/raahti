@@ -245,5 +245,16 @@
   "languageThemeSettingsThemeSectionLabel": "المظهر",
   "languageThemeSettingsThemeLight": "فاتح",
   "languageThemeSettingsThemeDark": "داكن",
-  "languageThemeSettingsThemeSystem": "النظام"
+  "languageThemeSettingsThemeSystem": "النظام",
+  "navigationTitle": "التنقل",
+  "navigationLoadingRoute": "جارٍ حساب المسار…",
+  "navigationGpsDisabled": "فعّل خدمات الموقع للتنقل.",
+  "navigationPermissionDenied": "تم رفض إذن الموقع — فعّله من الإعدادات للتنقل.",
+  "navigationOpenSettingsButton": "فتح الإعدادات",
+  "navigationNoRouteFound": "لم يتم العثور على مسار سير إلى هذه الوجهة.",
+  "navigationNetworkError": "تعذّر الاتصال بالخادم. تحقق من اتصالك وأعد المحاولة.",
+  "navigationApiNotConfigured": "لا يوجد خادم مهيأ — التنقل غير متاح.",
+  "navigationDistanceRemaining": "{distance} متبقية",
+  "navigationWalkingTime": "{minutes, plural, =0{أقل من دقيقة سيرًا على الأقدام} one{دقيقة واحدة سيرًا على الأقدام} two{دقيقتان سيرًا على الأقدام} few{{minutes} دقائق سيرًا على الأقدام} many{{minutes} دقيقة سيرًا على الأقدام} other{{minutes} دقيقة سيرًا على الأقدام}}",
+  "navigationArrivalTime": "الوصول ~{time}"
 }

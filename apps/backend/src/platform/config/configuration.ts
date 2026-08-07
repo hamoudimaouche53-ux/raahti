@@ -6,7 +6,13 @@ export interface AppConfig {
   supabaseJwtJwksUrl?: string;
   supabaseJwtSecret?: string;
   corsAllowedOrigins: string[];
+  osrmBaseUrl: string;
 }
+
+/** Public OSRM demo instance — no SLA/rate-limit guarantee, fine for local
+ * development; production deployments should set OSRM_BASE_URL to a
+ * self-hosted instance (RoutingModule's OsrmRouteProvider README). */
+const DEFAULT_OSRM_BASE_URL = 'https://router.project-osrm.org';
 
 export default (): { app: AppConfig } => ({
   app: {
@@ -20,5 +26,6 @@ export default (): { app: AppConfig } => ({
       .split(',')
       .map((origin) => origin.trim())
       .filter(Boolean),
+    osrmBaseUrl: process.env.OSRM_BASE_URL || DEFAULT_OSRM_BASE_URL,
   },
 });

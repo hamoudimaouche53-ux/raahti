@@ -245,5 +245,16 @@
   "languageThemeSettingsThemeSectionLabel": "Theme",
   "languageThemeSettingsThemeLight": "Light",
   "languageThemeSettingsThemeDark": "Dark",
-  "languageThemeSettingsThemeSystem": "System"
+  "languageThemeSettingsThemeSystem": "System",
+  "navigationTitle": "Navigation",
+  "navigationLoadingRoute": "Calculating route…",
+  "navigationGpsDisabled": "Turn on location services to navigate.",
+  "navigationPermissionDenied": "Location permission denied — enable it in Settings to navigate.",
+  "navigationOpenSettingsButton": "Open Settings",
+  "navigationNoRouteFound": "No walking route could be found to this destination.",
+  "navigationNetworkError": "Could not reach the server. Check your connection and try again.",
+  "navigationApiNotConfigured": "No server configured — navigation isn't available.",
+  "navigationDistanceRemaining": "{distance} remaining",
+  "navigationWalkingTime": "{minutes, plural, =0{Less than 1 min on foot} one{1 min on foot} other{{minutes} min on foot}}",
+  "navigationArrivalTime": "Arrival ~{time}"
 }

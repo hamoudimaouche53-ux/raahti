@@ -1,6 +1,8 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:go_router/go_router.dart";
+import "package:rahati/core/router/app_router.dart";
 import "package:rahati/core/theme/app_theme.dart";
 import "package:rahati/features/emergency/domain/entities/emergency_facility_result.dart";
 import "package:rahati/features/emergency/domain/repositories/emergency_repository.dart";
@@ -11,6 +13,7 @@ import "package:rahati/features/map_discovery/domain/entities/coordinates.dart";
 import "package:rahati/features/map_discovery/domain/entities/location_failure.dart";
 import "package:rahati/features/map_discovery/domain/entities/place.dart";
 import "package:rahati/features/map_discovery/presentation/providers/place_providers.dart";
+import "package:rahati/features/map_discovery/presentation/screens/navigation_screen.dart";
 import "package:rahati/l10n/app_localizations.dart";
 
 Place _place() => const Place(
@@ -173,6 +176,62 @@ void main() {
     );
 
     expect(find.text("Ouvrir les paramètres"), findsOneWidget);
+  });
+
+  testWidgets("tapping the primary button opens in-app navigation "
+      "(AppRoutePaths.navigation) with the facility's position/name — not "
+      "an external maps app", (tester) async {
+    final EmergencyFacilityResult result = EmergencyFacilityResult(
+      place: _place(),
+      nearestCabinId: "cabin-1",
+      discountEligible: true,
+      etaMinutesOnFoot: 2,
+    );
+    final GoRouter router = GoRouter(
+      initialLocation: "/",
+      routes: <RouteBase>[
+        GoRoute(
+          path: "/",
+          builder: (context, state) => const EmergencyResultScreen(),
+        ),
+        GoRoute(
+          path: AppRoutePaths.navigation,
+          builder: (context, state) {
+            final args = state.extra! as NavigationScreenArgs;
+            return Text(
+              "NAV_SCREEN:${args.destination.latitude},"
+              "${args.destination.longitude}:${args.destinationLabel}",
+            );
+          },
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          deviceLocationDataSourceProvider.overrideWithValue(
+            const _FakeDeviceLocationDataSource(),
+          ),
+          emergencyRepositoryProvider.overrideWithValue(
+            _FakeEmergencyRepository(result: result),
+          ),
+        ],
+        child: MaterialApp.router(
+          theme: RahatiTheme.light,
+          locale: const Locale("fr"),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text("Aller au lieu le plus proche"));
+    await tester.pumpAndSettle();
+
+    expect(find.text("NAV_SCREEN:36.75,3.06:Station Didouche"), findsOneWidget);
   });
 
   testWidgets("renders correctly against the dark theme", (tester) async {

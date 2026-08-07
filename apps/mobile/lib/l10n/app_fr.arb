@@ -819,5 +819,52 @@
   "languageThemeSettingsThemeSystem": "Système",
   "@languageThemeSettingsThemeSystem": {
     "description": "SCR-029 — Segmented Button option, ThemeMode.system."
+  },
+  "navigationTitle": "Navigation",
+  "@navigationTitle": {
+    "description": "In-app Navigation screen — Top App Bar title."
+  },
+  "navigationLoadingRoute": "Calcul de l'itinéraire…",
+  "@navigationLoadingRoute": {
+    "description": "In-app Navigation screen — shown once the user's position is known but the walking route hasn't resolved yet."
+  },
+  "navigationGpsDisabled": "Activez la localisation pour naviguer.",
+  "@navigationGpsDisabled": {
+    "description": "In-app Navigation screen — LocationServiceDisabledFailure."
+  },
+  "navigationPermissionDenied": "Autorisation de localisation refusée — activez-la dans les paramètres pour naviguer.",
+  "@navigationPermissionDenied": {
+    "description": "In-app Navigation screen — LocationPermissionDeniedFailure/LocationPermissionDeniedForeverFailure."
+  },
+  "navigationOpenSettingsButton": "Ouvrir les paramètres",
+  "@navigationOpenSettingsButton": {
+    "description": "In-app Navigation screen — deep-links to system Settings, same openAppSettings() call as qr_scanner_screen.dart/emergency_result_screen.dart."
+  },
+  "navigationNoRouteFound": "Aucun itinéraire piéton n'a été trouvé vers cette destination.",
+  "@navigationNoRouteFound": {
+    "description": "In-app Navigation screen — RouteNotFoundFailure (backend's GET /v1/routes/walking 404)."
+  },
+  "navigationNetworkError": "Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.",
+  "@navigationNetworkError": {
+    "description": "In-app Navigation screen — RouteFetchFailure (network unreachable, non-2xx, or the backend's upstream routing provider being unavailable)."
+  },
+  "navigationApiNotConfigured": "Aucun serveur configuré — la navigation n'est pas disponible.",
+  "@navigationApiNotConfigured": {
+    "description": "In-app Navigation screen — RouteApiNotConfiguredFailure (no API_BASE_URL for this build)."
+  },
+  "navigationDistanceRemaining": "{distance} restants",
+  "@navigationDistanceRemaining": {
+    "description": "RouteInformationCard — distance is already formatted (e.g. '1.2 km'/'450 m') client-side, not a raw number.",
+    "placeholders": { "distance": { "type": "String" } }
+  },
+  "navigationWalkingTime": "{minutes, plural, =0{Moins d'1 min à pied} one{1 min à pied} other{{minutes} min à pied}}",
+  "@navigationWalkingTime": {
+    "description": "RouteInformationCard — walking time, computed from NavigationRoute.durationSeconds (returned by the backend/OSRM, not estimated client-side).",
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "navigationArrivalTime": "Arrivée ~{time}",
+  "@navigationArrivalTime": {
+    "description": "RouteInformationCard — time is pre-formatted via TimeOfDay.format(context) (locale/12-24h aware), not a raw value.",
+    "placeholders": { "time": { "type": "String" } }
   }
 }

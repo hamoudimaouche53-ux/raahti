@@ -25,6 +25,10 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   SUPABASE_JWT_SECRET?: string;
+
+  @IsString()
+  @IsOptional()
+  OSRM_BASE_URL?: string;
 }
 
 /**

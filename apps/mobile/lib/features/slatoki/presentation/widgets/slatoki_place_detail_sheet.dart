@@ -1,10 +1,12 @@
 import "package:flutter/material.dart";
-import "package:url_launcher/url_launcher.dart";
+import "package:go_router/go_router.dart";
 
+import "../../../../core/router/app_router.dart";
 import "../../../../core/theme/shape_tokens.dart";
 import "../../../../core/theme/spacing_tokens.dart";
 import "../../../../l10n/app_localizations.dart";
 import "../../../map_discovery/domain/entities/place.dart";
+import "../../../map_discovery/presentation/screens/navigation_screen.dart";
 import "../../domain/entities/slatoki_place.dart";
 import "slatoki_tent_status_section.dart";
 import "women_verification_section.dart";
@@ -25,30 +27,22 @@ class SlatokiPlaceDetailSheet extends StatelessWidget {
 
   Place get _place => slatokiPlace.place;
 
-  Future<void> _openRoute(BuildContext context, AppLocalizations l10n) async {
-    final Uri geoUri = Uri(
-      scheme: "geo",
-      host: "${_place.position.latitude},${_place.position.longitude}",
-      queryParameters: <String, String>{
-        "q":
-            "${_place.position.latitude},${_place.position.longitude}"
-            "(${_place.name.forLanguageCode(Localizations.localeOf(context).languageCode)})",
-      },
+  /// Opens in-app navigation (`NavigationScreen`) instead of handing off to
+  /// an external maps app — replaces this sheet's former inline
+  /// geo:-URI-then-OpenStreetMap-web-fallback logic (the same behavior
+  /// `core/utils/external_navigation_launcher.dart` centralized for
+  /// `PlaceDetailSheet`/Emergency Mode, but this sheet had its own
+  /// un-deduplicated copy).
+  void _openRoute(BuildContext context) {
+    context.push<void>(
+      AppRoutePaths.navigation,
+      extra: NavigationScreenArgs(
+        destination: _place.position,
+        destinationLabel: _place.name.forLanguageCode(
+          Localizations.localeOf(context).languageCode,
+        ),
+      ),
     );
-    final Uri webFallbackUri = Uri.parse(
-      "https://www.openstreetmap.org/?mlat=${_place.position.latitude}"
-      "&mlon=${_place.position.longitude}#map=17/${_place.position.latitude}/${_place.position.longitude}",
-    );
-
-    final bool launched =
-        await launchUrl(geoUri, mode: LaunchMode.externalApplication) ||
-        await launchUrl(webFallbackUri, mode: LaunchMode.externalApplication);
-
-    if (!launched && context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.placeDetailRouteUnavailable)));
-    }
   }
 
   String _tagLabel(AppLocalizations l10n, String tag) {
@@ -195,7 +189,7 @@ class SlatokiPlaceDetailSheet extends StatelessWidget {
               // 'Itinéraire')") — deliberately distinct from
               // PlaceDetailSheet's FilledButton, matching the wireframe.
               OutlinedButton.icon(
-                onPressed: () => _openRoute(context, l10n),
+                onPressed: () => _openRoute(context),
                 icon: const Icon(Icons.directions),
                 label: Text(l10n.placeDetailRoute),
               ),

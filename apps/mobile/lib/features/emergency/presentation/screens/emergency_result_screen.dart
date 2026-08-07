@@ -1,13 +1,15 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:go_router/go_router.dart";
 import "package:permission_handler/permission_handler.dart";
 
+import "../../../../core/router/app_router.dart";
 import "../../../../core/theme/color_tokens.dart";
 import "../../../../core/theme/shape_tokens.dart";
 import "../../../../core/theme/spacing_tokens.dart";
-import "../../../../core/utils/external_navigation_launcher.dart";
 import "../../../../l10n/app_localizations.dart";
 import "../../../map_discovery/domain/entities/location_failure.dart";
+import "../../../map_discovery/presentation/screens/navigation_screen.dart";
 import "../../domain/entities/emergency_facility_result.dart";
 import "../providers/emergency_providers.dart";
 
@@ -17,10 +19,11 @@ import "../providers/emergency_providers.dart";
 /// `EmergencyPlaceholderScreen` wholesale, per that screen's own doc
 /// comment, at the same `AppRoutePaths.emergency` route).
 ///
-/// The primary button launches **external navigation only** (confirmed
-/// product decision) — it does not enter the QR-scan flow. The user
-/// navigates there physically and manually starts the existing,
-/// unchanged QR-scan flow (SCR-013) once at the cabin.
+/// The primary button opens **in-app navigation only** (`NavigationScreen`
+/// — previously external navigation, before this feature) — it does not
+/// enter the QR-scan flow. The user navigates there inside the app and
+/// manually starts the existing, unchanged QR-scan flow (SCR-013) once at
+/// the cabin.
 class EmergencyResultScreen extends ConsumerWidget {
   const EmergencyResultScreen({super.key});
 
@@ -188,29 +191,22 @@ class _FacilityResult extends StatelessWidget {
 
   final EmergencyFacilityResult result;
 
-  Future<void> _launchNavigation(
-    BuildContext context,
-    AppLocalizations l10n,
-  ) async {
+  /// Opens in-app navigation (`NavigationScreen`) instead of handing off to
+  /// an external maps app — replaces the former `launchExternalNavigation`
+  /// call. This screen's own doc comment ("launches external navigation
+  /// only") predates this feature; the button still does nothing else
+  /// (no QR-scan flow entry) — only *where* "Route" opens changed.
+  void _launchNavigation(BuildContext context) {
     final String label = result.place.name.forLanguageCode(
       Localizations.localeOf(context).languageCode,
     );
-    final bool launched = await launchExternalNavigation(
-      lat: result.place.position.latitude,
-      lng: result.place.position.longitude,
-      label: label,
-      context: context,
-      l10n: l10n,
+    context.push<void>(
+      AppRoutePaths.navigation,
+      extra: NavigationScreenArgs(
+        destination: result.place.position,
+        destinationLabel: label,
+      ),
     );
-    // Reuses `map_discovery`'s existing generic "no navigation app
-    // available" message (`place_detail_sheet.dart`'s own fallback) rather
-    // than a near-duplicate Emergency-specific string — the condition and
-    // wording are identical, only the trigger button differs.
-    if (!launched && context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.placeDetailRouteUnavailable)));
-    }
   }
 
   String _formatDistance(double meters) {
@@ -290,7 +286,7 @@ class _FacilityResult extends StatelessWidget {
         ),
         const SizedBox(height: RahatiSpacing.space6),
         FilledButton(
-          onPressed: () => _launchNavigation(context, l10n),
+          onPressed: () => _launchNavigation(context),
           child: Text(l10n.emergencyResultButton),
         ),
       ],

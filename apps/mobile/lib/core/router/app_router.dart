@@ -11,6 +11,7 @@ import "../../features/app_shell/presentation/screens/splash_screen.dart";
 import "../../features/app_shell/presentation/widgets/rahati_nav_shell.dart";
 import "../../features/emergency/presentation/screens/emergency_result_screen.dart";
 import "../../features/map_discovery/presentation/screens/map_screen.dart";
+import "../../features/map_discovery/presentation/screens/navigation_screen.dart";
 import "../../features/map_discovery/presentation/screens/submit_review_screen.dart";
 import "../../features/profile/presentation/screens/favorites_list_screen.dart";
 import "../../features/profile/presentation/screens/language_theme_settings_screen.dart";
@@ -41,6 +42,7 @@ abstract final class AppRoutePaths {
       "/profile/notification-settings";
   static const String profileLanguageTheme = "/profile/language-theme";
   static const String submitReview = "/submit-review";
+  static const String navigation = "/navigation";
   static const String accessPaymentScan = "/access-payment/scan";
   static const String accessPaymentAvailability =
       "/access-payment/availability";
@@ -84,7 +86,11 @@ final GlobalKey<NavigatorState> _profileBranchKey = GlobalKey<NavigatorState>(
 /// SCR-009 (Qibla full-screen, US-02.1.2), SCR-013 (QR Scanner, US-04.1),
 /// SCR-014 (Cabin Availability Confirmation, US-04.2), SCR-016 (Payment
 /// Processing / SCR-018 Payment Failed, US-04.3), SCR-017 (Unlock
-/// Confirmation, US-04.4), and SCR-019 (Session Complete, US-04.6) are
+/// Confirmation, US-04.4), SCR-019 (Session Complete, US-04.6), and
+/// [AppRoutePaths.navigation] (in-app walking navigation — reached from
+/// map_discovery's `PlaceDetailSheet`, Slatoki's `SlatokiPlaceDetailSheet`,
+/// and Emergency Mode's result screen; replaces the former
+/// `launchExternalNavigation` hand-off to an external maps app) are
 /// also top-level routes, not nested under a branch, despite being
 /// reached only from Slatoki/Map respectively — every one of these
 /// wireframes explicitly calls for "full-screen, minimal chrome"; a route
@@ -171,6 +177,15 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final SubmitReviewArgs args = state.extra! as SubmitReviewArgs;
           return SubmitReviewScreen(args: args);
+        },
+      ),
+      GoRoute(
+        path: AppRoutePaths.navigation,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final NavigationScreenArgs args =
+              state.extra! as NavigationScreenArgs;
+          return NavigationScreen(args: args);
         },
       ),
       GoRoute(

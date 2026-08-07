@@ -3,11 +3,14 @@ import "dart:async";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:go_router/go_router.dart";
+import "package:rahati/core/router/app_router.dart";
 import "package:rahati/core/theme/app_theme.dart";
 import "package:rahati/features/map_discovery/domain/entities/coordinates.dart";
 import "package:rahati/features/map_discovery/domain/entities/place.dart";
 import "package:rahati/features/map_discovery/domain/entities/station_detail.dart";
 import "package:rahati/features/map_discovery/presentation/providers/place_detail_providers.dart";
+import "package:rahati/features/map_discovery/presentation/screens/navigation_screen.dart";
 import "package:rahati/features/slatoki/domain/entities/slatoki_place.dart";
 import "package:rahati/features/slatoki/domain/entities/women_verification_level.dart";
 import "package:rahati/features/slatoki/presentation/widgets/slatoki_place_detail_sheet.dart";
@@ -131,6 +134,50 @@ void main() {
     await tester.pump();
 
     expect(find.widgetWithText(OutlinedButton, "Itinéraire"), findsOneWidget);
+  });
+
+  testWidgets("tapping 'Itinéraire' opens in-app navigation "
+      "(AppRoutePaths.navigation) with the place's position/name — not an "
+      "external maps app", (WidgetTester tester) async {
+    final place = _place();
+    final GoRouter router = GoRouter(
+      initialLocation: "/",
+      routes: <RouteBase>[
+        GoRoute(
+          path: "/",
+          builder: (context, state) =>
+              Scaffold(body: SlatokiPlaceDetailSheet(slatokiPlace: place)),
+        ),
+        GoRoute(
+          path: AppRoutePaths.navigation,
+          builder: (context, state) {
+            final args = state.extra! as NavigationScreenArgs;
+            return Text(
+              "NAV_SCREEN:${args.destination.latitude},"
+              "${args.destination.longitude}:${args.destinationLabel}",
+            );
+          },
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(
+          theme: RahatiTheme.light,
+          locale: const Locale("fr"),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.widgetWithText(OutlinedButton, "Itinéraire"));
+    await tester.pumpAndSettle();
+
+    expect(find.text("NAV_SCREEN:36.75,3.06:Mosquée El Nour"), findsOneWidget);
   });
 
   testWidgets("the close button dismisses the sheet", (

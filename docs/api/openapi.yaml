@@ -23,6 +23,7 @@ tags:
   - name: Operations
   - name: Sponsorship
   - name: Notifications
+  - name: Routing
 
 security:
   - bearerAuth: []
@@ -472,6 +473,43 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  /routes/walking:
+    get:
+      tags: [Routing]
+      summary: Get a walking route between two points, for in-app navigation
+      description: >
+        Backs the in-app Navigation screen (replaces external navigation-app hand-off).
+        No authentication required (public discovery, same reasoning as GET /places/nearby) —
+        Directions is available from the Place Detail sheet before sign-in (FR-USR-01).
+        Proxies an OSRM-compatible routing engine (RoutingModule's RouteProvider port);
+        the engine is server-configured and may change without affecting this contract.
+      security: []
+      parameters:
+        - name: originLat
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: originLng
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: destLat
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: destLng
+          in: query
+          required: true
+          schema: { type: number, format: double }
+      responses:
+        "200":
+          description: Walking route
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Route" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "502": { $ref: "#/components/responses/BadGateway" }
+
   /access-sessions:
     post:
       tags: [AccessPayment]
@@ -843,6 +881,11 @@ components:
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/ProblemDetail" }
+    BadGateway:
+      description: An upstream provider (e.g. the routing engine) was unreachable or returned an unusable response
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetail" }
 
   schemas:
     ProblemDetail:
@@ -1054,6 +1097,16 @@ components:
         discountEligible:
           type: boolean
           description: "True only if caller.diabeticVerificationStatus = verified (FR-EMG-03)."
+
+    Route:
+      type: object
+      properties:
+        polyline:
+          type: string
+          description: "Encoded polyline (precision 5) — decode client-side."
+        distanceMeters: { type: number }
+        durationSeconds: { type: number }
+      required: [polyline, distanceMeters, durationSeconds]
 
     AccessSessionCreateRequest:
       type: object

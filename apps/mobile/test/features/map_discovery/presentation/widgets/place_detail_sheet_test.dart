@@ -5,6 +5,8 @@ import "package:flutter/material.dart";
 import "package:flutter/semantics.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:go_router/go_router.dart";
+import "package:rahati/core/router/app_router.dart";
 import "package:rahati/core/theme/app_theme.dart";
 import "package:rahati/features/map_discovery/domain/entities/cabin.dart";
 import "package:rahati/features/map_discovery/domain/entities/cabin_occupancy_update.dart";
@@ -16,6 +18,7 @@ import "package:rahati/features/map_discovery/domain/entities/station_detail.dar
 import "package:rahati/features/map_discovery/domain/entities/third_party_place_detail.dart";
 import "package:rahati/features/map_discovery/domain/repositories/favorite_repository.dart";
 import "package:rahati/features/map_discovery/presentation/providers/place_detail_providers.dart";
+import "package:rahati/features/map_discovery/presentation/screens/navigation_screen.dart";
 import "package:rahati/features/map_discovery/presentation/widgets/cabin_status_indicator.dart";
 import "package:rahati/features/map_discovery/presentation/widgets/place_detail_sheet.dart";
 import "package:rahati/l10n/app_localizations.dart";
@@ -225,6 +228,70 @@ void main() {
     await _pumpSheet(tester, _place());
     expect(find.text("Itinéraire"), findsOneWidget);
   });
+
+  testWidgets(
+    "tapping Route opens in-app navigation (AppRoutePaths.navigation) "
+    "with the place's position/name — not an external maps app",
+    (tester) async {
+      final place = _place();
+      final GoRouter router = GoRouter(
+        initialLocation: "/",
+        routes: <RouteBase>[
+          GoRoute(
+            path: "/",
+            builder: (context, state) => Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    useSafeArea: true,
+                    builder: (context) => PlaceDetailSheet(place: place),
+                  ),
+                  child: const Text("open"),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: AppRoutePaths.navigation,
+            builder: (context, state) {
+              final args = state.extra! as NavigationScreenArgs;
+              return Text(
+                "NAV_SCREEN:${args.destination.latitude},"
+                "${args.destination.longitude}:${args.destinationLabel}",
+              );
+            },
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp.router(
+            theme: RahatiTheme.light,
+            locale: const Locale("fr"),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.tap(find.text("open"));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text("Itinéraire"));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          "NAV_SCREEN:${place.position.latitude},"
+          "${place.position.longitude}:Station Didouche",
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets("the close button dismisses the sheet", (tester) async {
     await _pumpSheet(tester, _place());

@@ -10,6 +10,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { OperationsModule } from './modules/operations/operations.module';
 import { AccessPaymentModule } from './modules/access-payment/access-payment.module';
 import { EmergencyModule } from './modules/emergency/emergency.module';
+import { RoutingModule } from './modules/routing/routing.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { EmergencyModule } from './modules/emergency/emergency.module';
     OperationsModule,
     AccessPaymentModule,
     EmergencyModule,
+    RoutingModule,
   ],
 })
 export class AppModule {}
