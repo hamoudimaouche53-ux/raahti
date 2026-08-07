@@ -1,0 +1,26 @@
+# Docker build context exclusions. .gitignore has NO effect on `docker
+# build`'s context — this file is the only thing preventing .env (real
+# DATABASE_URL/SUPABASE_JWT_SECRET) and stray log files from being sent to
+# the Docker daemon and potentially copied into an image layer.
+
+node_modules
+dist
+coverage
+
+.env
+.env.*
+!.env.example
+
+*.log
+
+.git
+.gitignore
+
+# Editor/OS cruft
+.vscode
+.idea
+.DS_Store
+
+# Not needed inside the image; the Dockerfile only copies what it lists explicitly.
+test
+*.md

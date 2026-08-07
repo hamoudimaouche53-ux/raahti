@@ -249,3 +249,36 @@ both GIST indexes (`idx_station_position`, `idx_place_position`) survived
 intact. `npx prisma generate` was also run successfully, so
 `@prisma/client`'s generated `Review` type includes `updatedAt` and the full
 test suite (unit + e2e) passes against it.
+
+## Alpha environment migration
+
+[`docs/deployment/alpha-environment.md`](../../../docs/deployment/alpha-environment.md)
+introduces a minimal, non-production Alpha environment (real HTTPS backend
+for mobile testers — not the Phase 3/13 production topology, and not a
+resolution of ADR-0016). Every migration recorded above was authored and
+applied against a **local** Supabase stack; none has been applied against a
+hosted project, because none exists yet.
+
+Once an Alpha Supabase project is provisioned (`alpha-environment.md` §3),
+applying the existing `migrations/` directory to it needs no new authoring
+— every migration in this directory is already the real, applied-and-verified
+schema, just against `localhost` instead of a hosted `DATABASE_URL` so far.
+The command is:
+
+```
+npx prisma migrate deploy
+```
+
+run with `DATABASE_URL` pointed at the Alpha project's connection string
+(never `prisma migrate dev` against a hosted/shared database — that command
+can create a shadow database and prompt for a destructive `migrate reset`,
+neither appropriate outside a local, single-developer database). This
+mirrors exactly how the Access & Payment and Reviews Management migrations
+above were applied — `migrate deploy` is already this project's proven
+apply-only, non-interactive command for a real database.
+
+`npx prisma generate` must also be run wherever the backend is actually
+built for Alpha (handled by `apps/backend/Dockerfile`'s build stage — see
+`alpha-environment.md` §3 step 3) so the generated client's query-engine
+binary matches that build's target platform, not whatever platform
+generated it locally.
