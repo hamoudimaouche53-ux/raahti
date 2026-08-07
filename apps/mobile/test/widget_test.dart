@@ -8,6 +8,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:rahati/app.dart";
+import "package:rahati/core/widgets/brand_logo.dart";
 import "package:rahati/l10n/app_localizations.dart";
 
 void main() {
@@ -18,7 +19,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(MaterialApp), findsOneWidget);
-    expect(find.text("RAHETI"), findsOneWidget);
+    expect(find.byType(BrandLogo), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 

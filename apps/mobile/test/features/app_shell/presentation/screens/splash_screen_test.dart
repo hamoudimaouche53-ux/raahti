@@ -2,6 +2,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:rahati/core/theme/app_theme.dart";
+import "package:rahati/core/widgets/brand_logo.dart";
 import "package:rahati/features/app_shell/presentation/screens/splash_screen.dart";
 import "package:rahati/l10n/app_localizations.dart";
 
@@ -16,13 +17,13 @@ Widget _wrap(Widget child) {
 }
 
 void main() {
-  testWidgets("shows the RAHETI wordmark and a loading indicator", (
-    WidgetTester tester,
-  ) async {
+  testWidgets("shows the RAHETI brand logo (full lockup) and a loading "
+      "indicator", (WidgetTester tester) async {
     await tester.pumpWidget(_wrap(const SplashScreen()));
     await tester.pump();
 
-    expect(find.text("RAHETI"), findsOneWidget);
+    final BrandLogo logo = tester.widget<BrandLogo>(find.byType(BrandLogo));
+    expect(logo.variant, BrandLogoVariant.full);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
@@ -54,6 +55,6 @@ void main() {
     await tester.pump();
 
     expect(tester.takeException(), isNull);
-    expect(find.text("RAHETI"), findsOneWidget);
+    expect(find.byType(BrandLogo), findsOneWidget);
   });
 }

@@ -3,7 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:go_router/go_router.dart";
 
 import "../../../../core/theme/spacing_tokens.dart";
-import "../../../../core/widgets/rahati_logo_mark.dart";
+import "../../../../core/widgets/brand_logo.dart";
 import "../../../../l10n/app_localizations.dart";
 import "../../domain/repositories/auth_repository.dart";
 import "../providers/auth_providers.dart";
@@ -87,12 +87,8 @@ class _SignInSignUpScreenState extends ConsumerState<SignInSignUpScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Center(
-                child: RahatiLogoMark(
-                  color: colorScheme.primary,
-                  onColor: colorScheme.onPrimary,
-                  size: 56,
-                ),
+              const Center(
+                child: BrandLogo(variant: BrandLogoVariant.full, size: 88),
               ),
               const SizedBox(height: RahatiSpacing.space6),
               SegmentedButton<bool>(

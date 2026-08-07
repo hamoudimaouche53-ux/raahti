@@ -7,7 +7,7 @@ import "package:flutter_test/flutter_test.dart";
 import "package:go_router/go_router.dart";
 import "package:rahati/core/router/app_router.dart";
 import "package:rahati/core/theme/app_theme.dart";
-import "package:rahati/core/widgets/rahati_logo_mark.dart";
+import "package:rahati/core/widgets/brand_logo.dart";
 import "package:rahati/features/profile/domain/repositories/auth_repository.dart";
 import "package:rahati/features/profile/presentation/providers/auth_providers.dart";
 import "package:rahati/features/profile/presentation/screens/sign_in_sign_up_screen.dart";
@@ -202,16 +202,13 @@ void main() {
     },
   );
 
-  testWidgets("the logo mark's glyph uses the theme's onPrimary color, not a "
-      "hard-coded white that fails contrast in dark theme (US-06.4)", (
+  testWidgets("renders the full brand lockup, not the icon-only variant", (
     tester,
   ) async {
     await _pushViaGoRouter(tester);
 
-    final RahatiLogoMark mark = tester.widget<RahatiLogoMark>(
-      find.byType(RahatiLogoMark),
-    );
-    expect(mark.onColor, RahatiTheme.light.colorScheme.onPrimary);
+    final BrandLogo logo = tester.widget<BrandLogo>(find.byType(BrandLogo));
+    expect(logo.variant, BrandLogoVariant.full);
   });
 
   testWidgets("the submit button keeps its accessible name while its spinner "
