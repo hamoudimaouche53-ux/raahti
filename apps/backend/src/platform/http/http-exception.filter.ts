@@ -2,6 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logge
 import { Request, Response } from 'express';
 import { DomainException } from '../../shared-kernel';
 import { ProblemDetail } from './problem-detail';
+import { RateLimitExceededException } from './rate-limit.guard';
 
 const PROBLEM_TYPE_BASE = 'https://raahti.dev/errors/';
 
@@ -28,6 +29,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.error(
         `[${correlationId ?? 'no-correlation-id'}] ${problem.code}: ${(exception as Error)?.stack ?? exception}`,
       );
+    }
+
+    // RFC 6585 §4 — tells a well-behaved client exactly when it's safe to
+    // retry, instead of it guessing/backing off blind.
+    if (exception instanceof RateLimitExceededException) {
+      response.setHeader('Retry-After', String(exception.retryAfterSeconds));
     }
 
     response.status(problem.status).contentType('application/problem+json').json(problem);

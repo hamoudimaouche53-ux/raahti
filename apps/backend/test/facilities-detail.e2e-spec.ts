@@ -37,6 +37,7 @@ import {
   ThirdPartyPlaceReviewRepository,
 } from '../src/modules/third-party-places/domain/ports/third-party-place-review.repository';
 import { ThirdPartyPlaceReviewsController } from '../src/modules/third-party-places/interface/controllers/third-party-place-reviews.controller';
+import { RateLimitGuard } from '../src/platform/http/rate-limit.guard';
 
 const STATION_ID = '550e8400-e29b-41d4-a716-446655440000';
 const PLACE_ID = '6ba7b810-9dad-41d4-80b4-00c04fd430c8';
@@ -225,6 +226,9 @@ describe('Facilities detail endpoints (e2e)', () => {
         { provide: THIRD_PARTY_PLACE_REPOSITORY, useClass: FakeThirdPartyPlaceRepository },
         { provide: STATION_REVIEW_REPOSITORY, useClass: InMemoryStationReviewRepository },
         { provide: THIRD_PARTY_PLACE_REVIEW_REPOSITORY, useClass: InMemoryThirdPartyPlaceReviewRepository },
+        // Real, not stubbed — this suite's request volume per endpoint stays
+        // well under the general public tier's 60/min limit.
+        RateLimitGuard,
       ],
     }).compile();
 

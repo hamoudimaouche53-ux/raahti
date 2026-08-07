@@ -269,6 +269,7 @@ paths:
                     type: array
                     items: { $ref: "#/components/schemas/PlaceSummary" }
                   nextCursor: { type: string, nullable: true }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
 
   /stations/{stationId}:
     get:
@@ -288,6 +289,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/StationDetail" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
 
   /stations/{stationId}/cabins:
     get:
@@ -311,6 +313,7 @@ paths:
                   data:
                     type: array
                     items: { $ref: "#/components/schemas/Cabin" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
 
   /third-party-places/{placeId}:
     get:
@@ -329,6 +332,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ThirdPartyPlaceDetail" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
 
   /places/{placeType}/{placeId}/reviews:
     post:
@@ -445,6 +449,7 @@ paths:
                   data:
                     type: array
                     items: { $ref: "#/components/schemas/SlatokiPlaceSummary" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
 
   /emergency/nearest-facility:
     get:
@@ -483,6 +488,8 @@ paths:
         Directions is available from the Place Detail sheet before sign-in (FR-USR-01).
         Proxies an OSRM-compatible routing engine (RoutingModule's RouteProvider port);
         the engine is server-configured and may change without affecting this contract.
+        Rate-limited at a stricter tier than other public endpoints (api-architecture.md §9)
+        since each request costs a call to that upstream engine.
       security: []
       parameters:
         - name: originLat
@@ -508,6 +515,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Route" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
         "502": { $ref: "#/components/responses/BadGateway" }
 
   /access-sessions:
@@ -532,6 +540,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
 
   /access-sessions/{sessionId}:
     get:
@@ -582,6 +591,7 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: "#/components/schemas/ProblemDetail" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
 
   /access-sessions/{sessionId}/complete:
     post:
@@ -878,6 +888,18 @@ components:
           schema: { $ref: "#/components/schemas/ProblemDetail" }
     NotFound:
       description: Resource not found
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/ProblemDetail" }
+    TooManyRequests:
+      description: >
+        Rate limit exceeded (api-architecture.md §9). Per-caller (authenticated user, or
+        IP for guest/public endpoints), per-route token bucket. `Retry-After` gives the
+        number of seconds until at least one request is allowed again.
+      headers:
+        Retry-After:
+          description: Seconds until the caller may retry.
+          schema: { type: integer, minimum: 1 }
       content:
         application/problem+json:
           schema: { $ref: "#/components/schemas/ProblemDetail" }

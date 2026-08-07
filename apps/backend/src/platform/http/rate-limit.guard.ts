@@ -10,13 +10,35 @@ export interface RateLimitOptions {
   windowMs: number;
 }
 
+/** Shared 1-minute window every tier below uses — kept as one constant so the two tiers stay expressed in requests-per-minute, not in raw milliseconds, at every call site. */
+export const RATE_LIMIT_WINDOW_MS = 60_000;
+
 /**
- * Applies a per-route token-bucket rate limit (api-architecture.md §9:
- * "generous for read endpoints, strict for payment-initiation endpoints...
- * the architectural hook (a RateLimitGuard applied via decorator) is fixed
- * now" — exact thresholds are "a Phase 4 tuning exercise"). Mirrors how
- * `@Roles()` (platform/auth/roles.decorator.ts) attaches metadata read back
- * by a guard via `Reflector`.
+ * The two rate-limit tiers this pass introduces (api-architecture.md §9 —
+ * "generous for read endpoints... strict for payment-initiation endpoints",
+ * §14's "exact thresholds are a Phase 4 tuning exercise" resolved here):
+ *
+ * - {@link PUBLIC_RATE_LIMIT_PER_MINUTE} — every public (`@Public()`), read-only,
+ *   guest-usable endpoint (map/place/Slatoki queries per FR-USR-01). Generous:
+ *   this is the map screen's normal browsing traffic, unauthenticated by design.
+ * - {@link ROUTING_RATE_LIMIT_PER_MINUTE} — endpoints that proxy a third-party
+ *   service per request. `GET /routes/walking` is the only one today
+ *   (`OsrmRouteProvider` is the only outbound HTTP call anywhere in this
+ *   backend) — tighter than the general public tier because each request
+ *   costs a call to an external, rate-limited-itself OSRM instance, not just
+ *   a local DB query.
+ *
+ * Existing payment-initiation limits (`AccessSessionsController`, 10/min) are
+ * unchanged by this pass — already the strictest tier, already justified by
+ * api-architecture.md §9, no reason found to revisit them.
+ */
+export const PUBLIC_RATE_LIMIT_PER_MINUTE = 60;
+export const ROUTING_RATE_LIMIT_PER_MINUTE = 20;
+
+/**
+ * Applies a per-route token-bucket rate limit. Mirrors how `@Roles()`
+ * (platform/auth/roles.decorator.ts) attaches metadata read back by a guard
+ * via `Reflector`.
  */
 export const RateLimit = (limit: number, windowMs: number): MethodDecorator & ClassDecorator =>
   SetMetadata(RATE_LIMIT_KEY, { limit, windowMs } satisfies RateLimitOptions);
@@ -25,7 +47,8 @@ export class RateLimitExceededException extends DomainException {
   readonly code = 'RATE_LIMIT_EXCEEDED';
   readonly status = 429;
 
-  constructor() {
+  /** Seconds until at least one token is available again — `HttpExceptionFilter` forwards this as the `Retry-After` response header (RFC 6585 §4). */
+  constructor(readonly retryAfterSeconds: number) {
     super('Too many requests — please retry later.');
   }
 }
@@ -80,7 +103,8 @@ export class RateLimitGuard implements CanActivate {
 
     if (tokens < 1) {
       this.buckets.set(key, { tokens, lastRefillAt: now });
-      throw new RateLimitExceededException();
+      const msUntilNextToken = (1 - tokens) / refillRatePerMs;
+      throw new RateLimitExceededException(Math.ceil(msUntilNextToken / 1000));
     }
 
     this.buckets.set(key, { tokens: tokens - 1, lastRefillAt: now });

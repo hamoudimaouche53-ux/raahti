@@ -17,6 +17,7 @@ import {
   ThirdPartyPlaceSearchPage,
 } from '../src/modules/third-party-places/domain/ports/third-party-place.repository';
 import { HttpExceptionFilter } from '../src/platform/http/http-exception.filter';
+import { RateLimitGuard } from '../src/platform/http/rate-limit.guard';
 import {
   STATION_REVIEW_REPOSITORY,
   StationReviewRepository,
@@ -133,6 +134,11 @@ describe('GET /places/nearby (e2e)', () => {
         { provide: THIRD_PARTY_PLACE_REPOSITORY, useClass: FakeThirdPartyPlaceRepository },
         { provide: STATION_REVIEW_REPOSITORY, useClass: FakeStationReviewRepository },
         { provide: THIRD_PARTY_PLACE_REVIEW_REPOSITORY, useClass: FakeThirdPartyPlaceReviewRepository },
+        // This describe block exercises functional behavior, not rate limiting
+        // (that has its own dedicated describe block below with the real
+        // RateLimitGuard) — stubbed out here so these tests aren't coupled to
+        // the shared 60-req/min bucket the route is now decorated with.
+        { provide: RateLimitGuard, useValue: { canActivate: () => true } },
       ],
     }).compile();
 
@@ -184,5 +190,52 @@ describe('GET /places/nearby (e2e)', () => {
       .get('/places/nearby')
       .query({ lat: 36.75, lng: 3.05, type: 'not-a-real-type' })
       .expect(400);
+  });
+});
+
+describe('GET /places/nearby rate limiting (e2e)', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [PlacesController],
+      providers: [
+        PlacesQueryService,
+        StationQueryService,
+        ThirdPartyPlaceQueryService,
+        { provide: STATION_REPOSITORY, useClass: FakeStationRepository },
+        { provide: THIRD_PARTY_PLACE_REPOSITORY, useClass: FakeThirdPartyPlaceRepository },
+        { provide: STATION_REVIEW_REPOSITORY, useClass: FakeStationReviewRepository },
+        { provide: THIRD_PARTY_PLACE_REVIEW_REPOSITORY, useClass: FakeThirdPartyPlaceReviewRepository },
+        RateLimitGuard,
+      ],
+    }).compile();
+
+    app = moduleRef.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    app.useGlobalFilters(new HttpExceptionFilter());
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('returns 429 with a Retry-After header once the same caller (by IP) exceeds '
+    + 'the general public limit within the window — proves the public-endpoint tier is applied', async () => {
+    const server = app.getHttpServer();
+    const LIMIT = 60;
+
+    for (let i = 0; i < LIMIT; i++) {
+      await request(server).get('/places/nearby').query({ lat: 36.75, lng: 3.05 }).expect(200);
+    }
+
+    const res = await request(server).get('/places/nearby').query({ lat: 36.75, lng: 3.05 }).expect(429);
+
+    expect(res.body).toEqual(
+      expect.objectContaining({ code: 'RATE_LIMIT_EXCEEDED', status: 429 }),
+    );
+    expect(res.headers['retry-after']).toBeDefined();
+    expect(Number(res.headers['retry-after'])).toBeGreaterThan(0);
   });
 });

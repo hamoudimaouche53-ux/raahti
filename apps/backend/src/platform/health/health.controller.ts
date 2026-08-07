@@ -15,6 +15,12 @@ import { PrismaService } from '../database/prisma.service';
  * defeats its purpose — infrastructure liveness/readiness probes (load
  * balancers, container orchestrators, uptime monitors) never carry an
  * end-user JWT. Bug, not a design choice; fixed here.
+ *
+ * Deliberately **not** `@RateLimit`-decorated, unlike every other `@Public()`
+ * route (api-architecture.md §9) — this endpoint exists specifically to be
+ * polled frequently by load balancers/orchestrators/uptime monitors; rate
+ * limiting it would make infrastructure tooling intermittently see the
+ * service as unhealthy. Do not add one.
  */
 @Public()
 @ApiExcludeController()

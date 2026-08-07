@@ -51,7 +51,12 @@ Follows **RFC 7807 (`application/problem+json`)**:
 - All state-changing payment endpoints (`POST /v1/access-sessions`, `POST /v1/access-sessions/{id}/payments`) require an `Idempotency-Key` header. The backend deduplicates on `(user, key)` for a rolling 24h window, preventing double-charge on client retry — directly mitigating Risk R-11/R-12 (unlock/payment reliability under flaky station or client connectivity).
 
 ## 9. Rate Limiting
-- Per-user/IP token-bucket limiting at the API/Interface layer (NestJS guard), tuned per endpoint class: generous for read endpoints (map/place queries), strict for payment-initiation endpoints. Exact thresholds are a Phase 4 tuning exercise; the architectural hook (a `RateLimitGuard` applied via decorator) is fixed now.
+- Per-user/IP token-bucket limiting at the API/Interface layer (`RateLimitGuard`, applied per-route via the `@RateLimit(limit, windowMs)` decorator — `apps/backend/src/platform/http/rate-limit.guard.ts`), keyed on the authenticated caller's `sub`, falling back to the request IP for `@Public()` routes. Three tiers, implemented:
+  - **General public** — 60 requests/minute/caller. Every `@Public()`, read-only, guest-usable endpoint (`GET /places/nearby`, `GET /stations/{id}`, `GET /stations/{id}/cabins`, `GET /third-party-places/{id}`, `GET /slatoki/places`).
+  - **Routing (public, proxies a third party)** — 20 requests/minute/caller. `GET /routes/walking` specifically: each request costs a call to the upstream OSRM engine (`RoutingModule`'s `RouteProvider` port), so it gets a stricter tier than other public reads.
+  - **Payment-initiation** — 10 requests/minute/caller, pre-dating this section's update. `POST /access-sessions`, `POST /access-sessions/{id}/payments`.
+  - `GET /health` is deliberately **not** rate-limited — it exists to be polled frequently by infrastructure (load balancers, orchestrators, uptime monitors), and isn't part of the public client contract (§11).
+  - 429 responses carry a `Retry-After` header (seconds until the caller's bucket has at least one token again) and the standard `ProblemDetail` body — see `components.responses.TooManyRequests` in [`openapi.yaml`](./openapi.yaml).
 
 ## 10. Real-Time Channels (non-REST)
 Real-time cabin/alert updates (FR-PAY-05, FR-OPS-01) use **Supabase Realtime** (Postgres logical replication over WebSocket), not polling REST endpoints. Channel naming convention: `station:{stationId}:cabins`, `ops:alerts`. This is documented here because it is part of the public client-facing contract even though it is not an HTTP endpoint; see [Data Flow Diagrams](../architecture/data-flow-diagrams.md) for the full path from IoT telemetry to Realtime broadcast.
@@ -66,7 +71,6 @@ The IoT ingestion service's inbound path (MQTT topic → internal webhook into `
 - JWT custom-claim role embedding (§3) assumes Supabase Auth's custom-claims/hook mechanism is used to inject `role`/`site_scope` at token-issuance time — a Phase 4 implementation detail consistent with [ADR-0009](../adr/0009-authentication-and-rbac.md).
 
 ## 14. Open Questions
-- Exact rate-limit thresholds (§9) — Phase 4 tuning.
 - API deprecation-window governance process — to be formalized when `/v2` first becomes necessary.
 
 ## 15. Completion Status

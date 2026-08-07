@@ -26,6 +26,7 @@ import {
   ThirdPartyPlaceReviewRepository,
 } from '../src/modules/third-party-places/domain/ports/third-party-place-review.repository';
 import { HttpExceptionFilter } from '../src/platform/http/http-exception.filter';
+import { RateLimitGuard } from '../src/platform/http/rate-limit.guard';
 import { GeoPosition } from '../src/shared-kernel';
 
 class FakeStationRepository implements StationRepository {
@@ -175,6 +176,9 @@ describe('GET /slatoki/places (e2e)', () => {
         { provide: THIRD_PARTY_PLACE_REPOSITORY, useClass: FakeThirdPartyPlaceRepository },
         { provide: STATION_REVIEW_REPOSITORY, useClass: FakeStationReviewRepository },
         { provide: THIRD_PARTY_PLACE_REVIEW_REPOSITORY, useClass: FakeThirdPartyPlaceReviewRepository },
+        // Real, not stubbed — this suite's request volume stays well under
+        // the general public tier's 60/min limit.
+        RateLimitGuard,
       ],
     }).compile();
 
