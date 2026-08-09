@@ -25,7 +25,7 @@ class MockPaymentRepository implements PaymentRepository {
   @override
   Future<AccessSession> requestPayment({
     required String accessSessionId,
-    required String paymentMethodId,
+    required String? paymentMethodId,
     required bool applyEmergencyDiscount,
     required String idempotencyKey,
   }) async {
@@ -33,7 +33,10 @@ class MockPaymentRepository implements PaymentRepository {
 
     final AuthorizationResult authResult = await _gateway.authorize(
       amount: amount,
-      paymentMethodRef: paymentMethodId,
+      // Free-cabin path (no saved method needed) — `PaymentGateway.authorize`
+      // still requires a ref to simulate against; a fixed sentinel is fine
+      // since a free authorization is never actually charged.
+      paymentMethodRef: paymentMethodId ?? "free-access",
       idempotencyKey: idempotencyKey,
     );
     if (!authResult.approved) {

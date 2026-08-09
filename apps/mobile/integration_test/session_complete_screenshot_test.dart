@@ -120,7 +120,7 @@ class _SuccessfulPaymentRepository implements PaymentRepository {
   @override
   Future<AccessSession> requestPayment({
     required String accessSessionId,
-    required String paymentMethodId,
+    required String? paymentMethodId,
     required bool applyEmergencyDiscount,
     required String idempotencyKey,
   }) async {

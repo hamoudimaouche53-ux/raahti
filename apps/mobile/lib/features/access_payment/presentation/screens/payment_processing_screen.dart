@@ -25,7 +25,9 @@ class PaymentProcessingArgs {
   });
 
   final String accessSessionId;
-  final String paymentMethodId;
+  // `null` for a free cabin (no saved method needed to authorize a $0
+  // charge) — see `PaymentRepository`'s doc comment.
+  final String? paymentMethodId;
 }
 
 /// SCR-016/018 — Payment Processing (US-04.3, FR-PAY-03/04) and its
@@ -51,7 +53,7 @@ class PaymentProcessingScreen extends ConsumerStatefulWidget {
   });
 
   final String accessSessionId;
-  final String paymentMethodId;
+  final String? paymentMethodId;
 
   @override
   ConsumerState<PaymentProcessingScreen> createState() =>

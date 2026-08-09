@@ -236,9 +236,18 @@ class _PaymentMethodSelectionSheetState
             ),
             const SizedBox(height: RahatiSpacing.space3),
             FilledButton(
-              onPressed: _selectedMethodId == null
+              // A free cabin (amount "0") needs no saved method to
+              // authorize a $0 charge — `PaymentRepository.requestPayment`
+              // accepts `paymentMethodId: null` for exactly this case, so
+              // the button stays enabled without a selection. Pops ""
+              // (not null) in that case — the caller's `paymentMethodId
+              // == null` check means "user dismissed," so an intentional
+              // free-access confirmation needs a distinguishable value;
+              // the caller converts "" back to null before calling
+              // `PaymentRepository`.
+              onPressed: _selectedMethodId == null && widget.amount.amount != "0"
                   ? null
-                  : () => Navigator.of(context).pop(_selectedMethodId),
+                  : () => Navigator.of(context).pop(_selectedMethodId ?? ""),
               child: Text(
                 l10n.paymentMethodPayButton(
                   "${widget.amount.amount} ${widget.amount.currency}",

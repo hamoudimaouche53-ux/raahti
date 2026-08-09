@@ -16,7 +16,7 @@ class RequestPayment {
 
   Future<AccessSession> call({
     required String accessSessionId,
-    required String paymentMethodId,
+    required String? paymentMethodId,
     bool applyEmergencyDiscount = false,
   }) {
     final String idempotencyKey = _idempotencyKeyGenerator.generate();

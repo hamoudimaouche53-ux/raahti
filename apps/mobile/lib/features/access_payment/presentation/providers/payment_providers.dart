@@ -99,7 +99,7 @@ class PaymentNotifier extends AsyncNotifier<AccessSession?> {
   /// retry (same underlying eligibility) can still use it.
   Future<void> submit({
     required String accessSessionId,
-    required String paymentMethodId,
+    required String? paymentMethodId,
   }) async {
     state = const AsyncLoading<AccessSession?>();
     final RequestPayment useCase = ref.read(requestPaymentProvider);

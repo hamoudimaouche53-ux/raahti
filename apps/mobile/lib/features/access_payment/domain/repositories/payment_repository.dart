@@ -47,21 +47,26 @@ class PaymentRequestFailure extends PaymentRepositoryFailure {
 /// one request/response — there is no separate "unlock request" call from
 /// the mobile app.
 ///
-/// Only invoked for paid cabins — a free cabin's `AccessSession` reaches
-/// `AccessSessionStatus.unlocked` directly from `POST /access-sessions`,
-/// skipping SCR-015/016 entirely per the approved user flow.
+/// Invoked for every cabin, paid or free — `POST /access-sessions` alone
+/// never returns `AccessSessionStatus.unlocked` (confirmed against the
+/// backend: `InitiateAccessSessionService` always creates a session with
+/// status `initiated`; the free-cabin auto-unlock only happens inside this
+/// endpoint's handler). For a free cabin, [paymentMethodId] is `null` — the
+/// backend's `PaymentRequest.paymentMethodId` is documented optional for
+/// exactly this case.
 abstract interface class PaymentRepository {
-  /// [paymentMethodId] identifies a saved payment method (SCR-015).
-  /// [applyEmergencyDiscount] is accepted for forward-compatibility with
-  /// EPIC-03's Mode Urgence discount (see `DiscountRate`'s doc comment) —
-  /// this epic never sets it `true`.
+  /// [paymentMethodId] identifies a saved payment method (SCR-015), or
+  /// `null` for a free cabin (no method is needed to authorize a $0
+  /// charge). [applyEmergencyDiscount] is accepted for forward-compatibility
+  /// with EPIC-03's Mode Urgence discount (see `DiscountRate`'s doc
+  /// comment) — this epic never sets it `true`.
   ///
   /// Per ADR-0026 Decision 1, the caller (not this port) is responsible
   /// for bounding how long it waits on this call — this method itself
   /// simply awaits the backend's response, however long that takes.
   Future<AccessSession> requestPayment({
     required String accessSessionId,
-    required String paymentMethodId,
+    required String? paymentMethodId,
     required bool applyEmergencyDiscount,
     required String idempotencyKey,
   });

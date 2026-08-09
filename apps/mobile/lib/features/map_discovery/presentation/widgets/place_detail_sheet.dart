@@ -53,12 +53,14 @@ class PlaceDetailSheet extends ConsumerWidget {
   final Place place;
 
   /// SCR-013 → SCR-014 (already resolved by the time this returns) →
-  /// branches per `AccessSession.status`: `unlocked` means a free
-  /// cabin already got direct access from `POST /access-sessions` alone
-  /// (`AccessSessionRepository`'s own doc comment) — SCR-015/016 are
-  /// skipped entirely, straight to SCR-017 (US-04.4), per the approved
-  /// user flow. Any other status (`initiated`) means a paid cabin —
-  /// proceeds to [_payAndUnlock].
+  /// branches per `AccessSession.status`. `POST /access-sessions` always
+  /// creates the session as `initiated` regardless of free/paid (confirmed
+  /// against the backend — `InitiateAccessSessionService` never
+  /// auto-unlocks) — the `unlocked` branch below is defensive, not the
+  /// normal free-cabin path. Every scan proceeds to [_payAndUnlock], which
+  /// itself skips the payment-method requirement (but still calls
+  /// `POST /access-sessions/{id}/payments`, with `paymentMethodId: null`)
+  /// for a free cabin — see `PaymentMethodSelectionSheet`'s doc comment.
   Future<void> _scanQr(
     BuildContext context,
     WidgetRef ref,
@@ -136,12 +138,16 @@ class PlaceDetailSheet extends ConsumerWidget {
   ) async {
     while (true) {
       if (!context.mounted) return;
-      final String? paymentMethodId = await showModalBottomSheet<String>(
+      final String? sheetResult = await showModalBottomSheet<String>(
         context: context,
         isScrollControlled: true,
         builder: (context) => PaymentMethodSelectionSheet(amount: amount),
       );
-      if (paymentMethodId == null || !context.mounted) return;
+      // `null` means the user dismissed the sheet without confirming.
+      // "" is `PaymentMethodSelectionSheet`'s free-cabin sentinel (see its
+      // doc comment) — a real confirmation with no method needed.
+      if (sheetResult == null || !context.mounted) return;
+      final String? paymentMethodId = sheetResult.isEmpty ? null : sheetResult;
 
       final Object? outcome = await context.push<Object>(
         AppRoutePaths.accessPaymentProcessing,

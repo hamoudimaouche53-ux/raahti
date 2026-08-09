@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:geolocator/geolocator.dart";
 
 import "../../domain/entities/coordinates.dart";
@@ -36,13 +38,32 @@ class DeviceLocationDataSource {
       throw const LocationPermissionDeniedForeverFailure();
     }
 
-    final Position position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-    );
-    return Coordinates(
-      latitude: position.latitude,
-      longitude: position.longitude,
-    );
+    try {
+      final Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+      return Coordinates(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+    } on TimeoutException {
+      // A fresh high-accuracy fix can hang indefinitely on some devices —
+      // confirmed live during Real Device QA (11+ min stuck on a device
+      // with a working location subsystem: watchPosition's stream, used
+      // for the live blue-dot marker, kept emitting fine throughout). Fall
+      // back to the last cached fix rather than leaving nearbyPlacesProvider
+      // (which awaits this future) — and the map's "locating…" banner —
+      // stuck forever with no recovery.
+      final Position? lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown == null) rethrow;
+      return Coordinates(
+        latitude: lastKnown.latitude,
+        longitude: lastKnown.longitude,
+      );
+    }
   }
 
   /// Continuous position updates — FR-MAP-06's "position tracking" (the
