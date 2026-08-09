@@ -12,8 +12,11 @@ export class UserProfileService {
   async getOrCreateCurrentUser(claims: AuthenticatedPrincipal): Promise<User> {
     const candidate = User.create({
       id: claims.sub,
-      email: claims.email ?? null,
-      phone: claims.phone ?? null,
+      email: claims.email || null,
+      // Supabase issues "" (not absent/null) for phone on email-only signups;
+      // `??` doesn't catch that, and User.phone is @unique — every phone-less
+      // user would collide on the empty string. Normalize falsy to null.
+      phone: claims.phone || null,
     });
     return this.userRepository.findOrCreate(candidate);
   }
