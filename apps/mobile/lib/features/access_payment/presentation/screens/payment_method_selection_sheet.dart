@@ -245,7 +245,8 @@ class _PaymentMethodSelectionSheetState
               // free-access confirmation needs a distinguishable value;
               // the caller converts "" back to null before calling
               // `PaymentRepository`.
-              onPressed: _selectedMethodId == null && widget.amount.amount != "0"
+              onPressed:
+                  _selectedMethodId == null && widget.amount.amount != "0"
                   ? null
                   : () => Navigator.of(context).pop(_selectedMethodId ?? ""),
               child: Text(
